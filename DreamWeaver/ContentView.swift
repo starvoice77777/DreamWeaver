@@ -1,24 +1,24 @@
-//
-//  ContentView.swift
-//  DreamWeaver
-//
-//  Created by hu on 2026/7/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var appState: AppState
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            RootTabView()
+                .opacity(appState.showLaunch ? 0 : 1)
+
+            if appState.showLaunch {
+                LaunchDreamView()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
         }
-        .padding()
+        .animation(.easeInOut(duration: 0.8), value: appState.showLaunch)
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
 }

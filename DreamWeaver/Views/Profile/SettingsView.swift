@@ -1,0 +1,160 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        List {
+            Section("播放") {
+                NavigationLink("默认进入场景") {
+                    DefaultScenePicker()
+                        .environmentObject(appState)
+                }
+                Toggle("自动播放", isOn: $appState.autoPlayEnabled)
+                Toggle("后台播放", isOn: $appState.backgroundPlayEnabled)
+                Toggle("锁屏播放", isOn: $appState.lockScreenPlayEnabled)
+                Picker("音频质量", selection: $appState.audioQuality) {
+                    Text("标准").tag("标准")
+                    Text("高品质").tag("高品质")
+                    Text("节省流量").tag("节省流量")
+                }
+            }
+
+            Section("通知与存储") {
+                Toggle("通知设置", isOn: $appState.notificationsEnabled)
+                NavigationLink("下载与存储") {
+                    SettingsDetailPage(
+                        title: "下载与存储",
+                        bodyText: "演示模式下声音与场景均保存在本地内存，不会占用额外下载空间。"
+                    )
+                }
+            }
+
+            Section("显示与动画") {
+                Toggle("深色模式", isOn: $appState.darkModeForced)
+                HStack {
+                    Text("动画强度")
+                    Slider(value: $appState.animationIntensity, in: 0.2...1)
+                        .tint(DreamTheme.mistBlue)
+                        .accessibilityLabel("动画强度")
+                }
+                Toggle("减少动态效果", isOn: $appState.reduceMotion)
+            }
+
+            Section("辅助功能") {
+                NavigationLink("辅助功能") {
+                    SettingsDetailPage(
+                        title: "辅助功能",
+                        bodyText: "支持动态字体、较大点击区域，以及减少动态效果。重要状态不只依赖颜色表达。"
+                    )
+                }
+            }
+
+            Section("隐私与权限") {
+                NavigationLink("隐私与权限") {
+                    SettingsDetailPage(
+                        title: "隐私与权限",
+                        bodyText: "织梦重视你的隐私。演示版不会上传录音，也不会连接服务器。"
+                    )
+                }
+                NavigationLink("麦克风权限") {
+                    SettingsDetailPage(
+                        title: "麦克风权限",
+                        bodyText: "演示录制不会真正请求麦克风。正式版本会在录制前说明用途。"
+                    )
+                }
+                NavigationLink("本地文件权限") {
+                    SettingsDetailPage(
+                        title: "本地文件权限",
+                        bodyText: "演示上传不会读取真实文件。正式版本仅在你选择时访问本地录音。"
+                    )
+                }
+            }
+
+            Section("关于") {
+                NavigationLink("用户协议") {
+                    SettingsDetailPage(title: "用户协议", bodyText: "这是演示用的用户协议摘要。使用织梦即表示你理解本应用当前为前端演示版本。")
+                }
+                NavigationLink("隐私政策") {
+                    SettingsDetailPage(title: "隐私政策", bodyText: "演示版不会收集个人数据，也不会进行云端同步。")
+                }
+                NavigationLink("意见反馈") {
+                    SettingsDetailPage(title: "意见反馈", bodyText: "如有想法，可以在比赛演示后告诉我们。感谢你的陪伴。")
+                }
+                NavigationLink("关于织梦") {
+                    SettingsDetailPage(
+                        title: "关于织梦",
+                        bodyText: "织梦是一款以场景为核心的沉浸式助眠应用。通过动态场景、氛围动画、空间声音和熟悉的陪伴声音，提供温和克制的睡前体验。\n\n版本 0.1 Demo"
+                    )
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(DreamTheme.deepBlue.ignoresSafeArea())
+        .navigationTitle("设置")
+        .navigationBarTitleDisplayMode(.inline)
+        .tint(DreamTheme.mistBlue)
+        .onChange(of: appState.autoPlayEnabled) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.backgroundPlayEnabled) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.lockScreenPlayEnabled) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.reduceMotion) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.darkModeForced) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.animationIntensity) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.audioQuality) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.notificationsEnabled) { _, _ in appState.persistSettings() }
+    }
+}
+
+struct DefaultScenePicker: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        List {
+            ForEach(appState.scenes) { scene in
+                Button {
+                    appState.currentSceneId = scene.id
+                    appState.persistSettings()
+                } label: {
+                    HStack {
+                        Text(scene.name)
+                            .foregroundStyle(DreamTheme.moonWhite)
+                        Spacer()
+                        if appState.currentSceneId == scene.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(DreamTheme.warmApricot)
+                        }
+                    }
+                }
+                .listRowBackground(Color.white.opacity(0.05))
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(DreamTheme.deepBlue.ignoresSafeArea())
+        .navigationTitle("默认进入场景")
+    }
+}
+
+struct SettingsDetailPage: View {
+    let title: String
+    let bodyText: String
+
+    var body: some View {
+        ScrollView {
+            Text(bodyText)
+                .font(.system(size: 15))
+                .foregroundStyle(DreamTheme.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+        }
+        .background(DreamTheme.deepBlue.ignoresSafeArea())
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SettingsView()
+            .environmentObject(AppState())
+    }
+}
