@@ -26,6 +26,7 @@ struct SceneAtmosphereView: View {
                 case .cloudBreath: drawCloudBreath(context: &context, size: size, t: t)
                 case .summerInsects: drawInsects(context: &context, size: size, t: t)
                 case .fireplaceWhisper: drawFire(context: &context, size: size, t: t)
+                case .hairCare: drawWarmLamp(context: &context, size: size, t: t)
                 }
             }
         }

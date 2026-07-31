@@ -127,6 +127,17 @@ struct SceneCardView: View {
                                 .accessibilityLabel("正在播放")
                         }
                     }
+                    .overlay(alignment: .bottomTrailing) {
+                        if scene.isDemoPlayable {
+                            Text("可试听")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(DreamTheme.midnight)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(DreamTheme.moonWhite.opacity(0.9)))
+                                .padding(8)
+                        }
+                    }
 
                 Button {
                     appState.toggleFavorite(sceneId: scene.id)

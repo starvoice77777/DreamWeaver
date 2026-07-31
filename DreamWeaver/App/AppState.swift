@@ -9,15 +9,13 @@ final class AppState: ObservableObject {
     @Published var currentSceneId: UUID
     @Published var isPlaying = true
     @Published var timerOption: TimerOption = .autoStop
-    /// Elapsed fraction 0...1 for countdown timer chips (10 / 30 / 60 min).
+    /// Elapsed fraction 0...1 for countdown timer chips.
     @Published private(set) var timerElapsedProgress: Double = 0
     @Published var soundAssets: [SoundAsset]
     @Published var usageRecord: UsageRecord
     @Published var savedMixes: [SavedMix] = []
     @Published var mixPresets: [MixPreset]
-    /// 「我的」可编辑；选中官方预设时仅试听，不可改，也不覆盖「我的」。
     @Published var mixBoardSelection: MixBoardSelection = .mine
-    /// Per-scene personal mix snapshots. Preset switches never mutate these.
     private var personalMixByScene: [UUID: [SoundSource]] = [:]
 
     @Published var showLaunch = true
@@ -43,20 +41,49 @@ final class AppState: ObservableObject {
     @Published var playbackProgress: Double = 0.22
     @Published var previewingSoundId: UUID?
     @Published var userIsInteracting = false
+    @Published var lastServiceMessage: String?
+    @Published var showDemoControls = true
 
     let isFirstLaunch: Bool
+    let contentService: LocalContentService
+    let libraryService: LocalUserLibraryService
+    let seedPipeline: LocalSeedPipelineService
+    let analyticsService: LocalAnalyticsService
+    let playback: LocalPlaybackService
 
     private let defaults = UserDefaults.standard
-    private var progressTimer: Timer?
-    private var sleepTimerTick: Timer?
-    private var sleepTimerStartedAt: Date?
-    private var sleepTimerDuration: TimeInterval = 0
+    private let store = DemoPersistenceStore.shared
     private var hideControlsTask: Task<Void, Never>?
     private var hideTitleTask: Task<Void, Never>?
     private var hideMixPaletteTask: Task<Void, Never>?
     private var idleReturnToNowTask: Task<Void, Never>?
+    private var sessionStartedAt: Date?
 
-    init() {
+    convenience init() {
+        self.init(
+            contentService: LocalContentService(),
+            libraryService: LocalUserLibraryService(),
+            seedPipeline: LocalSeedPipelineService(),
+            analyticsService: LocalAnalyticsService(),
+            playback: LocalPlaybackService()
+        )
+    }
+
+    init(
+        contentService: LocalContentService,
+        libraryService: LocalUserLibraryService,
+        seedPipeline: LocalSeedPipelineService,
+        analyticsService: LocalAnalyticsService,
+        playback: LocalPlaybackService
+    ) {
+        self.contentService = contentService
+        self.libraryService = libraryService
+        self.seedPipeline = seedPipeline
+        self.analyticsService = analyticsService
+        self.playback = playback
+
+        store.migrateIfNeeded()
+
         let storedFirst = defaults.object(forKey: "dw.hasLaunched") == nil
         isFirstLaunch = storedFirst
         defaults.set(true, forKey: "dw.hasLaunched")
@@ -73,27 +100,22 @@ final class AppState: ObservableObject {
         isAppleSignedIn = defaults.object(forKey: "dw.appleSignIn") as? Bool ?? true
         isMember = defaults.object(forKey: "dw.member") as? Bool ?? true
 
-        let allScenes = MockDataService.makeScenes()
-        scenes = allScenes
+        scenes = MockDataService.makeScenes()
         soundAssets = MockDataService.makeSoundAssets()
         usageRecord = MockDataService.makeUsageRecord()
         mixPresets = MockDataService.makeMixPresets()
         mixBoardSelection = .mine
+        currentSceneId = DemoIDs.hairCareScene
 
-        if let lastIdString = defaults.string(forKey: "dw.lastSceneId"),
-           let lastId = UUID(uuidString: lastIdString),
-           allScenes.contains(where: { $0.id == lastId }) {
-            currentSceneId = lastId
-        } else if let defaultScene = allScenes.first(where: { $0.name == MockDataService.defaultSceneName }) {
-            currentSceneId = defaultScene.id
-        } else {
-            currentSceneId = allScenes[0].id
+        if let mixStore = store.loadPersonalMix() {
+            for (key, value) in mixStore.byScene {
+                if let id = UUID(uuidString: key) {
+                    personalMixByScene[id] = value
+                }
+            }
         }
 
-        personalMixByScene[currentSceneId] = allScenes.first(where: { $0.id == currentSceneId })?.soundSources ?? []
-
-        isPlaying = autoPlayEnabled
-        startProgressSimulation()
+        Task { await self.bootstrap() }
     }
 
     var currentScene: DreamScene {
@@ -102,6 +124,66 @@ final class AppState: ObservableObject {
 
     var currentSceneIndex: Int {
         scenes.firstIndex(where: { $0.id == currentSceneId }) ?? 0
+    }
+
+    // MARK: - Bootstrap
+
+    func bootstrap() async {
+        do {
+            let loadedScenes = try await contentService.fetchScenes()
+            scenes = loadedScenes
+            soundAssets = try await libraryService.fetchAssets()
+            usageRecord = try await analyticsService.summary()
+            mixPresets = try await contentService.fetchMixPresets(sceneStyle: nil)
+
+            if let lastIdString = defaults.string(forKey: "dw.lastSceneId"),
+               let lastId = UUID(uuidString: lastIdString),
+               loadedScenes.contains(where: { $0.id == lastId }) {
+                currentSceneId = lastId
+            } else if loadedScenes.contains(where: { $0.id == DemoIDs.hairCareScene }) {
+                currentSceneId = DemoIDs.hairCareScene
+            } else if let defaultScene = loadedScenes.first(where: { $0.name == MockDataService.defaultSceneName }) {
+                currentSceneId = defaultScene.id
+            } else if let first = loadedScenes.first {
+                currentSceneId = first.id
+            }
+
+            if let personal = personalMixByScene[currentSceneId] {
+                mutateCurrentSources { $0 = personal }
+            } else {
+                personalMixByScene[currentSceneId] = currentScene.soundSources
+            }
+
+            isPlaying = autoPlayEnabled
+            reloadPlayback(autoPlay: autoPlayEnabled)
+        } catch {
+            lastServiceMessage = error.localizedDescription
+        }
+    }
+
+    /// Restores fixture data for filming. Call before each take.
+    func resetDemoState() {
+        store.resetAllDemoKeys()
+        scenes = MockDataService.makeScenes()
+        soundAssets = MockDataService.makeSoundAssets()
+        usageRecord = MockDataService.makeUsageRecord()
+        mixPresets = MockDataService.makeMixPresets()
+        personalMixByScene = [:]
+        savedMixes = []
+        currentSceneId = DemoIDs.hairCareScene
+        defaults.set(DemoIDs.hairCareScene.uuidString, forKey: "dw.lastSceneId")
+        timerOption = .autoStop
+        timerElapsedProgress = 0
+        playback.cancelSleepTimer()
+        mixBoardSelection = .mine
+        personalMixByScene[currentSceneId] = currentScene.soundSources
+        lastServiceMessage = "已重置为标准演示状态"
+        reloadPlayback(autoPlay: autoPlayEnabled)
+        Task {
+            try? await libraryService.resetToFixture()
+            try? await analyticsService.resetDemoStats()
+            try? contentService.persistSceneOverlay(scenes: scenes)
+        }
     }
 
     // MARK: - Launch
@@ -113,59 +195,76 @@ final class AppState: ObservableObject {
         showSceneTitleTemporarily()
         scheduleHideControls()
         if autoPlayEnabled {
-            isPlaying = true
+            playback.play()
+            isPlaying = playback.isPlaying
         }
+        sessionStartedAt = Date()
     }
 
     // MARK: - Playback
 
     func togglePlayback() {
-        isPlaying.toggle()
         if isPlaying {
-            startProgressSimulation()
+            isPlaying = false
+            playback.pause()
+        } else {
+            playback.play()
+            isPlaying = playback.isPlaying
         }
         bumpInteraction()
     }
 
     func setTimerOption(_ option: TimerOption) {
         timerOption = option
-        sleepTimerTick?.invalidate()
-        sleepTimerTick = nil
         timerElapsedProgress = 0
-        sleepTimerStartedAt = nil
-        sleepTimerDuration = 0
+        playback.cancelSleepTimer()
 
-        guard option.showsCountdownFill, let minutes = option.minutes else { return }
+        guard option.showsCountdownFill || option == .demoAccelerated else { return }
 
-        sleepTimerDuration = TimeInterval(minutes * 60)
-        sleepTimerStartedAt = Date()
-        sleepTimerTick = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.tickSleepTimer()
+        playback.startSleepTimer(
+            option: option,
+            onTick: { [weak self] progress in
+                self?.timerElapsedProgress = progress
+            },
+            onFinished: { [weak self] in
+                guard let self else { return }
+                self.isPlaying = false
+                self.timerElapsedProgress = 1
+                self.recordSessionEnd()
             }
+        )
+    }
+
+    private func reloadPlayback(autoPlay: Bool) {
+        do {
+            try playback.load(scene: currentScene, sources: currentScene.soundSources.filter(\.isEnabled))
+            playbackProgress = playback.progress
+            if autoPlay {
+                playback.play()
+                isPlaying = playback.isPlaying
+            }
+            if let message = playback.lastErrorMessage {
+                lastServiceMessage = message
+            }
+        } catch {
+            lastServiceMessage = error.localizedDescription
         }
     }
 
-    private func tickSleepTimer() {
-        guard let started = sleepTimerStartedAt, sleepTimerDuration > 0 else { return }
-        let elapsed = Date().timeIntervalSince(started)
-        timerElapsedProgress = min(max(elapsed / sleepTimerDuration, 0), 1)
-        if timerElapsedProgress >= 1 {
-            sleepTimerTick?.invalidate()
-            sleepTimerTick = nil
-            isPlaying = false
-        }
+    private func pushSpatialToPlayback() {
+        playback.syncSources(currentScene.soundSources)
+        playbackProgress = playback.progress
     }
 
-    func startProgressSimulation() {
-        progressTimer?.invalidate()
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            Task { @MainActor [weak self] in
-                guard let self, self.isPlaying else { return }
-                self.playbackProgress = min(self.playbackProgress + 0.0035, 0.97)
-            }
-        }
+    private func pushSourceToPlayback(id: UUID) {
+        guard let source = currentScene.soundSources.first(where: { $0.id == id }) else { return }
+        playback.updateSource(
+            id: source.id,
+            volume: source.volume,
+            pan: LocalPlaybackService.pan(from: source.position),
+            enabled: source.isEnabled
+        )
+        playbackProgress = playback.progress
     }
 
     // MARK: - Controls visibility
@@ -354,7 +453,6 @@ final class AppState: ObservableObject {
         let hold = reduceMotion ? 0.08 : 0.28
         let fadeIn = reduceMotion ? 0.2 : 0.9
 
-        // Keep the world under a soft curtain while we land on「此刻」.
         withAnimation(.easeInOut(duration: fadeOut)) {
             isTransitioningScene = true
             controlsVisible = false
@@ -381,6 +479,9 @@ final class AppState: ObservableObject {
             }
             cancelReturnToNow()
 
+            reloadPlayback(autoPlay: true)
+            sessionStartedAt = Date()
+
             try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
 
             withAnimation(.easeInOut(duration: fadeIn)) {
@@ -396,19 +497,41 @@ final class AppState: ObservableObject {
     func toggleFavorite(sceneId: UUID) {
         guard let idx = scenes.firstIndex(where: { $0.id == sceneId }) else { return }
         scenes[idx].isFavorite.toggle()
+        try? contentService.persistSceneOverlay(scenes: scenes)
         bumpInteraction()
     }
 
-    /// 「常用」由聆听次数决定，始终只保留前 6 个场景。
     func recordListening(sceneId: UUID) {
         guard let idx = scenes.firstIndex(where: { $0.id == sceneId }) else { return }
         scenes[idx].listenCount += 1
         refreshFrequentScenes()
         usageRecord.lastUsedAt = Date()
+        try? contentService.persistSceneOverlay(scenes: scenes)
+        Task {
+            try? await analyticsService.record(.sceneListen(sceneId: sceneId))
+            if let summary = try? await analyticsService.summary() {
+                usageRecord = summary
+            }
+        }
     }
 
     func refreshFrequentScenes() {
         scenes = MockDataService.markTopFrequentScenes(scenes)
+    }
+
+    private func recordSessionEnd() {
+        let seconds: Int
+        if let started = sessionStartedAt {
+            seconds = max(Int(Date().timeIntervalSince(started)), 30)
+        } else {
+            seconds = 60
+        }
+        Task {
+            try? await analyticsService.record(.sessionEnded(sceneId: currentSceneId, durationSeconds: seconds))
+            if let summary = try? await analyticsService.summary() {
+                usageRecord = summary
+            }
+        }
     }
 
     // MARK: - Sound mix
@@ -421,10 +544,10 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
+        pushSourceToPlayback(id: id)
         markMixInteraction()
     }
 
-    /// Updates spatial position and derives volume from distance to center (near = louder).
     func updateSourcePlacement(id: UUID, position: SpatialPosition) {
         guard mixBoardSelection.isMine else { return }
         let volume = Self.volume(fromRadius: position.radius)
@@ -436,7 +559,9 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
+        pushSourceToPlayback(id: id)
         markMixInteraction()
+        Task { try? await analyticsService.record(.mixEdited(sceneId: currentSceneId)) }
     }
 
     static func volume(fromRadius radius: Double) -> Double {
@@ -452,6 +577,7 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
+        pushSpatialToPlayback()
         markMixInteraction()
     }
 
@@ -466,6 +592,7 @@ final class AppState: ObservableObject {
             sources.removeAll { $0.id == id }
         }
         syncPersonalMixFromScene()
+        pushSpatialToPlayback()
         markMixInteraction()
     }
 
@@ -475,6 +602,7 @@ final class AppState: ObservableObject {
             sources.append(source)
         }
         syncPersonalMixFromScene()
+        pushSpatialToPlayback()
         markMixInteraction()
     }
 
@@ -483,6 +611,7 @@ final class AppState: ObservableObject {
         if let original = MockDataService.makeScenes().first(where: { $0.name == currentScene.name }) {
             mutateCurrentSources { $0 = duplicatedSources(original.soundSources) }
             syncPersonalMixFromScene()
+            pushSpatialToPlayback()
         }
         markMixInteraction()
     }
@@ -494,6 +623,7 @@ final class AppState: ObservableObject {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     mutateCurrentSources { $0 = personal }
                 }
+                pushSpatialToPlayback()
             }
         }
         mixBoardSelection = .mine
@@ -509,6 +639,7 @@ final class AppState: ObservableObject {
             mutateCurrentSources { $0 = fresh }
             mixBoardSelection = .preset(preset.id)
         }
+        pushSpatialToPlayback()
         markMixInteraction()
     }
 
@@ -525,17 +656,28 @@ final class AppState: ObservableObject {
     private func syncPersonalMixFromScene() {
         guard mixBoardSelection.isMine else { return }
         personalMixByScene[currentSceneId] = currentScene.soundSources
+        persistPersonalMix()
+    }
+
+    private func persistPersonalMix() {
+        let encoded = DemoPersistenceStore.PersonalMixStore(
+            byScene: Dictionary(uniqueKeysWithValues: personalMixByScene.map { ($0.key.uuidString, $0.value) })
+        )
+        try? store.savePersonalMix(encoded)
     }
 
     private func duplicatedSources(_ sources: [SoundSource], forceEnabled: Bool = false) -> [SoundSource] {
         sources.map {
             SoundSource(
+                id: UUID(),
                 name: $0.name,
                 symbolName: $0.symbolName,
                 isEnabled: forceEnabled ? true : $0.isEnabled,
                 volume: $0.volume,
                 position: $0.position,
-                assetId: $0.assetId
+                assetId: $0.assetId,
+                resourceName: $0.resourceName,
+                layer: $0.layer
             )
         }
     }
@@ -560,6 +702,7 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
+        pushSourceToPlayback(id: id)
     }
 
     private func mutateCurrentSources(_ body: (inout [SoundSource]) -> Void) {
@@ -570,37 +713,52 @@ final class AppState: ObservableObject {
     // MARK: - Sound assets
 
     func toggleSoundFavorite(id: UUID) {
-        guard let i = soundAssets.firstIndex(where: { $0.id == id }) else { return }
-        soundAssets[i].isFavorite.toggle()
+        Task {
+            if let updated = try? await libraryService.toggleFavorite(id: id) {
+                if let i = soundAssets.firstIndex(where: { $0.id == id }) {
+                    soundAssets[i] = updated
+                }
+            } else if let i = soundAssets.firstIndex(where: { $0.id == id }) {
+                soundAssets[i].isFavorite.toggle()
+            }
+        }
     }
 
     func deleteSound(id: UUID) {
         soundAssets.removeAll { $0.id == id }
         if previewingSoundId == id { previewingSoundId = nil }
+        Task { try? await libraryService.delete(id: id) }
     }
 
     func renameSound(id: UUID, name: String) {
         guard let i = soundAssets.firstIndex(where: { $0.id == id }) else { return }
         soundAssets[i].name = name
+        Task { try? await libraryService.rename(id: id, name: name) }
     }
 
     func addSoundAsset(_ asset: SoundAsset) {
         soundAssets.insert(asset, at: 0)
+        Task {
+            try? await libraryService.upsert(asset)
+            try? await analyticsService.record(.seedCreated(assetId: asset.id))
+        }
     }
 
     func toggleSoundPreview(id: UUID) {
         if previewingSoundId == id {
             previewingSoundId = nil
-        } else {
-            previewingSoundId = id
-            if let i = soundAssets.firstIndex(where: { $0.id == id }) {
-                soundAssets[i].lastUsedAt = Date()
-            }
-            Task {
-                try? await Task.sleep(nanoseconds: 4_000_000_000)
-                if previewingSoundId == id {
-                    previewingSoundId = nil
-                }
+            playback.stopPreview()
+            return
+        }
+        previewingSoundId = id
+        if let i = soundAssets.firstIndex(where: { $0.id == id }) {
+            soundAssets[i].lastUsedAt = Date()
+            playback.preview(resourceName: soundAssets[i].previewResourceName)
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if previewingSoundId == id {
+                previewingSoundId = nil
             }
         }
     }

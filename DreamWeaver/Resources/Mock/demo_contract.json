@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "defaultSceneId": "A1111111-1111-4111-8111-111111111101",
+  "recommendedSceneId": "A1111111-1111-4111-8111-111111111101",
+  "greetings": [
+    "晚上好，今天辛苦了。",
+    "今晚，也给自己一点安静。",
+    "夜已经慢下来了。",
+    "准备好进入今晚的梦境了吗？",
+    "今晚，为你留了一片安静。"
+  ],
+  "demoPlayableSceneIds": [
+    "A1111111-1111-4111-8111-111111111101",
+    "A1111111-1111-4111-8111-111111111102"
+  ],
+  "seedSuccess": {
+    "clarity": "良好",
+    "noiseLevel": "较低",
+    "recommendation": "可以直接继续",
+    "passed": true,
+    "previewResourceName": "voice_phrase_mom",
+    "jobMessages": [
+      "正在整理声音片段",
+      "正在保留声音特点",
+      "正在准备试听版本"
+    ]
+  },
+  "audioResources": [
+    "hair_wash",
+    "hair_dryer",
+    "ac_hum",
+    "rain_parasol",
+    "wind_realistic",
+    "rain_soft",
+    "stream_nature",
+    "voice_phrase_mom"
+  ],
+  "postCompetitionMapping": {
+    "ContentService": "GET /v1/bootstrap, GET /v1/scenes, GET /v1/mix-presets",
+    "UserLibraryService": "GET/POST/DELETE /v1/library/*",
+    "SeedPipelineService": "POST /v1/seeds/analyze|authorize|process, GET /v1/seeds/jobs/{id}",
+    "AnalyticsService": "GET /v1/analytics/summary, POST /v1/analytics/events",
+    "PlaybackService": "remains on-device AVAudioEngine"
+  }
+}

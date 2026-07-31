@@ -16,6 +16,32 @@ struct BasicMixSound: Identifiable, Hashable {
         .init(id: "fire", name: "炉火", symbolName: "flame.fill")
     ]
 
+    func resourceName(for style: SceneVisualStyle) -> String? {
+        switch id {
+        case "rain": return "rain_parasol"
+        case "wind": return "wind_realistic"
+        case "stream":
+            switch style {
+            case .hairCare:
+                return "hair_wash"
+            case .valleyStream, .moonLake:
+                return "stream_nature"
+            default:
+                return nil
+            }
+        case "voice": return "voice_phrase_mom"
+        default: return nil
+        }
+    }
+
+    var layer: AudioLayerKind {
+        switch id {
+        case "voice": return .voice
+        case "wind": return .ambience
+        default: return .environment
+        }
+    }
+
     /// Basic sounds allowed for a scene; favorites remain universal elsewhere.
     static func available(for style: SceneVisualStyle) -> [BasicMixSound] {
         let ids = style.allowedBasicSoundIds
@@ -50,6 +76,8 @@ extension SceneVisualStyle {
             return ["insect", "wind", "voice", "rain"]
         case .fireplaceWhisper:
             return ["fire", "voice", "rain", "piano"]
+        case .hairCare:
+            return ["stream", "wind", "voice", "fire"]
         }
     }
 }
@@ -466,7 +494,9 @@ struct SoundMixCircleEditor: View {
                 symbolName: item.symbolName,
                 isEnabled: true,
                 volume: volume,
-                position: position
+                position: position,
+                resourceName: item.resourceName(for: appState.currentScene.visualStyle),
+                layer: item.layer
             )
         case .favorite(let asset):
             source = SoundSource(
@@ -475,7 +505,9 @@ struct SoundMixCircleEditor: View {
                 isEnabled: true,
                 volume: volume,
                 position: position,
-                assetId: asset.id
+                assetId: asset.id,
+                resourceName: asset.previewResourceName,
+                layer: asset.kind == .seed ? .voice : .environment
             )
         }
         appState.addSource(source)

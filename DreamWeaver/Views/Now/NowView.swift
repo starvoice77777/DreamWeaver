@@ -241,7 +241,7 @@ struct NowTimerPickerPopup: View {
                 .foregroundStyle(DreamTheme.secondaryText)
                 .padding(.horizontal, 4)
 
-            ForEach(TimerOption.allCases) { option in
+            ForEach(appState.showDemoControls ? TimerOption.demoCases : TimerOption.userFacingCases) { option in
                 TimerOptionChip(
                     option: option,
                     selected: appState.timerOption == option,

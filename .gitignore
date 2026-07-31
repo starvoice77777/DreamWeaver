@@ -1,0 +1,23 @@
+# Xcode local state
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Raw audio source library; only curated app resources are tracked.
+/音料库/
+
+# Python backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+server/.env
+
+# Local backend services
+infra/.data/

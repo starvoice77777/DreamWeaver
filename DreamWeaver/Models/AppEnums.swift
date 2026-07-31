@@ -62,6 +62,8 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
     case thirtyMinutes = "30分钟"
     case oneHour = "60分钟"
     case forever = "一直"
+    /// Demo / filming only — about 45 seconds with layered fade.
+    case demoAccelerated = "演示加速"
 
     var id: String { rawValue }
 
@@ -72,6 +74,21 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
         case .thirtyMinutes: return 30
         case .oneHour: return 60
         case .forever: return nil
+        case .demoAccelerated: return nil
+        }
+    }
+
+    /// Wall-clock duration for countdown (accelerated uses seconds, not minutes).
+    var countdownSeconds: TimeInterval? {
+        switch self {
+        case .demoAccelerated: return 45
+        case .tenMinutes, .thirtyMinutes, .oneHour:
+            return TimeInterval((minutes ?? 0) * 60)
+        case .autoStop:
+            // Soft stop placeholder — not claimed as complete in materials.
+            return TimeInterval(45 * 60)
+        case .forever:
+            return nil
         }
     }
 
@@ -83,15 +100,24 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
         case .thirtyMinutes: return "30"
         case .oneHour: return "60"
         case .forever: return "一直"
+        case .demoAccelerated: return "演示"
         }
     }
 
     /// Only these options show live countdown fill on the chip.
     var showsCountdownFill: Bool {
         switch self {
-        case .tenMinutes, .thirtyMinutes, .oneHour: return true
+        case .tenMinutes, .thirtyMinutes, .oneHour, .demoAccelerated: return true
         default: return false
         }
+    }
+
+    static var userFacingCases: [TimerOption] {
+        [.autoStop, .tenMinutes, .thirtyMinutes, .oneHour, .forever]
+    }
+
+    static var demoCases: [TimerOption] {
+        userFacingCases + [.demoAccelerated]
     }
 }
 

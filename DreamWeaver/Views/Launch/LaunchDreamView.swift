@@ -4,7 +4,7 @@ struct LaunchDreamView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
 
-    @State private var greeting = MockDataService.greetings.randomElement() ?? "晚上好，今天辛苦了。"
+    @State private var greeting = ""
     @State private var greetingOpacity = 0.0
     @State private var gradientShift = false
     @State private var overallOpacity = 1.0
@@ -17,7 +17,7 @@ struct LaunchDreamView: View {
         ZStack {
             AnimatedLaunchBackground(shift: gradientShift, reduceMotion: reduceMotion)
 
-            Text(greeting)
+            Text(greeting.isEmpty ? " " : greeting)
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
                 .multilineTextAlignment(.center)
@@ -30,6 +30,7 @@ struct LaunchDreamView: View {
     }
 
     private func runLaunchSequence() {
+        greeting = appState.contentService.randomGreeting()
         if !reduceMotion {
             withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
                 gradientShift = true
