@@ -1,3 +1,3 @@
-from app.services import content, seed_catalog
+from app.services import auth, content, seed_catalog, user_content
 
-__all__ = ["content", "seed_catalog"]
+__all__ = ["auth", "content", "seed_catalog", "user_content"]

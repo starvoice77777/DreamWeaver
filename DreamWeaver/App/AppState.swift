@@ -154,7 +154,6 @@ final class AppState: ObservableObject {
                 personalMixByScene[currentSceneId] = currentScene.soundSources
             }
 
-            isPlaying = autoPlayEnabled
             reloadPlayback(autoPlay: autoPlayEnabled)
         } catch {
             lastServiceMessage = error.localizedDescription
@@ -242,11 +241,15 @@ final class AppState: ObservableObject {
             if autoPlay {
                 playback.play()
                 isPlaying = playback.isPlaying
+            } else {
+                isPlaying = false
             }
             if let message = playback.lastErrorMessage {
                 lastServiceMessage = message
             }
         } catch {
+            // Keep UI in sync with a stopped engine when load/session setup fails.
+            isPlaying = false
             lastServiceMessage = error.localizedDescription
         }
     }
@@ -465,7 +468,6 @@ final class AppState: ObservableObject {
 
             currentSceneId = sceneId
             defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
-            isPlaying = true
             playbackProgress = 0.08
             mixBoardSelection = .mine
             if let personal = personalMixByScene[sceneId] {
@@ -479,6 +481,7 @@ final class AppState: ObservableObject {
             }
             cancelReturnToNow()
 
+            // `isPlaying` is set only after load/play succeeds inside reloadPlayback.
             reloadPlayback(autoPlay: true)
             sessionStartedAt = Date()
 

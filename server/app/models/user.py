@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Uuid, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -31,6 +31,8 @@ class User(Base):
     )
     sessions: Mapped[list[Session]] = relationship(back_populates="user")
     settings: Mapped[UserSettings | None] = relationship(back_populates="user", uselist=False)
+    scene_states: Mapped[list[UserSceneState]] = relationship(back_populates="user")
+    private_scenes: Mapped[list[PrivateScene]] = relationship(back_populates="owner")
 
 
 class AppleIdentity(Base):
@@ -91,3 +93,57 @@ class UserSettings(Base):
     )
 
     user: Mapped[User] = relationship(back_populates="settings")
+
+
+class UserSceneState(Base):
+    """Per-user overlay on an official (catalog) scene: favorite + recent use."""
+
+    __tablename__ = "user_scene_states"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    scene_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("scenes.id", ondelete="CASCADE"), primary_key=True
+    )
+    is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    last_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    listen_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    user: Mapped[User] = relationship(back_populates="scene_states")
+
+
+class PrivateScene(Base):
+    """User-owned scene. Draft edits stay local until explicit save."""
+
+    __tablename__ = "private_scenes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    subtitle: Mapped[str] = mapped_column(String(256), nullable=False, default="")
+    description: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="personal")
+    tags: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    palette: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    visual_style: Mapped[str] = mapped_column(String(64), nullable=False, default="custom")
+    recommended_duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=2700)
+    source_scene_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    draft_sources: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    saved_sources: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    saved_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    owner: Mapped[User] = relationship(back_populates="private_scenes")

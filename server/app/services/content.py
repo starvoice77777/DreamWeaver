@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.content import MixPreset, Scene
-from app.models.user import AppleIdentity, Session, User, UserSettings
+from app.models.user import User, UserSettings
 from app.schemas.content import (
-    AuthTokensOut,
     BootstrapOut,
     MixPresetOut,
     SceneDetailOut,
@@ -23,10 +20,6 @@ from app.schemas.content import (
     UserSettingsOut,
 )
 from app.services.seed_catalog import DEFAULT_SCENE_ID, GREETINGS, ensure_official_catalog
-
-
-def _hash_token(raw: str) -> str:
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def scene_to_summary(scene: Scene) -> SceneSummaryOut:
@@ -138,63 +131,4 @@ async def build_bootstrap(session: AsyncSession, user: User | None = None) -> Bo
         scenes=scenes,
         settings=settings_out,
         server_time=datetime.now(UTC),
-    )
-
-
-async def authenticate_apple_dev(
-    session: AsyncSession,
-    *,
-    identity_token: str,
-    nickname: str | None,
-    device_label: str | None,
-) -> AuthTokensOut:
-    """Development Apple auth.
-
-    Production will verify the identity token with Apple JWKS.
-    For local development, tokens may use the form ``dev:<apple_sub>``.
-    """
-    if identity_token.startswith("dev:"):
-        apple_sub = identity_token.removeprefix("dev:").strip() or "dev-user"
-    else:
-        # Phase-2 placeholder until Apple JWKS verification lands.
-        apple_sub = _hash_token(identity_token)[:32]
-
-    result = await session.scalars(
-        select(AppleIdentity)
-        .where(AppleIdentity.apple_sub == apple_sub)
-        .options(selectinload(AppleIdentity.user))
-    )
-    identity = result.first()
-    if identity is None:
-        user = User(nickname=(nickname or "夜行者").strip() or "夜行者")
-        session.add(user)
-        await session.flush()
-        identity = AppleIdentity(user_id=user.id, apple_sub=apple_sub)
-        session.add(identity)
-        session.add(UserSettings(user_id=user.id, default_scene_id=DEFAULT_SCENE_ID))
-    else:
-        user = identity.user
-        if nickname:
-            user.nickname = nickname.strip() or user.nickname
-
-    access_token = secrets.token_urlsafe(32)
-    refresh_token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(UTC) + timedelta(days=30)
-    session.add(
-        Session(
-            user_id=user.id,
-            access_token_hash=_hash_token(access_token),
-            refresh_token_hash=_hash_token(refresh_token),
-            device_label=device_label,
-            expires_at=expires_at,
-        )
-    )
-    await session.commit()
-
-    return AuthTokensOut(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        expires_in=30 * 24 * 60 * 60,
-        user_id=user.id,
-        nickname=user.nickname,
     )

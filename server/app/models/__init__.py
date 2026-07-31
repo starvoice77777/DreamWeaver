@@ -1,13 +1,22 @@
 from app.models.content import MixPreset, OfficialAsset, Scene, SceneTrack
-from app.models.user import AppleIdentity, Session, User, UserSettings
+from app.models.user import (
+    AppleIdentity,
+    PrivateScene,
+    Session,
+    User,
+    UserSceneState,
+    UserSettings,
+)
 
 __all__ = [
     "AppleIdentity",
     "MixPreset",
     "OfficialAsset",
+    "PrivateScene",
     "Scene",
     "SceneTrack",
     "Session",
     "User",
+    "UserSceneState",
     "UserSettings",
 ]

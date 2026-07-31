@@ -98,3 +98,83 @@ class AuthTokensOut(BaseModel):
     expires_in: int
     user_id: uuid.UUID
     nickname: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1)
+
+
+class UserSettingsUpdate(BaseModel):
+    reduce_motion: bool | None = None
+    auto_play_enabled: bool | None = None
+    background_play_enabled: bool | None = None
+    lock_screen_play_enabled: bool | None = None
+    animation_intensity: float | None = Field(default=None, ge=0, le=1)
+    dark_mode_forced: bool | None = None
+    audio_quality: str | None = Field(default=None, max_length=32)
+    notifications_enabled: bool | None = None
+    default_scene_id: uuid.UUID | None = None
+
+
+class SceneStatePatch(BaseModel):
+    is_favorite: bool | None = None
+    mark_opened: bool = False
+
+
+class SceneStateOut(BaseModel):
+    scene_id: uuid.UUID
+    is_favorite: bool
+    last_opened_at: datetime | None = None
+    listen_count: int
+
+
+class PrivateSceneSummaryOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    subtitle: str
+    description: str
+    category: str
+    tags: list[str]
+    visual_style: str
+    source_scene_id: uuid.UUID | None = None
+    has_saved_version: bool
+    saved_version: int
+    saved_at: datetime | None = None
+    updated_at: datetime
+
+
+class PrivateSceneDetailOut(PrivateSceneSummaryOut):
+    palette: dict
+    recommended_duration_seconds: int
+    draft_sources: list[dict] = Field(default_factory=list)
+    saved_sources: list[dict] | None = None
+
+
+class PrivateSceneCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    subtitle: str = ""
+    description: str = ""
+    category: str = "personal"
+    tags: list[str] = Field(default_factory=list)
+    palette: dict | None = None
+    visual_style: str = "custom"
+    sources: list[dict] = Field(default_factory=list)
+
+
+class PrivateSceneDraftUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    subtitle: str | None = None
+    description: str | None = None
+    category: str | None = None
+    tags: list[str] | None = None
+    palette: dict | None = None
+    visual_style: str | None = None
+    sources: list[dict] | None = None
+
+
+class HomeOut(BaseModel):
+    greeting_scene_id: uuid.UUID
+    recommended: list[SceneSummaryOut]
+    recent: list[SceneSummaryOut]
+    favorites: list[SceneSummaryOut]
+    private_scenes: list[PrivateSceneSummaryOut]
