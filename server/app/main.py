@@ -31,6 +31,16 @@ def create_app() -> FastAPI:
             "environment": settings.environment,
         }
 
+    @app.get("/ready", tags=["system"], summary="Dependency readiness check")
+    async def ready() -> dict[str, str]:
+        # Phase 2: process is ready to accept traffic; deeper dependency probes
+        # can be expanded once production health policy is finalized.
+        return {
+            "status": "ready",
+            "service": "dreamweaver-api",
+            "environment": settings.environment,
+        }
+
     app.include_router(api_v1_router, prefix=settings.api_v1_prefix)
     return app
 

@@ -13,6 +13,7 @@ dependencies = [
     "celery[redis]",
     "fastapi",
     "minio",
+    "psycopg[binary]",
     "pydantic-settings",
     "sqlalchemy[asyncio]",
     "uvicorn[standard]",
@@ -20,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "aiosqlite",
     "httpx",
     "mypy",
     "pytest",

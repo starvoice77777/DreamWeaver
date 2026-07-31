@@ -1,0 +1,100 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SpatialPositionOut(BaseModel):
+    angle: float
+    radius: float
+
+
+class SceneTrackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    symbol_name: str
+    layer: str
+    volume: float
+    position: SpatialPositionOut
+    resource_key: str | None = None
+    loop: bool = True
+    enabled_by_default: bool = True
+
+
+class ScenePaletteOut(BaseModel):
+    top: int
+    mid: int
+    bottom: int
+    accent: int
+
+
+class SceneSummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    subtitle: str
+    description: str
+    category: str
+    tags: list[str]
+    palette: ScenePaletteOut
+    visual_style: str
+    recommended_duration_seconds: int
+    is_demo_playable: bool
+    mock_listener_count: int
+    sort_order: int
+
+
+class SceneDetailOut(SceneSummaryOut):
+    tracks: list[SceneTrackOut] = Field(default_factory=list)
+
+
+class MixPresetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    style_hint: str | None = None
+    author_name: str
+    sources: list[dict]
+    scene_id: uuid.UUID | None = None
+
+
+class UserSettingsOut(BaseModel):
+    reduce_motion: bool = False
+    auto_play_enabled: bool = True
+    background_play_enabled: bool = True
+    lock_screen_play_enabled: bool = True
+    animation_intensity: float = 0.7
+    dark_mode_forced: bool = True
+    audio_quality: str = "标准"
+    notifications_enabled: bool = False
+    default_scene_id: uuid.UUID | None = None
+
+
+class BootstrapOut(BaseModel):
+    greeting: str
+    default_scene_id: uuid.UUID
+    scenes: list[SceneSummaryOut]
+    settings: UserSettingsOut
+    server_time: datetime
+    api_version: str = "v1"
+
+
+class AppleAuthRequest(BaseModel):
+    identity_token: str = Field(min_length=1)
+    nickname: str | None = Field(default=None, max_length=64)
+    device_label: str | None = Field(default=None, max_length=128)
+
+
+class AuthTokensOut(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user_id: uuid.UUID
+    nickname: str

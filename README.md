@@ -12,7 +12,7 @@
 - 后端工程：[server/README.md](server/README.md)
 - 本地服务编排：[infra/docker-compose.yml](infra/docker-compose.yml)
 
-生产后端当前处于基础工程阶段，不影响现有 Bundle 假数据和本地 `AVAudioEngine` 播放。
+生产后端当前处于**阶段 2**：数据库模型、Bootstrap / 场景 API、开发用 Apple 登录已可用；iOS 仍默认 Local Mock，不影响前端并行改 UI。
 
 ## 复赛阶段说明
 
