@@ -20,9 +20,30 @@ struct GlassPanel: ViewModifier {
     }
 }
 
+/// Scene chrome matching the mix disk surface opacity (no frosted material).
+struct DiskMatchedChrome: ViewModifier {
+    var cornerRadius: CGFloat = 24
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(DreamTheme.chromeSurface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(DreamTheme.chromeStroke, lineWidth: 1)
+                    }
+            }
+    }
+}
+
 extension View {
     func dreamGlass(cornerRadius: CGFloat = 20) -> some View {
         modifier(GlassPanel(cornerRadius: cornerRadius))
+    }
+
+    func dreamDiskChrome(cornerRadius: CGFloat = 24) -> some View {
+        modifier(DiskMatchedChrome(cornerRadius: cornerRadius))
     }
 }
 
@@ -117,18 +138,21 @@ struct TimerOptionChip: View {
             Text(option.rawValue)
                 .font(.system(size: 13, weight: selected ? .medium : .regular))
                 .foregroundStyle(textColor)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .background {
                     ZStack(alignment: .leading) {
                         Capsule()
                             .fill(baseFill)
 
                         if showFill {
-                            Capsule()
-                                .fill(DreamTheme.warmApricot.opacity(0.72))
-                                .scaleEffect(x: max(progress, 0.001), y: 1, anchor: .leading)
-                                .animation(.linear(duration: 0.25), value: progress)
+                            GeometryReader { geo in
+                                Capsule()
+                                    .fill(DreamTheme.warmApricot.opacity(0.72))
+                                    .frame(width: max(geo.size.width * progress, progress > 0 ? 4 : 0))
+                                    .animation(.linear(duration: 0.25), value: progress)
+                            }
                         }
                     }
                     .clipShape(Capsule())

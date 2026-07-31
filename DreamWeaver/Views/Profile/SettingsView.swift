@@ -135,18 +135,25 @@ struct DefaultScenePicker: View {
 }
 
 struct SettingsDetailPage: View {
+    @Environment(\.dismiss) private var dismiss
     let title: String
     let bodyText: String
 
     var body: some View {
-        ScrollView {
-            Text(bodyText)
-                .font(.system(size: 15))
-                .foregroundStyle(DreamTheme.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
+        ZStack {
+            DreamTheme.deepBlue
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { dismiss() }
+
+            ScrollView {
+                Text(bodyText)
+                    .font(.system(size: 15))
+                    .foregroundStyle(DreamTheme.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+            }
         }
-        .background(DreamTheme.deepBlue.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

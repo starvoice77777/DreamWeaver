@@ -22,9 +22,8 @@ final class AppState: ObservableObject {
 
     @Published var showLaunch = true
     @Published var controlsVisible = true
-    @Published var showSceneDetail = false
     @Published var showSeedFlow = false
-    @Published var previewScene: DreamScene?
+    @Published var showMixPalette = false
     @Published var sceneTitleVisible = true
     @Published var isTransitioningScene = false
 
@@ -54,7 +53,8 @@ final class AppState: ObservableObject {
     private var sleepTimerDuration: TimeInterval = 0
     private var hideControlsTask: Task<Void, Never>?
     private var hideTitleTask: Task<Void, Never>?
-    private var autoDismissSheetTask: Task<Void, Never>?
+    private var hideMixPaletteTask: Task<Void, Never>?
+    private var idleReturnToNowTask: Task<Void, Never>?
 
     init() {
         let storedFirst = defaults.object(forKey: "dw.hasLaunched") == nil
@@ -170,45 +170,84 @@ final class AppState: ObservableObject {
 
     // MARK: - Controls visibility
 
-    func toggleControlsVisibility() {
-        withAnimation(.easeInOut(duration: 0.45)) {
-            controlsVisible.toggle()
+    /// Single entry point so disk / chrome / tab bar share one visibility flag.
+    /// Animation is applied in RootTabView / NowView via `DreamTheme.chromeVisibilityAnimation`.
+    private func setControlsVisible(_ visible: Bool) {
+        controlsVisible = visible
+        if !visible {
+            showMixPalette = false
         }
+    }
+
+    func toggleControlsVisibility() {
+        setControlsVisible(!controlsVisible)
         if controlsVisible {
             scheduleHideControls()
         } else {
             hideControlsTask?.cancel()
+            hideMixPaletteTask?.cancel()
         }
     }
 
     func revealControls() {
-        withAnimation(.easeInOut(duration: 0.4)) {
-            controlsVisible = true
+        setControlsVisible(true)
+        if showMixPalette {
+            scheduleHideMixPalette()
+        } else {
+            scheduleHideControls()
         }
-        scheduleHideControls()
     }
 
     func scheduleHideControls() {
         hideControlsTask?.cancel()
         hideControlsTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            guard !Task.isCancelled, !showSceneDetail, !userIsInteracting else { return }
-            withAnimation(.easeInOut(duration: 0.8)) {
-                controlsVisible = false
-            }
+            guard !Task.isCancelled, !showMixPalette, !userIsInteracting else { return }
+            setControlsVisible(false)
         }
     }
 
     func bumpInteraction() {
         userIsInteracting = true
+        noteUserActivity()
         revealControls()
         Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
             userIsInteracting = false
-            scheduleHideControls()
-            if showSceneDetail {
-                scheduleAutoDismissSheet()
+            if showMixPalette {
+                scheduleHideMixPalette()
+            } else {
+                scheduleHideControls()
             }
+        }
+    }
+
+    // MARK: - Idle return to「此刻」
+
+    /// Call on any user activity while away from the Now tab.
+    func noteUserActivity() {
+        guard selectedTab != .now else {
+            idleReturnToNowTask?.cancel()
+            return
+        }
+        scheduleReturnToNowIfNeeded()
+    }
+
+    func cancelReturnToNow() {
+        idleReturnToNowTask?.cancel()
+        idleReturnToNowTask = nil
+    }
+
+    func scheduleReturnToNowIfNeeded() {
+        idleReturnToNowTask?.cancel()
+        guard selectedTab != .now else { return }
+        idleReturnToNowTask = Task {
+            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            guard !Task.isCancelled, selectedTab != .now else { return }
+            withAnimation(.easeInOut(duration: DreamTheme.chromeVisibilityDuration)) {
+                selectedTab = .now
+            }
+            revealControls()
         }
     }
 
@@ -228,39 +267,81 @@ final class AppState: ObservableObject {
         }
     }
 
-    // MARK: - Scene detail sheet
+    // MARK: - Mix palette
 
-    func openSceneDetail() {
-        showSceneDetail = true
-        bumpInteraction()
-        scheduleAutoDismissSheet()
+    private var isMixDragging = false
+
+    /// Show palette as soon as a source (or palette chip) is dragged.
+    func beginMixDrag() {
+        isMixDragging = true
+        hideMixPaletteTask?.cancel()
+        hideControlsTask?.cancel()
+        guard !(showMixPalette && controlsVisible) else { return }
+        withAnimation(DreamTheme.chromeVisibilityAnimation) {
+            showMixPalette = true
+            controlsVisible = true
+        }
     }
 
-    func closeSceneDetail() {
-        showSceneDetail = false
-        autoDismissSheetTask?.cancel()
+    /// After drag ends, wait before returning to the timer chrome.
+    func endMixDrag() {
+        isMixDragging = false
+        scheduleHideMixPalette()
+    }
+
+    func openMixPalette() {
+        withAnimation(DreamTheme.chromeVisibilityAnimation) {
+            showMixPalette = true
+            controlsVisible = true
+        }
+        scheduleHideMixPalette()
+    }
+
+    func closeMixPalette() {
+        hideMixPaletteTask?.cancel()
+        isMixDragging = false
+        withAnimation(DreamTheme.chromeVisibilityAnimation) {
+            showMixPalette = false
+        }
         scheduleHideControls()
     }
 
-    func scheduleAutoDismissSheet() {
-        autoDismissSheetTask?.cancel()
-        autoDismissSheetTask = Task {
-            try? await Task.sleep(nanoseconds: 15_000_000_000)
-            guard !Task.isCancelled, showSceneDetail, !userIsInteracting else { return }
-            withAnimation {
-                showSceneDetail = false
+    func scheduleHideMixPalette() {
+        hideMixPaletteTask?.cancel()
+        hideControlsTask?.cancel()
+        guard !isMixDragging else { return }
+        hideMixPaletteTask = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled, showMixPalette, !isMixDragging, !userIsInteracting else { return }
+            withAnimation(DreamTheme.chromeVisibilityAnimation) {
+                showMixPalette = false
             }
             scheduleHideControls()
         }
     }
 
-    func markSheetInteraction() {
+    func markMixInteraction() {
         userIsInteracting = true
-        scheduleAutoDismissSheet()
+        if !controlsVisible {
+            setControlsVisible(true)
+        }
+        if showMixPalette {
+            if !isMixDragging {
+                scheduleHideMixPalette()
+            }
+        } else {
+            scheduleHideControls()
+        }
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
             userIsInteracting = false
-            scheduleAutoDismissSheet()
+            if showMixPalette {
+                if !isMixDragging {
+                    scheduleHideMixPalette()
+                }
+            } else {
+                scheduleHideControls()
+            }
         }
     }
 
@@ -277,6 +358,7 @@ final class AppState: ObservableObject {
         withAnimation(.easeInOut(duration: fadeOut)) {
             isTransitioningScene = true
             controlsVisible = false
+            showMixPalette = false
             sceneTitleVisible = false
         }
 
@@ -297,14 +379,7 @@ final class AppState: ObservableObject {
             withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.45)) {
                 selectedTab = .now
             }
-
-            // Dismiss preview after「此刻」is already active under the curtain.
-            // Disable cover dismiss animation — the fade already happened.
-            var dismissTransaction = Transaction()
-            dismissTransaction.disablesAnimations = true
-            withTransaction(dismissTransaction) {
-                previewScene = nil
-            }
+            cancelReturnToNow()
 
             try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
 
@@ -346,7 +421,7 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     /// Updates spatial position and derives volume from distance to center (near = louder).
@@ -361,7 +436,7 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     static func volume(fromRadius radius: Double) -> Double {
@@ -377,16 +452,21 @@ final class AppState: ObservableObject {
             }
         }
         syncPersonalMixFromScene()
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func removeSource(id: UUID) {
         guard mixBoardSelection.isMine else { return }
+        let enabled = currentScene.soundSources.filter(\.isEnabled)
+        // Keep at least one active source on the disk.
+        if enabled.count <= 1, enabled.contains(where: { $0.id == id }) {
+            return
+        }
         mutateCurrentSources { sources in
             sources.removeAll { $0.id == id }
         }
         syncPersonalMixFromScene()
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func addSource(_ source: SoundSource) {
@@ -395,7 +475,7 @@ final class AppState: ObservableObject {
             sources.append(source)
         }
         syncPersonalMixFromScene()
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func restoreDefaultMix() {
@@ -404,7 +484,7 @@ final class AppState: ObservableObject {
             mutateCurrentSources { $0 = duplicatedSources(original.soundSources) }
             syncPersonalMixFromScene()
         }
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func selectMineMixBoard() {
@@ -417,7 +497,7 @@ final class AppState: ObservableObject {
             }
         }
         mixBoardSelection = .mine
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func selectMixPreset(_ preset: MixPreset) {
@@ -429,7 +509,7 @@ final class AppState: ObservableObject {
             mutateCurrentSources { $0 = fresh }
             mixBoardSelection = .preset(preset.id)
         }
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func applyMixPreset(_ preset: MixPreset) {
@@ -469,7 +549,7 @@ final class AppState: ObservableObject {
             savedAt: Date()
         )
         savedMixes.insert(mix, at: 0)
-        markSheetInteraction()
+        markMixInteraction()
     }
 
     func updateSourcePosition(id: UUID, position: SpatialPosition) {

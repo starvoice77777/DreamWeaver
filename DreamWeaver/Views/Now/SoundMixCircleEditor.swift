@@ -59,19 +59,28 @@ private enum MixPaletteDrag: Equatable {
     case favorite(SoundAsset)
 }
 
-/// Circular mix board: playing sources inside; basic + favorited sounds below.
+/// Scene mix stage: disk on the upper golden-ratio point;
+/// bottom dock crossfades between timer controls and the sound palette.
 struct SoundMixCircleEditor: View {
     @EnvironmentObject private var appState: AppState
+    @Binding var showTimerPicker: Bool
 
     @State private var draggingPalette: MixPaletteDrag?
     @State private var draggingSourceId: UUID?
     @State private var finger: CGPoint = .zero
-    @State private var boardWidth: CGFloat = 300
-    @State private var appliedToast = ""
+    @State private var stageSize: CGSize = .zero
+    /// Disk rings stay hidden until a source is moved, then fade out after idle.
+    @State private var diskVisible = false
+    @State private var hideDiskTask: Task<Void, Never>?
 
-    private let circleSide: CGFloat = 260
-    private let paletteRow: CGFloat = 108
-    private let spacing: CGFloat = 18
+    /// Upper golden-section point for the disk center.
+    private let goldenFromTop: CGFloat = 0.382
+    /// Dock center sits at 75% of the screen height.
+    private let dockFromTop: CGFloat = 0.75
+    private let maxDisk: CGFloat = 392
+    private let dockHeight: CGFloat = 108
+    private let diskFadeDuration: TimeInterval = 0.35
+    private let diskIdleHideDelay: TimeInterval = 0.2
 
     private var activeSources: [SoundSource] {
         appState.currentScene.soundSources.filter(\.isEnabled)
@@ -89,75 +98,88 @@ struct SoundMixCircleEditor: View {
         appState.mixBoardSelection.isMine
     }
 
-    private var totalHeight: CGFloat { circleSide + spacing + paletteRow }
-    private var circleSize: CGSize { CGSize(width: boardWidth, height: circleSide) }
+    private var showPalette: Bool {
+        appState.showMixPalette
+    }
+
+    private var diskSide: CGFloat {
+        guard stageSize.width > 0 else { return maxDisk }
+        return min(stageSize.width - 16, maxDisk)
+    }
+
+    private var circleSize: CGSize {
+        CGSize(width: diskSide, height: diskSide)
+    }
+
+    private var circleCenter: CGPoint {
+        CGPoint(x: stageSize.width / 2, y: stageSize.height * goldenFromTop)
+    }
+
+    private var circleOrigin: CGPoint {
+        CGPoint(x: circleCenter.x - diskSide / 2, y: circleCenter.y - diskSide / 2)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("声音组合")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite)
-
-            Text(appState.mixBoardSelection.isMine
-                 ? "圆内为正在播放的声源。基本声音随场景变化；已收藏声音可在任意场景使用。拖入添加、拖出移除，靠近中心声音更大。"
-                 : "正在试听预设布局。预设不可编辑；返回「我的」后可继续调整，且不会丢失你的设置。")
-                .font(.system(size: 12))
-                .foregroundStyle(DreamTheme.tertiaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            MixPresetBrowser(
-                appliedToast: $appliedToast
+        GeometryReader { geo in
+            let size = geo.size
+            let side = min(size.width - 16, maxDisk)
+            let localCircleSize = CGSize(width: side, height: side)
+            let center = CGPoint(x: size.width / 2, y: size.height * goldenFromTop)
+            let origin = CGPoint(x: center.x - side / 2, y: center.y - side / 2)
+            let dockCenter = CGPoint(
+                x: size.width / 2,
+                y: size.height * dockFromTop
             )
+            let dockWidth = min(size.width, side + 48)
 
-            GeometryReader { geo in
-                let circleSize = CGSize(width: geo.size.width, height: circleSide)
-                let center = CGPoint(x: circleSize.width / 2, y: circleSide / 2)
+            ZStack {
+                circleLayer(size: localCircleSize)
+                    .frame(width: side, height: side)
+                    .position(center)
+                    .opacity(diskVisible ? 1 : 0)
+                    .animation(.easeInOut(duration: diskFadeDuration), value: diskVisible)
+                    .allowsHitTesting(false)
 
-                ZStack(alignment: .top) {
-                    circleLayer(size: circleSize, center: center)
-
-                    paletteLayer(width: geo.size.width)
-                        .frame(width: geo.size.width, height: paletteRow)
-                        .offset(y: circleSide + spacing)
-                        .opacity(canEditMix ? 1 : 0.4)
-                        .allowsHitTesting(canEditMix)
-
-                    ForEach(activeSources) { source in
-                        sourceNode(source, circleSize: circleSize)
-                            .allowsHitTesting(canEditMix)
-                    }
-
-                    if let drag = draggingPalette {
-                        floatingChrome(for: drag)
-                            .position(finger)
-                            .allowsHitTesting(false)
-                    }
+                ForEach(activeSources) { source in
+                    sourceNode(
+                        source,
+                        circleSize: localCircleSize,
+                        circleOrigin: origin,
+                        circleCenter: center
+                    )
+                    .allowsHitTesting(canEditMix)
                 }
-                .frame(width: geo.size.width, height: totalHeight)
-                .contentShape(Rectangle())
-                .coordinateSpace(name: "mixBoard")
-                .onAppear { boardWidth = geo.size.width }
-                .onChange(of: geo.size.width) { _, width in boardWidth = width }
-            }
-            .frame(height: totalHeight)
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.white.opacity(0.05))
-            )
-            .overlay(alignment: .top) {
-                if !appliedToast.isEmpty {
-                    Text(appliedToast)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(DreamTheme.moonWhite)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .dreamGlass(cornerRadius: 12)
-                        .padding(.top, 8)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+
+                bottomDock(width: dockWidth)
+                    .frame(width: dockWidth, height: dockHeight)
+                    .position(dockCenter)
+                    .zIndex(2)
+
+                if showTimerPicker && !showPalette {
+                    NowTimerPickerPopup(isPresented: $showTimerPicker)
+                        .position(
+                            x: dockCenter.x - dockWidth * 0.28,
+                            y: dockCenter.y - dockHeight * 0.5 - 110
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .bottom)))
+                        .zIndex(4)
+                }
+
+                if let drag = draggingPalette {
+                    floatingChrome(for: drag)
+                        .position(finger)
+                        .allowsHitTesting(false)
+                        .zIndex(5)
                 }
             }
+            .frame(width: size.width, height: size.height)
+            .coordinateSpace(name: "mixBoard")
+            .onAppear { stageSize = size }
+            .onChange(of: size) { _, newSize in stageSize = newSize }
         }
+        .animation(DreamTheme.chromeVisibilityAnimation, value: showPalette)
+        .animation(.easeInOut(duration: 0.35), value: showTimerPicker)
+        .accessibilityHint("拖动声源可打开音源选择；圆内至少保留一个声源")
     }
 
     @ViewBuilder
@@ -170,51 +192,23 @@ struct SoundMixCircleEditor: View {
         }
     }
 
-    // MARK: - Layers
+    private func bottomDock(width: CGFloat) -> some View {
+        ZStack {
+            NowControlsOverlay(showTimerPicker: $showTimerPicker)
+                .opacity(showPalette ? 0 : 1)
+                .allowsHitTesting(!showPalette)
+                .offset(y: showPalette ? 6 : 0)
 
-    private func circleLayer(size: CGSize, center: CGPoint) -> some View {
-        let side = min(size.width, size.height)
-        return ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color(hex: 0x1A2740).opacity(0.9), Color.white.opacity(0.03)],
-                        center: .center,
-                        startRadius: 8,
-                        endRadius: side * 0.48
-                    )
-                )
-                .frame(width: side * 0.92, height: side * 0.92)
-
-            Circle()
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                .frame(width: side * 0.92, height: side * 0.92)
-
-            Circle()
-                .stroke(Color.white.opacity(0.07), lineWidth: 1)
-                .frame(width: side * 0.58, height: side * 0.58)
-
-            VStack(spacing: 4) {
-                Circle()
-                    .fill(DreamTheme.moonWhite.opacity(0.92))
-                    .frame(width: 10, height: 10)
-                Text("你")
-                    .font(.system(size: 10))
-                    .foregroundStyle(DreamTheme.tertiaryText)
-            }
-            .position(center)
-            .accessibilityLabel("聆听位置")
+            mixPaletteDock()
+                .opacity(showPalette ? 1 : 0)
+                .allowsHitTesting(showPalette && canEditMix)
+                .offset(y: showPalette ? 0 : 6)
         }
-        .frame(width: size.width, height: circleSide)
+        .frame(width: width, height: dockHeight)
     }
 
-    private func paletteLayer(width: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("可添加声源")
-                .font(.system(size: 11))
-                .foregroundStyle(DreamTheme.secondaryText)
-                .padding(.horizontal, 4)
-
+    private func mixPaletteDock() -> some View {
+        HStack(alignment: .center, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 14) {
                     paletteGroup(title: "基本") {
@@ -236,16 +230,42 @@ struct SoundMixCircleEditor: View {
                         }
                     }
                 }
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 10)
             }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 6)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-        )
+        .padding(.horizontal, 24)
+        .opacity(canEditMix ? 1 : 0.4)
+    }
+
+    // MARK: - Layers
+
+    private func circleLayer(size: CGSize) -> some View {
+        let side = min(size.width, size.height)
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        return ZStack {
+            Circle()
+                .stroke(DreamTheme.chromeStroke, lineWidth: 1)
+                .frame(width: side * 0.92, height: side * 0.92)
+
+            Circle()
+                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                .frame(width: side * 0.58, height: side * 0.58)
+
+            VStack(spacing: 4) {
+                Circle()
+                    .stroke(DreamTheme.moonWhite.opacity(0.55), lineWidth: 1)
+                    .frame(width: 10, height: 10)
+                Text("你")
+                    .font(.system(size: 10))
+                    .foregroundStyle(DreamTheme.tertiaryText)
+            }
+            .position(center)
+            .accessibilityLabel("聆听位置")
+        }
+        .frame(width: size.width, height: size.height)
     }
 
     private func paletteGroup<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -261,8 +281,14 @@ struct SoundMixCircleEditor: View {
 
     // MARK: - Nodes
 
-    private func sourceNode(_ source: SoundSource, circleSize: CGSize) -> some View {
-        let home = source.position.point(in: circleSize)
+    private func sourceNode(
+        _ source: SoundSource,
+        circleSize: CGSize,
+        circleOrigin: CGPoint,
+        circleCenter: CGPoint
+    ) -> some View {
+        let local = source.position.point(in: circleSize)
+        let home = CGPoint(x: circleOrigin.x + local.x, y: circleOrigin.y + local.y)
         let shown = draggingSourceId == source.id ? finger : home
 
         return nodeChrome(
@@ -275,24 +301,38 @@ struct SoundMixCircleEditor: View {
         .highPriorityGesture(
             DragGesture(minimumDistance: 2, coordinateSpace: .named("mixBoard"))
                 .onChanged { value in
-                    appState.markSheetInteraction()
+                    appState.beginMixDrag()
+                    appState.markMixInteraction()
+                    beginDiskInteraction()
                     draggingSourceId = source.id
-                    finger = value.location
-                    if isInsideCircle(value.location, circleSize: circleSize) {
-                        let clamped = clampToCircle(value.location, circleSize: circleSize)
+
+                    let mustStayInside = activeSources.count <= 1
+                    if mustStayInside || isInsideCircle(value.location, center: circleCenter, side: circleSize.width) {
+                        let clamped = clampToCircle(value.location, center: circleCenter, side: circleSize.width)
+                        finger = mustStayInside ? clamped : value.location
+                        let localPoint = CGPoint(x: clamped.x - circleOrigin.x, y: clamped.y - circleOrigin.y)
                         appState.updateSourcePlacement(
                             id: source.id,
-                            position: SpatialPosition.from(point: clamped, in: circleSize)
+                            position: SpatialPosition.from(point: localPoint, in: circleSize)
                         )
+                    } else {
+                        finger = value.location
                     }
                 }
                 .onEnded { value in
-                    defer { draggingSourceId = nil }
-                    if isInsideCircle(value.location, circleSize: circleSize) {
-                        let clamped = clampToCircle(value.location, circleSize: circleSize)
+                    defer {
+                        draggingSourceId = nil
+                        endDiskInteraction()
+                        appState.endMixDrag()
+                    }
+
+                    let mustStayInside = activeSources.count <= 1
+                    if mustStayInside || isInsideCircle(value.location, center: circleCenter, side: circleSize.width) {
+                        let clamped = clampToCircle(value.location, center: circleCenter, side: circleSize.width)
+                        let localPoint = CGPoint(x: clamped.x - circleOrigin.x, y: clamped.y - circleOrigin.y)
                         appState.updateSourcePlacement(
                             id: source.id,
-                            position: SpatialPosition.from(point: clamped, in: circleSize)
+                            position: SpatialPosition.from(point: localPoint, in: circleSize)
                         )
                     } else {
                         withAnimation(.easeInOut(duration: 0.22)) {
@@ -301,7 +341,11 @@ struct SoundMixCircleEditor: View {
                     }
                 }
         )
-        .accessibilityLabel("\(source.name)，拖动调整位置与大小，拖出圆形可移除")
+        .accessibilityLabel(
+            activeSources.count <= 1
+                ? "\(source.name)，拖动调整位置与大小，最后一个声源不可移除"
+                : "\(source.name)，拖动调整位置与大小，拖出圆形可移除"
+        )
     }
 
     private func basicChip(_ item: BasicMixSound) -> some View {
@@ -317,12 +361,16 @@ struct SoundMixCircleEditor: View {
         .highPriorityGesture(
             DragGesture(minimumDistance: 4, coordinateSpace: .named("mixBoard"))
                 .onChanged { value in
-                    appState.markSheetInteraction()
+                    appState.beginMixDrag()
+                    appState.markMixInteraction()
+                    beginDiskInteraction()
                     draggingPalette = .basic(item)
                     finger = value.location
                 }
                 .onEnded { value in
                     finishPaletteDrag(.basic(item), location: value.location)
+                    endDiskInteraction()
+                    appState.endMixDrag()
                 }
         )
         .accessibilityLabel("\(item.name)，基本声音，拖入圆内添加")
@@ -341,12 +389,16 @@ struct SoundMixCircleEditor: View {
         .highPriorityGesture(
             DragGesture(minimumDistance: 4, coordinateSpace: .named("mixBoard"))
                 .onChanged { value in
-                    appState.markSheetInteraction()
+                    appState.beginMixDrag()
+                    appState.markMixInteraction()
+                    beginDiskInteraction()
                     draggingPalette = .favorite(asset)
                     finger = value.location
                 }
                 .onEnded { value in
                     finishPaletteDrag(.favorite(asset), location: value.location)
+                    endDiskInteraction()
+                    appState.endMixDrag()
                 }
         )
         .accessibilityLabel("\(asset.name)，收藏声音，拖入圆内添加")
@@ -398,9 +450,12 @@ struct SoundMixCircleEditor: View {
     private func finishPaletteDrag(_ drag: MixPaletteDrag, location: CGPoint) {
         defer { draggingPalette = nil }
         let size = circleSize
-        guard isInsideCircle(location, circleSize: size) else { return }
-        let clamped = clampToCircle(location, circleSize: size)
-        let position = SpatialPosition.from(point: clamped, in: size)
+        let center = circleCenter
+        let origin = circleOrigin
+        guard isInsideCircle(location, center: center, side: size.width) else { return }
+        let clamped = clampToCircle(location, center: center, side: size.width)
+        let localPoint = CGPoint(x: clamped.x - origin.x, y: clamped.y - origin.y)
+        let position = SpatialPosition.from(point: localPoint, in: size)
         let volume = AppState.volume(fromRadius: position.radius)
 
         let source: SoundSource
@@ -426,121 +481,54 @@ struct SoundMixCircleEditor: View {
         appState.addSource(source)
     }
 
-    // MARK: - Geometry
+    // MARK: - Disk visibility
 
-    private func isInsideCircle(_ point: CGPoint, circleSize: CGSize) -> Bool {
-        let center = CGPoint(x: circleSize.width / 2, y: circleSide / 2)
-        let limit = min(circleSize.width, circleSide) * 0.42
-        return hypot(point.x - center.x, point.y - center.y) <= limit * 1.08
-            && point.y >= 0
-            && point.y <= circleSide
+    private func beginDiskInteraction() {
+        hideDiskTask?.cancel()
+        hideDiskTask = nil
+        guard !diskVisible else { return }
+        withAnimation(.easeInOut(duration: diskFadeDuration)) {
+            diskVisible = true
+        }
     }
 
-    private func clampToCircle(_ point: CGPoint, circleSize: CGSize) -> CGPoint {
-        let center = CGPoint(x: circleSize.width / 2, y: circleSide / 2)
-        let limit = min(circleSize.width, circleSide) * 0.42
+    private func endDiskInteraction() {
+        hideDiskTask?.cancel()
+        hideDiskTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(diskIdleHideDelay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: diskFadeDuration)) {
+                    diskVisible = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Geometry (stage coordinates)
+
+    private func isInsideCircle(_ point: CGPoint, center: CGPoint, side: CGFloat) -> Bool {
+        let limit = side * 0.42
+        return hypot(point.x - center.x, point.y - center.y) <= limit * 1.08
+    }
+
+    private func clampToCircle(_ point: CGPoint, center: CGPoint, side: CGFloat) -> CGPoint {
+        let limit = side * 0.42
         let dx = point.x - center.x
         let dy = point.y - center.y
         let distance = hypot(dx, dy)
         if distance <= limit || distance < 0.001 {
-            return CGPoint(
-                x: min(max(point.x, 0), circleSize.width),
-                y: min(max(point.y, 0), circleSide)
-            )
+            return point
         }
         let scale = limit / distance
         return CGPoint(x: center.x + dx * scale, y: center.y + dy * scale)
     }
 }
 
-// MARK: - 「我的」+ read-only presets
-
-struct MixPresetBrowser: View {
-    @EnvironmentObject private var appState: AppState
-    @Binding var appliedToast: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("声音布局")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    selectionChip(
-                        title: "我的",
-                        selected: appState.mixBoardSelection.isMine
-                    ) {
-                        appState.selectMineMixBoard()
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            appliedToast = "已回到「我的」"
-                        }
-                        clearToastLater(matching: "已回到「我的」")
-                    }
-
-                    ForEach(appState.mixPresets) { preset in
-                        selectionChip(
-                            title: preset.title,
-                            selected: {
-                                if case .preset(let id) = appState.mixBoardSelection {
-                                    return id == preset.id
-                                }
-                                return false
-                            }()
-                        ) {
-                            appState.selectMixPreset(preset)
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                appliedToast = "已切换「\(preset.title)」"
-                            }
-                            clearToastLater(matching: "已切换「\(preset.title)」")
-                        }
-                    }
-                }
-            }
-
-            Text(appState.mixBoardSelection.isMine
-                 ? "可自由调整圆内声源。切换预设不会清空「我的」布局。"
-                 : "当前为预设试听，不可编辑。返回「我的」可继续调整。")
-                .font(.system(size: 11))
-                .foregroundStyle(DreamTheme.tertiaryText)
-        }
-    }
-
-    private func selectionChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: selected ? .medium : .regular))
-                .foregroundStyle(selected ? DreamTheme.midnight : DreamTheme.moonWhite)
-                .lineLimit(1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(selected ? DreamTheme.moonWhite.opacity(0.92) : Color.white.opacity(0.08))
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-
-    private func clearToastLater(matching text: String) {
-        Task {
-            try? await Task.sleep(nanoseconds: 1_400_000_000)
-            withAnimation {
-                if appliedToast == text {
-                    appliedToast = ""
-                }
-            }
-        }
-    }
-}
-
 #Preview {
-    ScrollView {
-        SoundMixCircleEditor()
-            .padding()
+    ZStack {
+        DreamTheme.deepBlue.ignoresSafeArea()
+        SoundMixCircleEditor(showTimerPicker: .constant(false))
     }
-    .background(DreamTheme.deepBlue)
     .environmentObject(AppState())
 }

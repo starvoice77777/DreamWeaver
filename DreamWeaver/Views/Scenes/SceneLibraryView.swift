@@ -83,15 +83,10 @@ struct SceneLibraryView: View {
                         spacing: 14
                     ) {
                         ForEach(filtered) { scene in
-                            Button {
-                                appState.previewScene = scene
-                            } label: {
-                                SceneCardView(
-                                    scene: scene,
-                                    isPlaying: appState.isPlaying && appState.currentSceneId == scene.id
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            SceneCardView(
+                                scene: scene,
+                                isPlaying: appState.isPlaying && appState.currentSceneId == scene.id
+                            )
                         }
                     }
                     .padding(.horizontal, 20)
@@ -105,8 +100,13 @@ struct SceneLibraryView: View {
 }
 
 struct SceneCardView: View {
+    @EnvironmentObject private var appState: AppState
     let scene: DreamScene
     var isPlaying: Bool
+
+    private var isFavorite: Bool {
+        appState.scenes.first(where: { $0.id == scene.id })?.isFavorite ?? scene.isFavorite
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -118,40 +118,56 @@ struct SceneCardView: View {
                         SceneMiniMotif(style: scene.visualStyle)
                             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     }
+                    .overlay(alignment: .topLeading) {
+                        if isPlaying {
+                            Image(systemName: "waveform")
+                                .font(.system(size: 11))
+                                .foregroundStyle(DreamTheme.warmApricot)
+                                .padding(10)
+                                .accessibilityLabel("正在播放")
+                        }
+                    }
 
-                HStack(spacing: 8) {
-                    if isPlaying {
-                        Image(systemName: "waveform")
-                            .font(.system(size: 11))
-                            .foregroundStyle(DreamTheme.warmApricot)
-                            .accessibilityLabel("正在播放")
-                    }
-                    if scene.isFavorite {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(DreamTheme.warmApricot)
-                    }
+                Button {
+                    appState.toggleFavorite(sceneId: scene.id)
+                } label: {
+                    Image(systemName: isFavorite ? "heart.fill" : "heart")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(isFavorite ? DreamTheme.warmApricot : DreamTheme.moonWhite.opacity(0.85))
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
-                .padding(10)
+                .buttonStyle(.plain)
+                .padding(6)
+                .accessibilityLabel(isFavorite ? "取消收藏" : "收藏")
+            }
+            .onTapGesture {
+                appState.enterDream(sceneId: scene.id)
             }
 
-            Text(scene.name)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(scene.name)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite)
+                    .lineLimit(1)
 
-            Text(scene.subtitle)
-                .font(.system(size: 11))
-                .foregroundStyle(DreamTheme.secondaryText)
-                .lineLimit(2)
-                .frame(height: 30, alignment: .top)
+                Text(scene.subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(DreamTheme.secondaryText)
+                    .lineLimit(2)
+                    .frame(height: 30, alignment: .top)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                appState.enterDream(sceneId: scene.id)
+            }
         }
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color.white.opacity(0.05))
         )
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("\(scene.name)，\(scene.subtitle)")
     }
 }

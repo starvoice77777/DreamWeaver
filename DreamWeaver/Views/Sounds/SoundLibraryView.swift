@@ -327,7 +327,7 @@ struct SoundLibraryView: View {
                     )
                 )
                 appState.selectedTab = .now
-                appState.openSceneDetail()
+                appState.openMixPalette()
             },
             onDelete: { soundPendingDelete = asset }
         )
@@ -407,31 +407,40 @@ struct SoundAssetRow: View {
 
 struct SoundDetailSheet: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     let asset: SoundAsset
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(asset.name)
-                .font(.system(size: 24, weight: .light))
-                .foregroundStyle(DreamTheme.moonWhite)
-            Text("分类：\(asset.kind.rawValue)")
-                .foregroundStyle(DreamTheme.secondaryText)
-            Text("时长：\(asset.durationText)")
-                .foregroundStyle(DreamTheme.secondaryText)
-            if let relation = asset.relation {
-                Text("关系：\(relation.rawValue)")
+        ZStack(alignment: .topLeading) {
+            DreamTheme.deepBlue
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { dismiss() }
+
+            VStack(alignment: .leading, spacing: 16) {
+                Text(asset.name)
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(DreamTheme.moonWhite)
+                Text("分类：\(asset.kind.rawValue)")
                     .foregroundStyle(DreamTheme.secondaryText)
+                Text("时长：\(asset.durationText)")
+                    .foregroundStyle(DreamTheme.secondaryText)
+                if let relation = asset.relation {
+                    Text("关系：\(relation.rawValue)")
+                        .foregroundStyle(DreamTheme.secondaryText)
+                }
+                Text(asset.isFavorite
+                     ? "已收藏。可与基本声音一起在场景声源添加界面使用。"
+                     : "收藏后，即可在场景声源添加界面调用此声音。基本声音无需收藏也可使用。")
+                    .font(.system(size: 13))
+                    .foregroundStyle(DreamTheme.tertiaryText)
+                Spacer(minLength: 0)
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismiss() }
             }
-            Text(asset.isFavorite
-                 ? "已收藏。可与基本声音一起在场景声源添加界面使用。"
-                 : "收藏后，即可在场景声源添加界面调用此声音。基本声音无需收藏也可使用。")
-                .font(.system(size: 13))
-                .foregroundStyle(DreamTheme.tertiaryText)
-            Spacer()
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(DreamTheme.deepBlue.ignoresSafeArea())
     }
 }
 

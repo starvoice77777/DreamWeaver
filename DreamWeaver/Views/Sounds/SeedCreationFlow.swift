@@ -29,7 +29,12 @@ struct SeedCreationFlow: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                DreamTheme.backgroundGradient.ignoresSafeArea()
+                DreamTheme.backgroundGradient
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        handleBlankTap()
+                    }
 
                 Group {
                     switch step {
@@ -50,11 +55,7 @@ struct SeedCreationFlow: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(step == 0 ? "关闭" : "返回") {
-                        if step == 0 {
-                            dismiss()
-                        } else if step < 5 {
-                            step -= 1
-                        }
+                        handleBack()
                     }
                     .foregroundStyle(DreamTheme.moonWhite)
                     .disabled(step >= 5 && step < 6)
@@ -63,6 +64,22 @@ struct SeedCreationFlow: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .interactiveDismissDisabled(step >= 2 && step <= 5)
+    }
+
+    private func handleBlankTap() {
+        // Tap empty areas to step back / dismiss, except during processing.
+        guard !(step >= 5 && step < 6) else { return }
+        handleBack()
+    }
+
+    private func handleBack() {
+        if step == 0 {
+            dismiss()
+        } else if step < 5 {
+            step -= 1
+        } else if step >= 6 {
+            dismiss()
+        }
     }
 
     private var navTitle: String {
@@ -81,14 +98,14 @@ struct SeedCreationFlow: View {
 
     private var introStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Spacer()
+            Spacer().allowsHitTesting(false)
             Text("留下一颗声音种子")
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite)
             Text("用一段清晰的录音，为熟悉的声音留下一份温柔的陪伴。")
                 .font(.system(size: 16))
                 .foregroundStyle(DreamTheme.secondaryText)
-            Spacer()
+            Spacer().allowsHitTesting(false)
             primaryButton("开始录制") { step = 1 }
             secondaryButton("从本地选择") {
                 // Mock local pick → jump to quality
@@ -125,7 +142,7 @@ struct SeedCreationFlow: View {
             }
             .padding(.top, 8)
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
             primaryButton("开始") {
                 step = 2
                 startRecording()
@@ -135,7 +152,7 @@ struct SeedCreationFlow: View {
 
     private var recordStep: some View {
         VStack(spacing: 28) {
-            Spacer()
+            Spacer().allowsHitTesting(false)
             Text(timeText)
                 .font(.system(size: 48, weight: .ultraLight, design: .rounded))
                 .foregroundStyle(DreamTheme.moonWhite)
@@ -149,7 +166,7 @@ struct SeedCreationFlow: View {
                 .font(.system(size: 14))
                 .foregroundStyle(DreamTheme.secondaryText)
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
 
             HStack(spacing: 28) {
                 circleAction(isPaused ? "继续" : "暂停", isPaused ? "play.fill" : "pause.fill") {
@@ -177,7 +194,7 @@ struct SeedCreationFlow: View {
 
     private var qualityStep: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Spacer()
+            Spacer().allowsHitTesting(false)
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(DreamTheme.warmApricot)
@@ -193,7 +210,7 @@ struct SeedCreationFlow: View {
             qualityRow("有效时长", timeText)
             qualityRow("建议", "可以直接继续")
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
             primaryButton("继续") { step = 4 }
             secondaryButton("重新准备") {
                 recordSeconds = 0
@@ -231,7 +248,7 @@ struct SeedCreationFlow: View {
             .font(.system(size: 13))
             .foregroundStyle(DreamTheme.tertiaryText)
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
             primaryButton("确认并继续") {
                 step = 5
                 runProcessing()
@@ -243,7 +260,7 @@ struct SeedCreationFlow: View {
 
     private var processingStep: some View {
         VStack(spacing: 24) {
-            Spacer()
+            Spacer().allowsHitTesting(false)
             ProgressView(value: processProgress)
                 .tint(DreamTheme.warmApricot)
                 .padding(.horizontal, 20)
@@ -257,7 +274,7 @@ struct SeedCreationFlow: View {
                 .font(.system(size: 15))
                 .foregroundStyle(DreamTheme.secondaryText)
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
         }
     }
 
@@ -302,7 +319,7 @@ struct SeedCreationFlow: View {
             }
             .buttonStyle(.plain)
 
-            Spacer()
+            Spacer().allowsHitTesting(false)
 
             primaryButton("保存到声音库") {
                 save(addToScene: false)
@@ -331,7 +348,7 @@ struct SeedCreationFlow: View {
     private func qualityRow(_ title: String, _ value: String) -> some View {
         HStack {
             Text(title).foregroundStyle(DreamTheme.secondaryText)
-            Spacer()
+            Spacer().allowsHitTesting(false)
             Text(value).foregroundStyle(DreamTheme.moonWhite)
         }
         .font(.system(size: 14))

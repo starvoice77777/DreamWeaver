@@ -19,6 +19,23 @@ enum DreamTheme {
         startPoint: .top,
         endPoint: .bottom
     )
+
+    /// Matches the scene mix disk fill so chrome panels read at the same opacity.
+    static let diskSurface = Color(hex: 0x1A2740)
+    static let diskSurfaceOpacity: Double = 0.9
+    static var chromeSurface: Color { diskSurface.opacity(diskSurfaceOpacity) }
+    static let chromeStroke = Color.white.opacity(0.10)
+
+    /// Shared show/hide timing for scene disk, chrome controls, and tab bar.
+    static let chromeVisibilityDuration: TimeInterval = 0.45
+
+    static var chromeVisibilityAnimation: Animation {
+        .easeInOut(duration: chromeVisibilityDuration)
+    }
+
+    static var chromeVisibilityTransition: AnyTransition {
+        .opacity.combined(with: .scale(scale: 0.98))
+    }
 }
 
 extension Color {

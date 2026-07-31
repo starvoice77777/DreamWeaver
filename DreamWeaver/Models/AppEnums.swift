@@ -17,14 +17,27 @@ enum AppTab: String, CaseIterable, Identifiable {
         }
     }
 
-    var systemImage: String {
+    /// Filled glyph — selected (正).
+    var systemImageFill: String {
         switch self {
         case .now: return "moon.stars.fill"
         case .scenes: return "square.stack.3d.up.fill"
-        case .sounds: return "waveform"
+        case .sounds: return "waveform.circle.fill"
+        case .profile: return "person.crop.circle.fill"
+        }
+    }
+
+    /// Outline glyph — unselected (反).
+    var systemImageOutline: String {
+        switch self {
+        case .now: return "moon.stars"
+        case .scenes: return "square.stack.3d.up"
+        case .sounds: return "waveform.circle"
         case .profile: return "person.crop.circle"
         }
     }
+
+    var systemImage: String { systemImageFill }
 }
 
 enum SceneCategory: String, CaseIterable, Identifiable, Codable, Hashable {
@@ -44,11 +57,11 @@ enum SceneCategory: String, CaseIterable, Identifiable, Codable, Hashable {
 }
 
 enum TimerOption: String, CaseIterable, Identifiable, Codable {
-    case autoStop = "适时停止"
+    case autoStop = "自动"
     case tenMinutes = "10分钟"
     case thirtyMinutes = "30分钟"
-    case oneHour = "1小时"
-    case forever = "一直播放"
+    case oneHour = "60分钟"
+    case forever = "一直"
 
     var id: String { rawValue }
 
@@ -59,6 +72,17 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
         case .thirtyMinutes: return 30
         case .oneHour: return 60
         case .forever: return nil
+        }
+    }
+
+    /// Compact label for the control-bar timer button.
+    var shortLabel: String {
+        switch self {
+        case .autoStop: return "自动"
+        case .tenMinutes: return "10"
+        case .thirtyMinutes: return "30"
+        case .oneHour: return "60"
+        case .forever: return "一直"
         }
     }
 
