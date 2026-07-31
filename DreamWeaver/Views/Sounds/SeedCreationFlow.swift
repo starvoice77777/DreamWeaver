@@ -16,6 +16,9 @@ struct SeedCreationFlow: View {
     @State private var relation: PersonRelation = .family
     @State private var customRelation = ""
     @State private var isPreviewing = false
+    @State private var qualityReport: SeedQualityReport?
+    @State private var errorMessage: String?
+    @State private var activeJobId: UUID?
 
     private let tips = [
         "选择安静的环境",
@@ -178,31 +181,43 @@ struct SeedCreationFlow: View {
     private var qualityStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill")
+            Image(systemName: qualityReport?.passed == true ? "checkmark.seal.fill" : "hourglass")
                 .font(.system(size: 44))
                 .foregroundStyle(DreamTheme.warmApricot)
                 .frame(maxWidth: .infinity)
 
-            Text("录音质量良好")
+            Text(qualityReport == nil ? "正在检测录音质量" : "录音质量良好")
                 .font(.system(size: 24, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite)
                 .frame(maxWidth: .infinity)
 
-            qualityRow("清晰度", "良好")
-            qualityRow("环境噪声", "较低")
-            qualityRow("有效时长", timeText)
-            qualityRow("建议", "可以直接继续")
+            qualityRow("清晰度", qualityReport?.clarity ?? "…")
+            qualityRow("环境噪声", qualityReport?.noiseLevel ?? "…")
+            qualityRow("有效时长", qualityReport.map { "\($0.effectiveDurationSeconds) 秒" } ?? timeText)
+            qualityRow("建议", qualityReport?.recommendation ?? "请稍候")
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.red.opacity(0.85))
+            }
 
             Spacer()
             primaryButton("继续") { step = 4 }
+                .disabled(qualityReport?.passed != true)
+                .opacity(qualityReport?.passed == true ? 1 : 0.45)
             secondaryButton("重新准备") {
                 recordSeconds = 0
+                qualityReport = nil
                 step = 1
             }
         }
         .task {
-            // Brief simulated check animation
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            do {
+                qualityReport = try await appState.seedPipeline.analyze(durationSeconds: max(recordSeconds, 3))
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -233,11 +248,24 @@ struct SeedCreationFlow: View {
 
             Spacer()
             primaryButton("确认并继续") {
-                step = 5
-                runProcessing()
+                Task {
+                    do {
+                        try await appState.seedPipeline.authorize(confirmed: authorized)
+                        step = 5
+                        runProcessing()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
             }
             .disabled(!authorized)
             .opacity(authorized ? 1 : 0.45)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.red.opacity(0.85))
+            }
         }
     }
 
@@ -293,6 +321,11 @@ struct SeedCreationFlow: View {
 
             Button {
                 isPreviewing.toggle()
+                if isPreviewing {
+                    appState.playback.preview(resourceName: "voice_phrase_mom")
+                } else {
+                    appState.playback.stopPreview()
+                }
             } label: {
                 Label(isPreviewing ? "停止试听" : "试听声音", systemImage: isPreviewing ? "stop.fill" : "play.fill")
                     .foregroundStyle(DreamTheme.moonWhite)
@@ -400,39 +433,75 @@ struct SeedCreationFlow: View {
 
     private func runProcessing() {
         processProgress = 0
-        let messages = ["正在整理声音片段", "正在保留声音特点", "正在准备试听版本"]
+        processMessage = "正在整理声音片段"
+        errorMessage = nil
         Task {
-            for i in 0...100 {
-                try? await Task.sleep(nanoseconds: 28_000_000)
-                processProgress = Double(i) / 100
-                processMessage = messages[min(i / 34, messages.count - 1)]
+            do {
+                let job = try await appState.seedPipeline.startProcess(durationSeconds: max(recordSeconds, 60))
+                activeJobId = job.id
+                var current = job
+                while current.status != .completed {
+                    current = try await appState.seedPipeline.pollJob(id: job.id)
+                    processProgress = current.progress
+                    processMessage = current.message
+                }
+                processProgress = 1
+                step = 6
+            } catch {
+                errorMessage = error.localizedDescription
+                processMessage = error.localizedDescription
             }
-            step = 6
         }
     }
 
     private func save(addToScene: Bool) {
-        let asset = SoundAsset(
-            id: UUID(),
-            name: seedName.isEmpty ? "新的声音种子" : seedName,
-            kind: .seed,
-            durationSeconds: max(recordSeconds, 60),
-            symbolName: "leaf.fill",
-            avatarColor: 0xD79A72,
-            isFavorite: false,
-            relation: relation,
-            createdAt: Date(),
-            lastUsedAt: Date()
-        )
-        appState.addSoundAsset(asset)
-        if addToScene {
-            if let idx = appState.soundAssets.firstIndex(where: { $0.id == asset.id }) {
-                appState.soundAssets[idx].isFavorite = true
+        Task {
+            do {
+                let asset: SoundAsset
+                if let jobId = activeJobId {
+                    asset = try await appState.seedPipeline.finalize(
+                        jobId: jobId,
+                        name: seedName.isEmpty ? "新的声音种子" : seedName,
+                        relation: relation
+                    )
+                } else {
+                    asset = SoundAsset(
+                        id: UUID(),
+                        name: seedName.isEmpty ? "新的声音种子" : seedName,
+                        kind: .seed,
+                        durationSeconds: max(recordSeconds, 60),
+                        symbolName: "leaf.fill",
+                        avatarColor: 0xD79A72,
+                        isFavorite: false,
+                        relation: relation,
+                        createdAt: Date(),
+                        lastUsedAt: Date(),
+                        previewResourceName: "voice_phrase_mom",
+                        processingStatus: .ready,
+                        authorization: VoiceAuthorization(confirmed: true, revocable: true, authorizationId: "auth-local")
+                    )
+                }
+                appState.addSoundAsset(asset)
+                if addToScene {
+                    if let idx = appState.soundAssets.firstIndex(where: { $0.id == asset.id }) {
+                        appState.soundAssets[idx].isFavorite = true
+                    }
+                    appState.addSource(
+                        SoundSource(
+                            name: asset.name,
+                            symbolName: "person.wave.2.fill",
+                            assetId: asset.id,
+                            resourceName: asset.previewResourceName,
+                            layer: .voice
+                        )
+                    )
+                    appState.selectedTab = .now
+                }
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
             }
-            appState.addSource(SoundSource(name: asset.name, symbolName: "person.wave.2.fill", assetId: asset.id))
-            appState.selectedTab = .now
         }
-        dismiss()
     }
 
     private func resetFlow() {
@@ -444,6 +513,10 @@ struct SeedCreationFlow: View {
         seedName = ""
         relation = .family
         isPreviewing = false
+        qualityReport = nil
+        errorMessage = nil
+        activeJobId = nil
+        appState.playback.stopPreview()
     }
 }
 

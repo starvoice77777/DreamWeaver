@@ -8,6 +8,11 @@ struct SceneDetailSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                if let message = appState.lastServiceMessage, !message.isEmpty {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(DreamTheme.secondaryText)
+                }
                 header
                 timerSection
                 SoundMixCircleEditor()
@@ -60,7 +65,7 @@ struct SceneDetailSheet: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(TimerOption.allCases) { option in
+                    ForEach(appState.showDemoControls ? TimerOption.demoCases : TimerOption.userFacingCases) { option in
                         TimerOptionChip(
                             option: option,
                             selected: appState.timerOption == option,

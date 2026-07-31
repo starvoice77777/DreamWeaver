@@ -8,6 +8,9 @@ struct SoundSource: Identifiable, Hashable, Codable {
     var volume: Double
     var position: SpatialPosition
     var assetId: UUID?
+    /// Bundle resource name without forcing extension resolution in UI.
+    var resourceName: String?
+    var layer: AudioLayerKind
 
     init(
         id: UUID = UUID(),
@@ -16,7 +19,9 @@ struct SoundSource: Identifiable, Hashable, Codable {
         isEnabled: Bool = true,
         volume: Double = 0.7,
         position: SpatialPosition = .default,
-        assetId: UUID? = nil
+        assetId: UUID? = nil,
+        resourceName: String? = nil,
+        layer: AudioLayerKind = .environment
     ) {
         self.id = id
         self.name = name
@@ -25,6 +30,25 @@ struct SoundSource: Identifiable, Hashable, Codable {
         self.volume = volume
         self.position = position
         self.assetId = assetId
+        self.resourceName = resourceName
+        self.layer = layer
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, symbolName, isEnabled, volume, position, assetId, resourceName, layer
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decode(String.self, forKey: .name)
+        symbolName = try c.decode(String.self, forKey: .symbolName)
+        isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        volume = try c.decodeIfPresent(Double.self, forKey: .volume) ?? 0.7
+        position = try c.decodeIfPresent(SpatialPosition.self, forKey: .position) ?? .default
+        assetId = try c.decodeIfPresent(UUID.self, forKey: .assetId)
+        resourceName = try c.decodeIfPresent(String.self, forKey: .resourceName)
+        layer = try c.decodeIfPresent(AudioLayerKind.self, forKey: .layer) ?? .environment
     }
 }
 
@@ -39,11 +63,67 @@ struct SoundAsset: Identifiable, Hashable, Codable {
     var relation: PersonRelation?
     var createdAt: Date
     var lastUsedAt: Date?
+    var previewResourceName: String?
+    var processingStatus: ProcessingStatus
+    var authorization: VoiceAuthorization?
 
     var durationText: String {
         let m = durationSeconds / 60
         let s = durationSeconds % 60
         return String(format: "%d:%02d", m, s)
+    }
+
+    init(
+        id: UUID,
+        name: String,
+        kind: SoundAssetKind,
+        durationSeconds: Int,
+        symbolName: String,
+        avatarColor: UInt32,
+        isFavorite: Bool,
+        relation: PersonRelation?,
+        createdAt: Date,
+        lastUsedAt: Date?,
+        previewResourceName: String? = nil,
+        processingStatus: ProcessingStatus = .ready,
+        authorization: VoiceAuthorization? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.durationSeconds = durationSeconds
+        self.symbolName = symbolName
+        self.avatarColor = avatarColor
+        self.isFavorite = isFavorite
+        self.relation = relation
+        self.createdAt = createdAt
+        self.lastUsedAt = lastUsedAt
+        self.previewResourceName = previewResourceName
+        self.processingStatus = processingStatus
+        self.authorization = authorization
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, kind, durationSeconds, symbolName, avatarColor
+        case isFavorite, relation, createdAt, lastUsedAt
+        case previewResourceName, processingStatus, authorization
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        kind = try c.decode(SoundAssetKind.self, forKey: .kind)
+        durationSeconds = try c.decode(Int.self, forKey: .durationSeconds)
+        symbolName = try c.decode(String.self, forKey: .symbolName)
+        avatarColor = try c.decode(UInt32.self, forKey: .avatarColor)
+        isFavorite = try c.decode(Bool.self, forKey: .isFavorite)
+        relation = try c.decodeIfPresent(PersonRelation.self, forKey: .relation)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        lastUsedAt = try c.decodeIfPresent(Date.self, forKey: .lastUsedAt)
+        previewResourceName = try c.decodeIfPresent(String.self, forKey: .previewResourceName)
+        processingStatus = try c.decodeIfPresent(ProcessingStatus.self, forKey: .processingStatus) ?? .ready
+        authorization = try c.decodeIfPresent(VoiceAuthorization.self, forKey: .authorization)
     }
 }
 
@@ -95,4 +175,3 @@ struct MixPreset: Identifiable, Hashable, Codable {
     var authorName: String
     var sources: [SoundSource]
 }
-

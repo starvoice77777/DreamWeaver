@@ -5,6 +5,22 @@ struct SettingsView: View {
 
     var body: some View {
         List {
+            Section("演示控制") {
+                Toggle("显示演示加速定时", isOn: $appState.showDemoControls)
+                Button("重置为标准演示状态") {
+                    appState.resetDemoState()
+                }
+                .foregroundStyle(DreamTheme.warmApricot)
+                if let message = appState.lastServiceMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(DreamTheme.secondaryText)
+                }
+                Text("拍摄前请重置。主场景：洗头陪伴；备用：檐下听雨。人声为预录制演示产物，非真实克隆。")
+                    .font(.footnote)
+                    .foregroundStyle(DreamTheme.tertiaryText)
+            }
+
             Section("播放") {
                 NavigationLink("默认进入场景") {
                     DefaultScenePicker()
@@ -112,7 +128,7 @@ struct DefaultScenePicker: View {
         List {
             ForEach(appState.scenes) { scene in
                 Button {
-                    appState.currentSceneId = scene.id
+                    appState.enterDream(sceneId: scene.id)
                     appState.persistSettings()
                 } label: {
                     HStack {
