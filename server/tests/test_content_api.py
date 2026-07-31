@@ -1,3 +1,16 @@
+from __future__ import annotations
+
+import json
+import time
+from datetime import UTC, datetime, timedelta
+
+import jwt
+import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from jwt.algorithms import RSAAlgorithm
+
+from app.core.config import get_settings
+from app.services.apple_identity import AppleJWKSCache, reset_jwks_cache_for_tests
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 
 
@@ -37,3 +50,78 @@ async def test_apple_auth_dev_token(client) -> None:
     assert body["access_token"]
     assert body["refresh_token"]
     assert body["token_type"] == "bearer"
+
+
+async def test_apple_auth_rejects_raw_garbage(client) -> None:
+    """Non-JWT tokens must no longer be accepted via hash fallback."""
+    response = await client.post(
+        "/v1/auth/apple",
+        json={"identity_token": "not-a-jwt-at-all"},
+    )
+    assert response.status_code == 401
+
+
+async def test_apple_auth_jwks_token(client, monkeypatch: pytest.MonkeyPatch) -> None:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_jwk = json.loads(RSAAlgorithm.to_jwk(private_key.public_key()))
+    public_jwk["kid"] = "api-test-kid"
+    public_jwk["alg"] = "RS256"
+    public_jwk["use"] = "sig"
+
+    async def fake_fetch(self: AppleJWKSCache) -> None:
+        self._keys = {public_jwk["kid"]: public_jwk}
+        self._fetched_at = time.monotonic()
+
+    monkeypatch.setattr(AppleJWKSCache, "_fetch", fake_fetch)
+    monkeypatch.setenv("DW_APPLE_CLIENT_ID", "zhimeng.DreamWeaver")
+    get_settings.cache_clear()
+    reset_jwks_cache_for_tests()
+
+    now = datetime.now(UTC)
+    token = jwt.encode(
+        {
+            "iss": "https://appleid.apple.com",
+            "aud": "zhimeng.DreamWeaver",
+            "sub": "real-apple-sub",
+            "iat": now,
+            "exp": now + timedelta(minutes=5),
+        },
+        private_key,
+        algorithm="RS256",
+        headers={"kid": "api-test-kid"},
+    )
+
+    response = await client.post(
+        "/v1/auth/apple",
+        json={"identity_token": token, "nickname": "苹果用户"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["nickname"] == "苹果用户"
+    assert body["access_token"]
+
+    # Same sub returns same user, nickname update allowed.
+    again = await client.post(
+        "/v1/auth/apple",
+        json={"identity_token": token, "nickname": "夜行者"},
+    )
+    assert again.status_code == 200
+    assert again.json()["user_id"] == body["user_id"]
+    assert again.json()["nickname"] == "夜行者"
+
+    get_settings.cache_clear()
+    reset_jwks_cache_for_tests()
+
+
+async def test_apple_auth_dev_disabled(client, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DW_ALLOW_DEV_APPLE_AUTH", "false")
+    get_settings.cache_clear()
+    try:
+        response = await client.post(
+            "/v1/auth/apple",
+            json={"identity_token": "dev:blocked"},
+        )
+        assert response.status_code == 401
+        assert "Dev Apple auth" in response.json()["detail"]
+    finally:
+        get_settings.cache_clear()

@@ -89,11 +89,12 @@ async def list_presets(
 
 @auth_router.post("/apple", response_model=AuthTokensOut, summary="Sign in with Apple")
 async def apple_sign_in(body: AppleAuthRequest, session: DbSession) -> AuthTokensOut:
-    return await auth_service.authenticate_apple_dev(
+    return await auth_service.authenticate_apple(
         session,
         identity_token=body.identity_token,
         nickname=body.nickname,
         device_label=body.device_label,
+        nonce=body.nonce,
     )
 
 

@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。当前在 `feat/api-home-user`：阶段 2 内容 API + 阶段 3 鉴权依赖、首页、收藏与个人场景显式保存。
+DreamWeaver 生产后端。当前在 `feat/apple-jwks`：在阶段 2/3 API 之上接入 Sign in with Apple JWKS 验签（开发仍可用 `dev:<sub>`）。
 
 ## 本机直接运行 API
 
@@ -37,7 +37,7 @@ uvicorn app.main:app --reload
 | GET | `/v1/scenes/{id}` | 否 | 场景详情 + 音轨 |
 | GET | `/v1/scenes/{id}/presets` | 否 | 场景混音预设 |
 | GET | `/v1/presets` | 否 | 全部预设（可选 `scene_id`） |
-| POST | `/v1/auth/apple` | 否 | 开发登录：`identity_token` 可用 `dev:<sub>` |
+| POST | `/v1/auth/apple` | 否 | Sign in with Apple：JWKS 验签；开发可用 `dev:<sub>` |
 | POST | `/v1/auth/refresh` | 否 | 用 refresh_token 轮换会话 |
 | POST | `/v1/auth/logout` | Bearer | 撤销当前 access 会话 |
 | GET | `/v1/home` | Bearer | 推荐、最近、收藏、个人场景摘要 |
@@ -51,6 +51,17 @@ uvicorn app.main:app --reload
 | DELETE | `/v1/users/me/scenes/{id}` | Bearer | 软删除个人场景 |
 
 首次访问内容接口时，若库中无场景，会自动写入与演示 UUID 对齐的官方种子（洗头陪伴、檐下听雨等）。
+
+### Sign in with Apple
+
+生产路径会向 `DW_APPLE_JWKS_URL`（默认 Apple 公钥）拉取 JWKS，用 RS256 校验 `identity_token`，并核对：
+
+- `iss` = `DW_APPLE_ISSUER`（默认 `https://appleid.apple.com`）
+- `aud` = `DW_APPLE_CLIENT_ID`（默认 Bundle ID `zhimeng.DreamWeaver`）
+- `exp` / `iat` / `sub`
+- 可选 `nonce`：请求体可带原始 nonce；服务端接受与 claim 相等，或与 `SHA-256(nonce)` 的 hex 相等
+
+本地开发默认允许 `identity_token` 形如 `dev:<apple_sub>`（`DW_ENVIRONMENT=development|test|local`，或显式 `DW_ALLOW_DEV_APPLE_AUTH=true`）。生产请设 `DW_ALLOW_DEV_APPLE_AUTH=false`。
 
 开发登录示例（PowerShell）：
 
@@ -88,14 +99,15 @@ ruff check app tests
 ## 分支说明
 
 - 阶段 2 底：`feat/server-models`
-- 本阶段：`feat/api-home-user`（仅 `server/`，不动 iOS）
+- 阶段 3：`feat/api-home-user`（home / settings / 个人场景）
+- 本阶段：`feat/apple-jwks`（Apple JWKS 验签）
 - 与前端 `feat/ui-frontend-sync` 并行；合入前以 `integration/frontend-backend` 为底
 
 ## 下一阶段
 
-1. Apple JWKS 正式验签（替换 `dev:` 占位）
-2. iOS `APIClient` + `RemoteContentService`（与前端约定后再动 AppState）
-3. 预签名上传与 SeedJob
-4. 离线队列 / 冲突策略细化
+1. iOS `APIClient` + `RemoteContentService`（与前端约定后再动 AppState）
+2. 预签名上传与 SeedJob
+3. 离线队列 / 冲突策略细化
+4. Apple 服务端 Token 校验 / 账号撤销通知（可选加强）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。

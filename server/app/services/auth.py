@@ -10,8 +10,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import get_settings
 from app.models.user import AppleIdentity, Session, User, UserSettings
 from app.schemas.content import AuthTokensOut
+from app.services.apple_identity import parse_dev_apple_sub, verify_apple_identity_token
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 
 ACCESS_TOKEN_TTL = timedelta(days=30)
@@ -51,23 +53,12 @@ def tokens_out(user: User, access_token: str, refresh_token: str) -> AuthTokensO
     )
 
 
-async def authenticate_apple_dev(
+async def _upsert_apple_user(
     session: AsyncSession,
     *,
-    identity_token: str,
+    apple_sub: str,
     nickname: str | None,
-    device_label: str | None,
-) -> AuthTokensOut:
-    """Development Apple auth.
-
-    Production will verify the identity token with Apple JWKS.
-    For local development, tokens may use the form ``dev:<apple_sub>``.
-    """
-    if identity_token.startswith("dev:"):
-        apple_sub = identity_token.removeprefix("dev:").strip() or "dev-user"
-    else:
-        apple_sub = hash_token(identity_token)[:32]
-
+) -> User:
     result = await session.scalars(
         select(AppleIdentity)
         .where(AppleIdentity.apple_sub == apple_sub)
@@ -78,17 +69,54 @@ async def authenticate_apple_dev(
         user = User(nickname=(nickname or "夜行者").strip() or "夜行者")
         session.add(user)
         await session.flush()
-        identity = AppleIdentity(user_id=user.id, apple_sub=apple_sub)
-        session.add(identity)
+        session.add(AppleIdentity(user_id=user.id, apple_sub=apple_sub))
         session.add(UserSettings(user_id=user.id, default_scene_id=DEFAULT_SCENE_ID))
-    else:
-        user = identity.user
-        if nickname:
-            user.nickname = nickname.strip() or user.nickname
+        return user
 
+    user = identity.user
+    if nickname:
+        user.nickname = nickname.strip() or user.nickname
+    return user
+
+
+async def authenticate_apple(
+    session: AsyncSession,
+    *,
+    identity_token: str,
+    nickname: str | None,
+    device_label: str | None,
+    nonce: str | None = None,
+) -> AuthTokensOut:
+    """Verify Sign in with Apple identity token (JWKS) and issue app session tokens.
+
+    In development (or when ``DW_ALLOW_DEV_APPLE_AUTH=true``), ``dev:<apple_sub>``
+    remains accepted for local smoke tests without a real Apple JWT.
+    """
+    settings = get_settings()
+    dev_sub = parse_dev_apple_sub(identity_token)
+    if dev_sub is not None:
+        if not settings.dev_apple_auth_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Dev Apple auth is disabled",
+            )
+        apple_sub = dev_sub
+    else:
+        claims = await verify_apple_identity_token(
+            identity_token,
+            nonce=nonce,
+            settings=settings,
+        )
+        apple_sub = claims.sub
+
+    user = await _upsert_apple_user(session, apple_sub=apple_sub, nickname=nickname)
     access_token, refresh_token, _ = _issue_tokens(session, user, device_label=device_label)
     await session.commit()
     return tokens_out(user, access_token, refresh_token)
+
+
+# Backward-compatible alias used by older call sites / docs.
+authenticate_apple_dev = authenticate_apple
 
 
 async def resolve_user_by_access_token(session: AsyncSession, access_token: str) -> User:

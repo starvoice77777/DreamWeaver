@@ -89,6 +89,8 @@ class AppleAuthRequest(BaseModel):
     identity_token: str = Field(min_length=1)
     nickname: str | None = Field(default=None, max_length=64)
     device_label: str | None = Field(default=None, max_length=128)
+    # Raw nonce from the client; compared to the JWT claim (or SHA-256 hex of it).
+    nonce: str | None = Field(default=None, max_length=256)
 
 
 class AuthTokensOut(BaseModel):

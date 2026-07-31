@@ -27,6 +27,21 @@ class Settings(BaseSettings):
 
     voice_provider: str = "stub"
 
+    # Sign in with Apple — audience is the iOS Bundle ID (or Services ID for web).
+    apple_client_id: str = "zhimeng.DreamWeaver"
+    apple_issuer: str = "https://appleid.apple.com"
+    apple_jwks_url: str = "https://appleid.apple.com/auth/keys"
+    apple_jwks_cache_seconds: int = 3600
+    # When true, POST /v1/auth/apple accepts identity_token "dev:<apple_sub>".
+    # Defaults to true only in development; set explicitly in production.
+    allow_dev_apple_auth: bool | None = None
+
+    @property
+    def dev_apple_auth_enabled(self) -> bool:
+        if self.allow_dev_apple_auth is not None:
+            return self.allow_dev_apple_auth
+        return self.environment.lower() in {"development", "test", "local"}
+
 
 @lru_cache
 def get_settings() -> Settings:
