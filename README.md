@@ -2,6 +2,10 @@
 
 助眠场景编排 iOS 应用。仓库同时保留复赛离线演示实现，并开始建设生产服务器。
 
+## 团队协作
+
+- 前后端 Git 协作说明（给双方）：[docs/frontend-backend-collaboration.md](docs/frontend-backend-collaboration.md)
+
 ## 生产后端
 
 - 技术方案：[docs/production-backend-architecture-and-roadmap.md](docs/production-backend-architecture-and-roadmap.md)

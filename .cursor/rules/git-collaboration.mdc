@@ -1,0 +1,37 @@
+---
+description: DreamWeaver 前后端 Git 协作红线（Agent 必守）
+alwaysApply: true
+---
+
+# Git 协作红线
+
+人类说明全文：`docs/frontend-backend-collaboration.md`。
+
+## 分支
+
+- 默认在 `integration/frontend-backend` 上联调；功能开发开 `feat/...` 小分支。
+- **禁止**直接在 `main` 上开发或 push。
+- **禁止** `git push --force`、`git reset --hard`（除非用户明确要求并确认无未提交工作）。
+- 换分支 / merge 前：工作区必须干净（先 commit 或 stash）。用户未要求时不要擅自 commit。
+
+## 危险区（改前必须先告知用户，并建议通知队友）
+
+- `DreamWeaver/App/AppState.swift`
+- `DreamWeaver/Models/**`
+- `DreamWeaver/Views/Now/SoundMixCircleEditor.swift`
+- `DreamWeaver/Views/Now/NowView.swift`
+
+改危险区时：只做当前任务所需最小改动；不要顺手重构对方侧逻辑。
+
+## 合并冲突原则
+
+- UI / 动画 / 控件显隐 / 圆盘手势 → 保留前端意图。
+- 播放、定时、`Services/`、`server/` → 保留后端意图。
+- 已删除的旧页（如 `SceneDetailSheet`、`ScenePreviewView`）→ **不要恢复**。
+- `AppState`：拼合两边，不要整文件采用单方版本。
+
+## 完成后告诉用户
+
+- 改了哪些共享文件
+- 建议队友如何同步（分支名 + pull/merge 命令）
+- 是否需要对方先停改同一文件

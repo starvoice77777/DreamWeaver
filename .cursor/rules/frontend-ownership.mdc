@@ -1,0 +1,25 @@
+---
+description: 前端页面改动范围与边界
+globs: DreamWeaver/Views/**/*.swift,DreamWeaver/DesignSystem/**/*.swift,DreamWeaver/App/RootTabView.swift
+alwaysApply: false
+---
+
+# 前端改动边界
+
+优先改本规则匹配的 Views / DesignSystem / RootTabView。
+
+## 可以做
+
+- 布局、样式、动画、无障碍、控件交互文案
+- 调用已有 `AppState` 方法；必要时**最小**扩展状态（先告知用户）
+
+## 不要做
+
+- 不要改写 `LocalPlaybackService` / `server/` / Docker / 音频资源管线
+- 不要恢复已删除的 `SceneDetailSheet` / `ScenePreviewView`
+- 不要把播放逻辑塞回 View（继续走 `AppState` → Service）
+- 不要大范围重写 `AppState` 里与 playback / Service 相关的方法
+
+## 与后端交界
+
+圆盘增删声源后必须仍能触发播放同步（`pushSourceToPlayback` / `pushSpatialToPlayback` 等既有路径）。若 UI 改动会打断这些调用，先停下来问用户。

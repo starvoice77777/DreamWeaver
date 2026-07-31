@@ -1,0 +1,25 @@
+---
+description: AppState 与共享 Model 的共同编辑约束
+globs: DreamWeaver/App/AppState.swift,DreamWeaver/Models/**/*.swift,DreamWeaver/Views/Now/SoundMixCircleEditor.swift,DreamWeaver/Views/Now/NowView.swift
+alwaysApply: false
+---
+
+# 共享状态文件
+
+这些文件前后端都会改。Agent 必须假设队友的 Agent 也可能同时改这里。
+
+## 编辑纪律
+
+1. 动手前向用户确认：是否已通知队友暂停同文件修改。
+2. 一次 PR/任务只改一类动机（UI 交互 **或** 播放/服务），不要混成大杂烩。
+3. 新增 `@Published` / 方法时命名清晰，并在回复里列出「前端要用」或「仅后端内部」。
+4. 删除方法前全局搜索调用方；前端已依赖的交互 API 不得静默删除。
+
+## AppState 拼合清单
+
+保留两侧能力：
+
+- 前端：`showMixPalette`、控件显隐、`beginMixDrag` / `markMixInteraction`、闲置回「此刻」
+- 后端：`playback`、Local* Service、`bootstrap`、`reloadPlayback`、`push*ToPlayback`、演示重置
+
+混音编辑后：先推播放，再 `markMixInteraction()`（不要用已删除的 `markSheetInteraction`）。

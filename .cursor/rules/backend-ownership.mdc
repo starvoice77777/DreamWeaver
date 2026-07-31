@@ -1,0 +1,26 @@
+---
+description: 后端与本地服务改动范围与边界
+globs: DreamWeaver/Services/**/*.swift,DreamWeaver/Models/**/*.swift,server/**/*,infra/**/*,docs/**/*.md
+alwaysApply: false
+---
+
+# 后端 / 服务改动边界
+
+优先改 Services、Models、`server/`、`infra/`、技术方案 docs。
+
+## 可以做
+
+- Local/Remote Service、播放引擎、持久化、API、DB、Worker
+- 为接 API 扩展 Model 字段（保持 Codable 兼容时注明）
+- 更新 `docs/` 中的契约与路线图
+
+## 不要做
+
+- 不要为了接后端而重做页面视觉或大改控件布局
+- 不要删除前端的 mix palette / idle return to Now 等交互逻辑
+- 不要提交 `server/.env`、密钥、`infra/.data/`
+- 不要在未沟通时改 Timer / Tab 文案等产品文案（见架构文档第 15 节）
+
+## 与前端交界
+
+改 `AppState` 时：保留 `showMixPalette`、`markMixInteraction`、`noteUserActivity` 等前端路径；只在播放/Service 调用处接线。新增 View 依赖前先问用户是否应前端改。
