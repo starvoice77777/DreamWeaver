@@ -60,7 +60,8 @@ final class AppState: ObservableObject {
     let isFirstLaunch: Bool
     let contentService: ContentService
     let libraryService: UserLibraryService
-    let seedPipeline: LocalSeedPipelineService
+    /// Local or remote seed pipeline (`RemoteSeedPipelineService` when content backend is remote).
+    let seedPipeline: SeedPipelineService
     let analyticsService: LocalAnalyticsService
     let playback: LocalPlaybackService
     let authService: RemoteAuthService?
@@ -87,6 +88,7 @@ final class AppState: ObservableObject {
         let remoteUser: RemoteUserService?
         let library: UserLibraryService
         let remoteLibrary: RemoteUserLibraryService?
+        let seed: SeedPipelineService
         switch mode {
         case .remote:
             let client = APIClient.shared
@@ -96,17 +98,19 @@ final class AppState: ObservableObject {
             let remoteLib = RemoteUserLibraryService(client: client)
             library = remoteLib
             remoteLibrary = remoteLib
+            seed = RemoteSeedPipelineService(client: client, library: remoteLib)
         case .local:
             content = LocalContentService()
             auth = nil
             remoteUser = nil
             library = LocalUserLibraryService()
             remoteLibrary = nil
+            seed = LocalSeedPipelineService()
         }
         self.init(
             contentService: content,
             libraryService: library,
-            seedPipeline: LocalSeedPipelineService(),
+            seedPipeline: seed,
             analyticsService: LocalAnalyticsService(),
             playback: LocalPlaybackService(),
             contentBackendMode: mode,
@@ -119,7 +123,7 @@ final class AppState: ObservableObject {
     init(
         contentService: ContentService,
         libraryService: UserLibraryService,
-        seedPipeline: LocalSeedPipelineService,
+        seedPipeline: SeedPipelineService,
         analyticsService: LocalAnalyticsService,
         playback: LocalPlaybackService,
         contentBackendMode: ServiceBackendMode = .local,

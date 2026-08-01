@@ -257,6 +257,53 @@ enum APIContentDTO {
         let expires_at: Date
     }
 
+    struct VoiceAuthorizationCreate: Encodable {
+        let confirmed: Bool
+        var purpose: String? = nil
+    }
+
+    struct VoiceAuthorization: Decodable {
+        let id: UUID
+        let confirmed: Bool
+        let revocable: Bool
+        let purpose: String
+        let revoked_at: Date?
+        let created_at: Date
+    }
+
+    struct SeedAnalyzeIn: Encodable {
+        let duration_seconds: Int
+    }
+
+    struct SeedQualityReport: Decodable {
+        let clarity: String
+        let noise_level: String
+        let effective_duration_seconds: Int
+        let recommendation: String
+        let passed: Bool
+    }
+
+    struct SeedProcessIn: Encodable {
+        let authorization_id: UUID
+        let source_asset_id: UUID
+    }
+
+    struct SeedJob: Decodable {
+        let id: UUID
+        let status: String
+        let progress: Double
+        let message: String
+        let preview_storage_key: String?
+        let result_asset_id: UUID?
+        let created_at: Date
+        let updated_at: Date
+    }
+
+    struct SeedFinalizeIn: Encodable {
+        let name: String
+        let relation: String
+    }
+
     struct Home: Decodable {
         let greeting_scene_id: UUID
         let recommended: [SceneSummary]
@@ -407,6 +454,36 @@ enum APIContentMapper {
                 )
             }
         )
+    }
+
+    static func seedQualityReport(from dto: APIContentDTO.SeedQualityReport) -> SeedQualityReport {
+        SeedQualityReport(
+            clarity: dto.clarity,
+            noiseLevel: dto.noise_level,
+            effectiveDurationSeconds: dto.effective_duration_seconds,
+            recommendation: dto.recommendation,
+            passed: dto.passed
+        )
+    }
+
+    static func seedJob(from dto: APIContentDTO.SeedJob) -> SeedJob {
+        SeedJob(
+            id: dto.id,
+            status: seedJobStatus(dto.status),
+            progress: dto.progress,
+            message: dto.message,
+            resultAsset: nil,
+            previewResourceName: "voice_phrase_mom"
+        )
+    }
+
+    private static func seedJobStatus(_ raw: String) -> SeedJobStatus {
+        switch raw.lowercased() {
+        case "queued": return .queued
+        case "completed": return .completed
+        case "failed", "cancelled": return .failed
+        default: return .processing
+        }
     }
 
     private static func soundAssetKind(_ raw: String) -> SoundAssetKind {

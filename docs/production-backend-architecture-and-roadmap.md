@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-01）：阶段 **0–4 主路径已完成**并合入 `integration/frontend-backend`。阶段 3 的「离线队列与冲突」**延后实现**（契约见 `docs/offline-queue-and-conflict.md`）。当前进行：**阶段 5**（授权与 SeedJob）。
+进度说明（2026-08-01）：阶段 **0–4 主路径已完成**；阶段 **5 PR1**（授权 + SeedJob API）已合入 `integration/frontend-backend @ 0860e0d`。当前进行：**阶段 5 PR2**（iOS RemoteSeed / 撤回闭环）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 

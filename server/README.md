@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。当前在 `feat/seed-job-api`：阶段 5 PR1（声音授权 + SeedJob analyze/process/poll/finalize）。
+DreamWeaver 生产后端。集成分支已含阶段 5 PR1（授权 + SeedJob）；当前 iOS 侧在 `feat/ios-remote-seed` 接 RemoteSeed。
 
 ## 本机直接运行 API
 
@@ -146,12 +146,15 @@ ruff check app tests
 | `toggleSoundFavorite` / `renameSound` / `deleteSound` | 远程模式下走 `/v1/library/assets` |
 | `fetchSoundDeleteImpact(id:)` | 删除前二次确认（受影响场景） |
 | `remoteLibraryService?.uploadAudio(...)` | 预签名上传新建资产（Seed / 导入） |
+| `seedPipeline`（远程模式） | `RemoteSeedPipelineService`：授权 / analyze / process / poll / finalize；未登录回退本地 |
+
+Seed 远程说明：在 Seed UI 尚未上传真实录音前，`startProcess` 会用包内 `voice_phrase_mom` 作为源资产走通 API。正式录音上传就绪后改为上传用户文件即可。
 
 ## 下一阶段
 
 1. **阶段 4（已合入）**：预签名上传 + library CRUD + iOS Remote library
-2. **阶段 5 PR1（本分支）**：授权 + SeedJob API + StubVoiceProvider
-3. 阶段 5 PR2：撤回级联 / 真实供应商 PoC；iOS `RemoteSeedPipelineService`
+2. **阶段 5 PR1（已合入 integration @ 0860e0d）**：授权 + SeedJob API + StubVoiceProvider
+3. **阶段 5 PR2（`feat/ios-remote-seed`）**：iOS `RemoteSeedPipelineService`；后续撤回级联 / 供应商 PoC
 4. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。
