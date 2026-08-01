@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     object_storage_secret_key: str = Field(default="dreamweaver-local-only", repr=False)
     object_storage_bucket: str = "dreamweaver-private"
     object_storage_secure: bool = False
+    # Host clients use for PUT/GET; defaults to object_storage_endpoint.
+    object_storage_public_endpoint: str | None = None
+
+    upload_max_bytes: int = 25 * 1024 * 1024
+    upload_url_expires_seconds: int = 3600
+    playback_url_expires_seconds: int = 900
 
     voice_provider: str = "stub"
 

@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。当前在 `feat/apple-jwks`：在阶段 2/3 API 之上接入 Sign in with Apple JWKS 验签（开发仍可用 `dev:<sub>`）。
+DreamWeaver 生产后端。当前在 `feat/presigned-upload`：阶段 4 PR1（预签名上传 + 用户声音库只读列表 / 播放 URL）。
 
 ## 本机直接运行 API
 
@@ -49,6 +49,12 @@ uvicorn app.main:app --reload
 | PUT | `/v1/users/me/scenes/{id}/draft` | Bearer | 更新草稿（不发布） |
 | POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本 |
 | DELETE | `/v1/users/me/scenes/{id}` | Bearer | 软删除个人场景 |
+| POST | `/v1/uploads` | Bearer | 创建预签名上传会话（返回 `put_url`） |
+| POST | `/v1/uploads/{id}/complete` | Bearer | 确认对象已上传并创建 `SoundAsset` |
+| GET | `/v1/library/assets` | Bearer | 当前用户声音资产列表 |
+| GET | `/v1/library/assets/{id}/playback-url` | Bearer | 短时私有播放 URL |
+
+上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
 
 首次访问内容接口时，若库中无场景，会自动写入与演示 UUID 对齐的官方种子（洗头陪伴、檐下听雨等）。
 
@@ -124,9 +130,10 @@ ruff check app tests
 
 ## 下一阶段
 
-1. **阶段 4**：预签名上传 + 用户声音库（`feat/presigned-upload`）
-2. 阶段 5：SeedJob / StubVoiceProvider
-3. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
-4. Apple 账号撤销通知（可选加强）
+1. **阶段 4 PR1（进行中）**：预签名上传 + list/playback-url（本分支）
+2. **阶段 4 PR2**：资产 PATCH / 收藏 / 删除影响面
+3. **阶段 4 PR3**：iOS `RemoteUserLibraryService`
+4. 阶段 5：SeedJob / StubVoiceProvider
+5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。
