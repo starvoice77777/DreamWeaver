@@ -14,6 +14,7 @@ protocol UserLibraryService: AnyObject {
     func fetchAssets() async throws -> [SoundAsset]
     func upsert(_ asset: SoundAsset) async throws
     func delete(id: UUID) async throws
+    func deleteImpact(id: UUID) async throws -> LibraryDeleteImpact
     func toggleFavorite(id: UUID) async throws -> SoundAsset
     func rename(id: UUID, name: String) async throws
     func resetToFixture() async throws

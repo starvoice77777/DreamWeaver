@@ -133,12 +133,15 @@ ruff check app tests
 | `isRemoteAuthenticated` / `sessionUserId` | 会话态 |
 | `toggleFavorite` / `persistSettings` | 已登录时自动走远程 API |
 | `saveCurrentMix()` / `saveCurrentMixToRemote()` | **显式**保存个人场景（勿在拖拽时自动调） |
+| `toggleSoundFavorite` / `renameSound` / `deleteSound` | 远程模式下走 `/v1/library/assets` |
+| `fetchSoundDeleteImpact(id:)` | 删除前二次确认（受影响场景） |
+| `remoteLibraryService?.uploadAudio(...)` | 预签名上传新建资产（Seed / 导入） |
 
 ## 下一阶段
 
 1. **阶段 4 PR1（已合入）**：预签名上传 + list/playback-url
-2. **阶段 4 PR2（进行中）**：资产 PATCH / 收藏 / delete-impact / DELETE
-3. **阶段 4 PR3**：iOS `RemoteUserLibraryService`
+2. **阶段 4 PR2（已合入）**：资产 PATCH / 收藏 / delete-impact / DELETE
+3. **阶段 4 PR3（进行中）**：iOS `RemoteUserLibraryService`
 4. 阶段 5：SeedJob / StubVoiceProvider
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 

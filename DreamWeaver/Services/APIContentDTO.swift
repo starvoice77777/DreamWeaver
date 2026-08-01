@@ -190,6 +190,71 @@ enum APIContentDTO {
         let position: SpatialPosition
         let resourceName: String?
         let isEnabled: Bool
+        let assetId: UUID?
+    }
+
+    struct SoundAsset: Decodable {
+        let id: UUID
+        let name: String
+        let kind: String
+        let symbol_name: String
+        let duration_seconds: Int
+        let content_type: String
+        let byte_size: Int
+        let is_favorite: Bool
+        let processing_status: String
+        let created_at: Date
+        let updated_at: Date
+    }
+
+    struct SoundAssetPatch: Encodable {
+        var name: String?
+        var symbol_name: String?
+        var is_favorite: Bool?
+    }
+
+    struct UploadCreate: Encodable {
+        let filename: String
+        let content_type: String
+        let byte_size: Int
+        let kind: String
+        let name: String?
+        let duration_seconds: Int
+    }
+
+    struct UploadSession: Decodable {
+        let upload_id: UUID
+        let put_url: String
+        let storage_key: String
+        let required_headers: [String: String]
+        let expires_at: Date
+        let max_byte_size: Int
+    }
+
+    struct DeleteImpact: Decodable {
+        let asset_id: UUID
+        let affected_scenes: [AffectedScene]
+        let total_references: Int
+
+        struct AffectedScene: Decodable {
+            let id: UUID
+            let name: String
+            let draft_reference_count: Int
+            let saved_reference_count: Int
+        }
+    }
+
+    struct DeleteAssetResult: Decodable {
+        let asset_id: UUID
+        let deleted: Bool
+        let scrubbed_scene_ids: [UUID]
+        let storage_deleted: Bool
+    }
+
+    struct PlaybackURL: Decodable {
+        let asset_id: UUID
+        let url: String
+        let expires_at: Date
     }
 
     struct Home: Decodable {
@@ -306,8 +371,62 @@ enum APIContentMapper {
                 radius: source.position.radius
             ),
             resourceName: source.resourceName,
-            isEnabled: source.isEnabled
+            isEnabled: source.isEnabled,
+            assetId: source.assetId
         )
+    }
+
+    static func soundAsset(from dto: APIContentDTO.SoundAsset) -> SoundAsset {
+        SoundAsset(
+            id: dto.id,
+            name: dto.name,
+            kind: soundAssetKind(dto.kind),
+            durationSeconds: dto.duration_seconds,
+            symbolName: dto.symbol_name,
+            avatarColor: 0x7A90B8,
+            isFavorite: dto.is_favorite,
+            relation: nil,
+            createdAt: dto.created_at,
+            lastUsedAt: dto.updated_at,
+            previewResourceName: nil,
+            processingStatus: processingStatus(dto.processing_status),
+            authorization: nil
+        )
+    }
+
+    static func libraryDeleteImpact(from dto: APIContentDTO.DeleteImpact) -> LibraryDeleteImpact {
+        LibraryDeleteImpact(
+            assetId: dto.asset_id,
+            totalReferences: dto.total_references,
+            affectedScenes: dto.affected_scenes.map {
+                LibraryDeleteImpact.AffectedScene(
+                    id: $0.id,
+                    name: $0.name,
+                    draftReferenceCount: $0.draft_reference_count,
+                    savedReferenceCount: $0.saved_reference_count
+                )
+            }
+        )
+    }
+
+    private static func soundAssetKind(_ raw: String) -> SoundAssetKind {
+        switch raw.lowercased() {
+        case "voice": return .seed
+        case "official": return .community
+        default: return .recording
+        }
+    }
+
+    static func apiSoundKind(from kind: SoundAssetKind) -> String {
+        switch kind {
+        case .seed: return "voice"
+        case .community: return "official"
+        case .recording: return "life"
+        }
+    }
+
+    private static func processingStatus(_ raw: String) -> ProcessingStatus {
+        ProcessingStatus(rawValue: raw) ?? .ready
     }
 
     static func paletteDict(from palette: ScenePalette) -> [String: UInt32] {

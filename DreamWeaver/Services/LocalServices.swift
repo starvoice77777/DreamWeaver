@@ -91,6 +91,10 @@ final class LocalUserLibraryService: UserLibraryService {
         try store.saveAssets(cache)
     }
 
+    func deleteImpact(id: UUID) async throws -> LibraryDeleteImpact {
+        LibraryDeleteImpact(assetId: id, totalReferences: 0, affectedScenes: [])
+    }
+
     func toggleFavorite(id: UUID) async throws -> SoundAsset {
         guard let idx = cache.firstIndex(where: { $0.id == id }) else {
             throw ServiceError.notFound(id.uuidString)

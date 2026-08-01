@@ -95,6 +95,16 @@ actor APIClient {
         )
     }
 
+    func deleteJSON<T: Decodable>(_ path: String, authorized: Bool = true) async throws -> T {
+        try await request(
+            path,
+            method: "DELETE",
+            body: nil as EmptyBody?,
+            authorized: authorized,
+            allowEmptyBody: false
+        )
+    }
+
     private struct EmptyBody: Encodable {}
     private struct EmptyResponse: Decodable {}
 

@@ -69,6 +69,20 @@ enum ProcessingStatus: String, Codable, Hashable {
     case pendingAuthorization
 }
 
+/// Pre-delete impact for library assets (maps `GET .../delete-impact`).
+struct LibraryDeleteImpact: Hashable {
+    struct AffectedScene: Identifiable, Hashable {
+        let id: UUID
+        let name: String
+        let draftReferenceCount: Int
+        let savedReferenceCount: Int
+    }
+
+    let assetId: UUID
+    let totalReferences: Int
+    let affectedScenes: [AffectedScene]
+}
+
 struct AudioTrackRef: Identifiable, Hashable, Codable {
     var id: UUID
     var name: String

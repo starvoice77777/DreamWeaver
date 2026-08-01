@@ -59,12 +59,14 @@ final class AppState: ObservableObject {
 
     let isFirstLaunch: Bool
     let contentService: ContentService
-    let libraryService: LocalUserLibraryService
+    let libraryService: UserLibraryService
     let seedPipeline: LocalSeedPipelineService
     let analyticsService: LocalAnalyticsService
     let playback: LocalPlaybackService
     let authService: RemoteAuthService?
     let remoteUserService: RemoteUserService?
+    /// Optional remote library for upload / playback-url helpers (same instance as `libraryService` when remote).
+    let remoteLibraryService: RemoteUserLibraryService?
     /// Frontend-visible: which content backend this process started with.
     let contentBackendMode: ServiceBackendMode
 
@@ -83,38 +85,47 @@ final class AppState: ObservableObject {
         let content: ContentService
         let auth: RemoteAuthService?
         let remoteUser: RemoteUserService?
+        let library: UserLibraryService
+        let remoteLibrary: RemoteUserLibraryService?
         switch mode {
         case .remote:
             let client = APIClient.shared
             content = RemoteContentService(client: client)
             auth = RemoteAuthService(client: client)
             remoteUser = RemoteUserService(client: client)
+            let remoteLib = RemoteUserLibraryService(client: client)
+            library = remoteLib
+            remoteLibrary = remoteLib
         case .local:
             content = LocalContentService()
             auth = nil
             remoteUser = nil
+            library = LocalUserLibraryService()
+            remoteLibrary = nil
         }
         self.init(
             contentService: content,
-            libraryService: LocalUserLibraryService(),
+            libraryService: library,
             seedPipeline: LocalSeedPipelineService(),
             analyticsService: LocalAnalyticsService(),
             playback: LocalPlaybackService(),
             contentBackendMode: mode,
             authService: auth,
-            remoteUserService: remoteUser
+            remoteUserService: remoteUser,
+            remoteLibraryService: remoteLibrary
         )
     }
 
     init(
         contentService: ContentService,
-        libraryService: LocalUserLibraryService,
+        libraryService: UserLibraryService,
         seedPipeline: LocalSeedPipelineService,
         analyticsService: LocalAnalyticsService,
         playback: LocalPlaybackService,
         contentBackendMode: ServiceBackendMode = .local,
         authService: RemoteAuthService? = nil,
-        remoteUserService: RemoteUserService? = nil
+        remoteUserService: RemoteUserService? = nil,
+        remoteLibraryService: RemoteUserLibraryService? = nil
     ) {
         self.contentService = contentService
         self.libraryService = libraryService
@@ -124,6 +135,7 @@ final class AppState: ObservableObject {
         self.contentBackendMode = contentBackendMode
         self.authService = authService
         self.remoteUserService = remoteUserService
+        self.remoteLibraryService = remoteLibraryService
 
         store.migrateIfNeeded()
 
@@ -229,6 +241,9 @@ final class AppState: ObservableObject {
         defaults.set(tokens.user_id.uuidString, forKey: "dw.sessionUserId")
         persistSettings()
         await refreshAuthenticatedRemoteState()
+        if let assets = try? await libraryService.fetchAssets() {
+            soundAssets = assets
+        }
         lastServiceMessage = "已登录：\(tokens.nickname)"
     }
 
@@ -938,6 +953,11 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Sound assets
+
+    /// Frontend: call before confirm-delete UI. Returns nil on failure.
+    func fetchSoundDeleteImpact(id: UUID) async -> LibraryDeleteImpact? {
+        try? await libraryService.deleteImpact(id: id)
+    }
 
     func toggleSoundFavorite(id: UUID) {
         Task {
