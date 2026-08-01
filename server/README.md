@@ -52,9 +52,15 @@ uvicorn app.main:app --reload
 | POST | `/v1/uploads` | Bearer | 创建预签名上传会话（返回 `put_url`） |
 | POST | `/v1/uploads/{id}/complete` | Bearer | 确认对象已上传并创建 `SoundAsset` |
 | GET | `/v1/library/assets` | Bearer | 当前用户声音资产列表 |
+| PATCH | `/v1/library/assets/{id}` | Bearer | 更新 name / symbol_name / is_favorite |
+| POST | `/v1/library/assets/{id}/favorite` | Bearer | 切换收藏 |
+| GET | `/v1/library/assets/{id}/delete-impact` | Bearer | 删除前受影响个人场景（二次确认 UI） |
+| DELETE | `/v1/library/assets/{id}` | Bearer | 软删除；从个人场景草稿/正式版 scrub `assetId`；尽力删对象 |
 | GET | `/v1/library/assets/{id}/playback-url` | Bearer | 短时私有播放 URL |
 
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
+
+删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
 首次访问内容接口时，若库中无场景，会自动写入与演示 UUID 对齐的官方种子（洗头陪伴、檐下听雨等）。
 
@@ -130,8 +136,8 @@ ruff check app tests
 
 ## 下一阶段
 
-1. **阶段 4 PR1（进行中）**：预签名上传 + list/playback-url（本分支）
-2. **阶段 4 PR2**：资产 PATCH / 收藏 / 删除影响面
+1. **阶段 4 PR1（已合入）**：预签名上传 + list/playback-url
+2. **阶段 4 PR2（进行中）**：资产 PATCH / 收藏 / delete-impact / DELETE
 3. **阶段 4 PR3**：iOS `RemoteUserLibraryService`
 4. 阶段 5：SeedJob / StubVoiceProvider
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）

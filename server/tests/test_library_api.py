@@ -105,3 +105,95 @@ async def test_complete_without_object_fails(client) -> None:
         assert complete.status_code == 400
     finally:
         set_object_storage(None)
+
+
+async def _create_ready_asset(client, headers: dict[str, str], memory: InMemoryObjectStorage, name: str = "素材") -> dict:
+    created = await client.post(
+        "/v1/uploads",
+        headers=headers,
+        json={
+            "filename": "clip.m4a",
+            "content_type": "audio/mp4",
+            "byte_size": 12,
+            "kind": "life",
+            "name": name,
+        },
+    )
+    assert created.status_code == 200, created.text
+    body = created.json()
+    memory.put_bytes(body["storage_key"], b"012345678901", "audio/mp4")
+    complete = await client.post(f"/v1/uploads/{body['upload_id']}/complete", headers=headers)
+    assert complete.status_code == 200, complete.text
+    return complete.json()
+
+
+async def test_patch_favorite_and_delete_impact(client) -> None:
+    memory = InMemoryObjectStorage()
+    set_object_storage(memory)
+    try:
+        tokens = await _login(client, sub="mutate-tester")
+        headers = _auth(tokens)
+        asset = await _create_ready_asset(client, headers, memory, name="可改名")
+        asset_id = asset["id"]
+
+        patched = await client.patch(
+            f"/v1/library/assets/{asset_id}",
+            headers=headers,
+            json={"name": "新名字", "symbol_name": "star.fill"},
+        )
+        assert patched.status_code == 200, patched.text
+        assert patched.json()["name"] == "新名字"
+        assert patched.json()["symbol_name"] == "star.fill"
+        assert patched.json()["is_favorite"] is False
+
+        fav = await client.post(f"/v1/library/assets/{asset_id}/favorite", headers=headers)
+        assert fav.status_code == 200
+        assert fav.json()["is_favorite"] is True
+
+        scene = await client.post(
+            "/v1/users/me/scenes",
+            headers=headers,
+            json={
+                "name": "含素材场景",
+                "sources": [
+                    {
+                        "name": "引用音",
+                        "symbolName": "waveform",
+                        "assetId": asset_id,
+                        "volume": 0.5,
+                    },
+                    {"name": "无关音", "symbolName": "drop", "volume": 0.3},
+                ],
+            },
+        )
+        assert scene.status_code == 200, scene.text
+        scene_id = scene.json()["id"]
+
+        impact = await client.get(
+            f"/v1/library/assets/{asset_id}/delete-impact",
+            headers=headers,
+        )
+        assert impact.status_code == 200, impact.text
+        impact_body = impact.json()
+        assert impact_body["total_references"] == 1
+        assert impact_body["affected_scenes"][0]["id"] == scene_id
+        assert impact_body["affected_scenes"][0]["draft_reference_count"] == 1
+
+        deleted = await client.delete(f"/v1/library/assets/{asset_id}", headers=headers)
+        assert deleted.status_code == 200, deleted.text
+        assert deleted.json()["deleted"] is True
+        assert scene_id in deleted.json()["scrubbed_scene_ids"]
+        assert deleted.json()["storage_deleted"] is True
+        assert memory.objects == {}
+
+        listed = await client.get("/v1/library/assets", headers=headers)
+        assert listed.status_code == 200
+        assert all(item["id"] != asset_id for item in listed.json())
+
+        detail = await client.get(f"/v1/users/me/scenes/{scene_id}", headers=headers)
+        assert detail.status_code == 200
+        sources = detail.json()["draft_sources"]
+        assert len(sources) == 1
+        assert sources[0]["name"] == "无关音"
+    finally:
+        set_object_storage(None)

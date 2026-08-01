@@ -60,6 +60,32 @@ class PlaybackUrlOut(BaseModel):
     expires_at: datetime
 
 
+class SoundAssetPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    symbol_name: str | None = Field(default=None, min_length=1, max_length=128)
+    is_favorite: bool | None = None
+
+
+class AffectedSceneOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    draft_reference_count: int
+    saved_reference_count: int
+
+
+class DeleteImpactOut(BaseModel):
+    asset_id: uuid.UUID
+    affected_scenes: list[AffectedSceneOut]
+    total_references: int
+
+
+class DeleteAssetOut(BaseModel):
+    asset_id: uuid.UUID
+    deleted: bool
+    scrubbed_scene_ids: list[uuid.UUID]
+    storage_deleted: bool
+
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
 

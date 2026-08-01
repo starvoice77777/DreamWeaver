@@ -28,6 +28,8 @@ class ObjectStorage(Protocol):
 
     def put_bytes(self, key: str, data: bytes, content_type: str) -> None: ...
 
+    def delete_object(self, key: str) -> None: ...
+
 
 class MinioObjectStorage:
     def __init__(self, settings: Settings | None = None) -> None:
@@ -84,6 +86,14 @@ class MinioObjectStorage:
             content_type=content_type,
         )
 
+    def delete_object(self, key: str) -> None:
+        try:
+            self._client.remove_object(self._bucket, key)
+        except S3Error as exc:
+            if exc.code in {"NoSuchKey", "NoSuchObject", "NotFound"}:
+                return
+            raise
+
     def _rewrite_host(self, url: str) -> str:
         """Swap signing host for a client-reachable public endpoint when configured."""
         public = self._public_endpoint
@@ -131,6 +141,9 @@ class InMemoryObjectStorage:
 
     def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
         self.objects[key] = (data, content_type)
+
+    def delete_object(self, key: str) -> None:
+        self.objects.pop(key, None)
 
 
 _storage: ObjectStorage | None = None

@@ -10,13 +10,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.models.library import UploadSession, UserSoundAsset
-from app.models.user import User
+from app.models.user import PrivateScene, User
 from app.schemas.library import (
     ALLOWED_CONTENT_TYPES,
     ALLOWED_EXTENSIONS,
     ALLOWED_KINDS,
+    AffectedSceneOut,
+    DeleteAssetOut,
+    DeleteImpactOut,
     PlaybackUrlOut,
     SoundAssetOut,
+    SoundAssetPatch,
     UploadCreate,
     UploadSessionOut,
     expires_in,
@@ -218,6 +222,13 @@ async def playback_url(
 ) -> PlaybackUrlOut:
     settings = settings or get_settings()
     storage = storage or get_object_storage()
+    asset = await _owned_asset(session, user, asset_id)
+    expires_at = expires_in(settings.playback_url_expires_seconds)
+    url = storage.presign_get(asset.storage_key, settings.playback_url_expires_seconds)
+    return PlaybackUrlOut(asset_id=asset.id, url=url, expires_at=expires_at)
+
+
+async def _owned_asset(session: AsyncSession, user: User, asset_id: uuid.UUID) -> UserSoundAsset:
     result = await session.scalars(
         select(UserSoundAsset).where(
             UserSoundAsset.id == asset_id,
@@ -228,6 +239,144 @@ async def playback_url(
     asset = result.first()
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
-    expires_at = expires_in(settings.playback_url_expires_seconds)
-    url = storage.presign_get(asset.storage_key, settings.playback_url_expires_seconds)
-    return PlaybackUrlOut(asset_id=asset.id, url=url, expires_at=expires_at)
+    return asset
+
+
+def _source_asset_id(source: object) -> str | None:
+    if not isinstance(source, dict):
+        return None
+    raw = source.get("assetId")
+    if raw is None:
+        raw = source.get("asset_id")
+    if raw is None:
+        return None
+    return str(raw).lower()
+
+
+def _count_asset_refs(sources: list | None, asset_id: uuid.UUID) -> int:
+    needle = str(asset_id).lower()
+    return sum(1 for item in (sources or []) if _source_asset_id(item) == needle)
+
+
+def _scrub_asset_refs(sources: list | None, asset_id: uuid.UUID) -> list:
+    needle = str(asset_id).lower()
+    return [item for item in (sources or []) if _source_asset_id(item) != needle]
+
+
+async def patch_asset(
+    session: AsyncSession,
+    user: User,
+    asset_id: uuid.UUID,
+    body: SoundAssetPatch,
+) -> SoundAssetOut:
+    asset = await _owned_asset(session, user, asset_id)
+    data = body.model_dump(exclude_unset=True)
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="No fields to update",
+        )
+    if "name" in data and data["name"] is not None:
+        asset.name = data["name"].strip()[:128]
+    if "symbol_name" in data and data["symbol_name"] is not None:
+        asset.symbol_name = data["symbol_name"].strip()[:128]
+    if "is_favorite" in data and data["is_favorite"] is not None:
+        asset.is_favorite = bool(data["is_favorite"])
+    asset.updated_at = utc_now()
+    await session.commit()
+    await session.refresh(asset)
+    return asset_to_out(asset)
+
+
+async def toggle_favorite(
+    session: AsyncSession, user: User, asset_id: uuid.UUID
+) -> SoundAssetOut:
+    asset = await _owned_asset(session, user, asset_id)
+    asset.is_favorite = not asset.is_favorite
+    asset.updated_at = utc_now()
+    await session.commit()
+    await session.refresh(asset)
+    return asset_to_out(asset)
+
+
+async def delete_impact(
+    session: AsyncSession, user: User, asset_id: uuid.UUID
+) -> DeleteImpactOut:
+    await _owned_asset(session, user, asset_id)
+    result = await session.scalars(
+        select(PrivateScene).where(
+            PrivateScene.owner_user_id == user.id,
+            PrivateScene.deleted_at.is_(None),
+        )
+    )
+    affected: list[AffectedSceneOut] = []
+    total = 0
+    for scene in result.all():
+        draft_count = _count_asset_refs(scene.draft_sources, asset_id)
+        saved_count = _count_asset_refs(scene.saved_sources, asset_id)
+        if draft_count or saved_count:
+            total += draft_count + saved_count
+            affected.append(
+                AffectedSceneOut(
+                    id=scene.id,
+                    name=scene.name,
+                    draft_reference_count=draft_count,
+                    saved_reference_count=saved_count,
+                )
+            )
+    return DeleteImpactOut(asset_id=asset_id, affected_scenes=affected, total_references=total)
+
+
+async def delete_asset(
+    session: AsyncSession,
+    user: User,
+    asset_id: uuid.UUID,
+    *,
+    storage: ObjectStorage | None = None,
+) -> DeleteAssetOut:
+    storage = storage or get_object_storage()
+    asset = await _owned_asset(session, user, asset_id)
+    storage_key = asset.storage_key
+    preview_key = asset.preview_storage_key
+
+    result = await session.scalars(
+        select(PrivateScene).where(
+            PrivateScene.owner_user_id == user.id,
+            PrivateScene.deleted_at.is_(None),
+        )
+    )
+    scrubbed: list[uuid.UUID] = []
+    for scene in result.all():
+        draft_before = list(scene.draft_sources or [])
+        saved_before = list(scene.saved_sources or []) if scene.saved_sources is not None else None
+        draft_after = _scrub_asset_refs(draft_before, asset_id)
+        changed = len(draft_after) != len(draft_before)
+        scene.draft_sources = draft_after
+        if saved_before is not None:
+            saved_after = _scrub_asset_refs(saved_before, asset_id)
+            if len(saved_after) != len(saved_before):
+                changed = True
+            scene.saved_sources = saved_after
+        if changed:
+            scrubbed.append(scene.id)
+
+    asset.deleted_at = utc_now()
+    asset.updated_at = utc_now()
+    await session.commit()
+
+    storage_deleted = False
+    try:
+        storage.delete_object(storage_key)
+        if preview_key:
+            storage.delete_object(preview_key)
+        storage_deleted = True
+    except Exception:
+        # Soft-delete already committed; object cleanup is best-effort.
+        storage_deleted = False
+
+    return DeleteAssetOut(
+        asset_id=asset_id,
+        deleted=True,
+        scrubbed_scene_ids=scrubbed,
+        storage_deleted=storage_deleted,
+    )

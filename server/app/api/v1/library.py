@@ -7,8 +7,11 @@ from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.library import (
+    DeleteAssetOut,
+    DeleteImpactOut,
     PlaybackUrlOut,
     SoundAssetOut,
+    SoundAssetPatch,
     UploadCreate,
     UploadSessionOut,
 )
@@ -47,6 +50,50 @@ async def complete_upload(
 )
 async def list_assets(session: DbSession, user: CurrentUser) -> list[SoundAssetOut]:
     return await library_service.list_assets(session, user)
+
+
+@router.patch(
+    "/library/assets/{asset_id}",
+    response_model=SoundAssetOut,
+    summary="Update asset metadata (name / symbol / favorite)",
+)
+async def patch_asset(
+    asset_id: uuid.UUID, body: SoundAssetPatch, session: DbSession, user: CurrentUser
+) -> SoundAssetOut:
+    return await library_service.patch_asset(session, user, asset_id, body)
+
+
+@router.post(
+    "/library/assets/{asset_id}/favorite",
+    response_model=SoundAssetOut,
+    summary="Toggle asset favorite flag",
+)
+async def toggle_favorite(
+    asset_id: uuid.UUID, session: DbSession, user: CurrentUser
+) -> SoundAssetOut:
+    return await library_service.toggle_favorite(session, user, asset_id)
+
+
+@router.get(
+    "/library/assets/{asset_id}/delete-impact",
+    response_model=DeleteImpactOut,
+    summary="Scenes that reference this asset (for confirm UI)",
+)
+async def delete_impact(
+    asset_id: uuid.UUID, session: DbSession, user: CurrentUser
+) -> DeleteImpactOut:
+    return await library_service.delete_impact(session, user, asset_id)
+
+
+@router.delete(
+    "/library/assets/{asset_id}",
+    response_model=DeleteAssetOut,
+    summary="Soft-delete asset, scrub private-scene refs, best-effort storage cleanup",
+)
+async def delete_asset(
+    asset_id: uuid.UUID, session: DbSession, user: CurrentUser
+) -> DeleteAssetOut:
+    return await library_service.delete_asset(session, user, asset_id)
 
 
 @router.get(
