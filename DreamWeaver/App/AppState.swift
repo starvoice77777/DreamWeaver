@@ -154,7 +154,6 @@ final class AppState: ObservableObject {
                 personalMixByScene[currentSceneId] = currentScene.soundSources
             }
 
-            isPlaying = autoPlayEnabled
             reloadPlayback(autoPlay: autoPlayEnabled)
         } catch {
             lastServiceMessage = error.localizedDescription
@@ -241,13 +240,14 @@ final class AppState: ObservableObject {
             playbackProgress = playback.progress
             if autoPlay {
                 playback.play()
-                isPlaying = playback.isPlaying
             }
+            isPlaying = playback.isPlaying
             if let message = playback.lastErrorMessage {
                 lastServiceMessage = message
             }
         } catch {
             lastServiceMessage = error.localizedDescription
+            isPlaying = false
         }
     }
 
@@ -465,7 +465,6 @@ final class AppState: ObservableObject {
 
             currentSceneId = sceneId
             defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
-            isPlaying = true
             playbackProgress = 0.08
             mixBoardSelection = .mine
             if let personal = personalMixByScene[sceneId] {
@@ -583,11 +582,6 @@ final class AppState: ObservableObject {
 
     func removeSource(id: UUID) {
         guard mixBoardSelection.isMine else { return }
-        let enabled = currentScene.soundSources.filter(\.isEnabled)
-        // Keep at least one active source on the disk.
-        if enabled.count <= 1, enabled.contains(where: { $0.id == id }) {
-            return
-        }
         mutateCurrentSources { sources in
             sources.removeAll { $0.id == id }
         }
