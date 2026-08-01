@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。当前在 `feat/presigned-upload`：阶段 4 PR1（预签名上传 + 用户声音库只读列表 / 播放 URL）。
+DreamWeaver 生产后端。当前在 `feat/seed-job-api`：阶段 5 PR1（声音授权 + SeedJob analyze/process/poll/finalize）。
 
 ## 本机直接运行 API
 
@@ -57,8 +57,18 @@ uvicorn app.main:app --reload
 | GET | `/v1/library/assets/{id}/delete-impact` | Bearer | 删除前受影响个人场景（二次确认 UI） |
 | DELETE | `/v1/library/assets/{id}` | Bearer | 软删除；从个人场景草稿/正式版 scrub `assetId`；尽力删对象 |
 | GET | `/v1/library/assets/{id}/playback-url` | Bearer | 短时私有播放 URL |
+| POST | `/v1/voice-authorizations` | Bearer | 创建声音授权（`confirmed=true`） |
+| GET | `/v1/voice-authorizations` | Bearer | 授权列表（含已撤回） |
+| POST | `/v1/voice-authorizations/{id}/revoke` | Bearer | 撤回授权 |
+| POST | `/v1/seeds/analyze` | Bearer | 质检（body: `duration_seconds`） |
+| POST | `/v1/seeds/process` | Bearer | 启动 SeedJob（授权 + 已 complete 的源资产） |
+| GET | `/v1/seeds/jobs/{id}` | Bearer | 轮询；stub 进度在此推进直至 `completed` |
+| POST | `/v1/seeds/jobs/{id}/finalize` | Bearer | body: `name` + `relation` → `kind=voice` 资产 |
+| DELETE | `/v1/seeds/jobs/{id}` | Bearer | 取消未完成任务 |
 
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
+
+Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮询 `jobs/{id}` → `finalize`。进度对齐本地 iOS，**不依赖 Celery worker**；可选任务名 `seeds.advance_job` 仅骨架。
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
@@ -139,10 +149,9 @@ ruff check app tests
 
 ## 下一阶段
 
-1. **阶段 4 PR1（已合入）**：预签名上传 + list/playback-url
-2. **阶段 4 PR2（已合入）**：资产 PATCH / 收藏 / delete-impact / DELETE
-3. **阶段 4 PR3（进行中）**：iOS `RemoteUserLibraryService`
-4. 阶段 5：SeedJob / StubVoiceProvider
-5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
+1. **阶段 4（已合入）**：预签名上传 + library CRUD + iOS Remote library
+2. **阶段 5 PR1（本分支）**：授权 + SeedJob API + StubVoiceProvider
+3. 阶段 5 PR2：撤回级联 / 真实供应商 PoC；iOS `RemoteSeedPipelineService`
+4. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。

@@ -1,5 +1,6 @@
 from app.models.content import MixPreset, OfficialAsset, Scene, SceneTrack
 from app.models.library import UploadSession, UserSoundAsset
+from app.models.seed import SeedJob, VoiceAuthorization
 from app.models.user import (
     AppleIdentity,
     PrivateScene,
@@ -16,10 +17,12 @@ __all__ = [
     "PrivateScene",
     "Scene",
     "SceneTrack",
+    "SeedJob",
     "Session",
     "UploadSession",
     "User",
     "UserSceneState",
     "UserSettings",
     "UserSoundAsset",
+    "VoiceAuthorization",
 ]
