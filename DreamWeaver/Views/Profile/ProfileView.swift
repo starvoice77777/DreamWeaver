@@ -8,6 +8,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     profileHeader
+                    AppleSignInSection()
                     companionshipSection
                     settingsEntry
                 }
@@ -41,7 +42,7 @@ struct ProfileView: View {
                 Text(appState.nickname)
                     .font(.system(size: 24, weight: .light))
                     .foregroundStyle(DreamTheme.moonWhite)
-                Text(appState.isAppleSignedIn ? "已通过 Apple 账户登录（演示）" : "未登录（演示）")
+                Text(headerLoginCaption)
                     .font(.system(size: 12))
                     .foregroundStyle(DreamTheme.secondaryText)
                 Text(appState.isMember ? "织梦会员" : "免费体验")
@@ -51,6 +52,13 @@ struct ProfileView: View {
             Spacer()
         }
         .padding(.top, 12)
+    }
+
+    private var headerLoginCaption: String {
+        if appState.contentBackendMode != .remote {
+            return "本地演示"
+        }
+        return appState.isRemoteAuthenticated ? "已通过 Apple 登录" : "未登录"
     }
 
     private var companionshipSection: some View {
