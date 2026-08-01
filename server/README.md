@@ -59,7 +59,7 @@ uvicorn app.main:app --reload
 | GET | `/v1/library/assets/{id}/playback-url` | Bearer | 短时私有播放 URL |
 | POST | `/v1/voice-authorizations` | Bearer | 创建声音授权（`confirmed=true`） |
 | GET | `/v1/voice-authorizations` | Bearer | 授权列表（含已撤回） |
-| POST | `/v1/voice-authorizations/{id}/revoke` | Bearer | 撤回授权 |
+| POST | `/v1/voice-authorizations/{id}/revoke` | Bearer | 撤回授权并级联：取消 SeedJob、软删种子资产、scrub 场景、尽力删供应商 stub |
 | POST | `/v1/seeds/analyze` | Bearer | 质检（body: `duration_seconds`） |
 | POST | `/v1/seeds/process` | Bearer | 启动 SeedJob（授权 + 已 complete 的源资产） |
 | GET | `/v1/seeds/jobs/{id}` | Bearer | 轮询；stub 进度在此推进直至 `completed` |
@@ -152,9 +152,10 @@ Seed 远程说明：在 Seed UI 尚未上传真实录音前，`startProcess` 会
 
 ## 下一阶段
 
-1. **阶段 4（已合入）**：预签名上传 + library CRUD + iOS Remote library
-2. **阶段 5 PR1（已合入 integration @ 0860e0d）**：授权 + SeedJob API + StubVoiceProvider
-3. **阶段 5 PR2（`feat/ios-remote-seed`）**：iOS `RemoteSeedPipelineService`；后续撤回级联 / 供应商 PoC
-4. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
+1. **阶段 4–5 PR1 / RemoteSeed / 场景目录（已合入）**
+2. **阶段 5 PR2（本分支）**：授权撤回级联取消任务并清理种子资产
+3. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
+4. 阶段 6：场景时间线与播放编排
+5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。

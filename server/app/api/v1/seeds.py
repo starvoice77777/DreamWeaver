@@ -14,6 +14,7 @@ from app.schemas.seed import (
     SeedQualityReportOut,
     VoiceAuthorizationCreate,
     VoiceAuthorizationOut,
+    VoiceAuthorizationRevokeOut,
 )
 from app.services import seed as seed_service
 
@@ -44,12 +45,12 @@ async def list_authorizations(
 
 @router.post(
     "/voice-authorizations/{authorization_id}/revoke",
-    response_model=VoiceAuthorizationOut,
-    summary="Revoke a voice authorization",
+    response_model=VoiceAuthorizationRevokeOut,
+    summary="Revoke authorization and cascade-cancel jobs / seed assets",
 )
 async def revoke_authorization(
     authorization_id: uuid.UUID, session: DbSession, user: CurrentUser
-) -> VoiceAuthorizationOut:
+) -> VoiceAuthorizationRevokeOut:
     return await seed_service.revoke_authorization(session, user, authorization_id)
 
 

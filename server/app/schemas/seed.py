@@ -37,6 +37,13 @@ class VoiceAuthorizationOut(BaseModel):
     created_at: datetime
 
 
+class VoiceAuthorizationRevokeOut(VoiceAuthorizationOut):
+    cancelled_jobs: int = 0
+    deleted_assets: int = 0
+    scrubbed_scene_ids: list[uuid.UUID] = Field(default_factory=list)
+    provider_deletes: int = 0
+
+
 class SeedAnalyzeIn(BaseModel):
     duration_seconds: int = Field(ge=0, le=86_400)
 
