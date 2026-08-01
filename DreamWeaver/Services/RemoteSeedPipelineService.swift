@@ -3,8 +3,8 @@ import Foundation
 /// Remote seed pipeline against `/v1/voice-authorizations` + `/v1/seeds/*`.
 /// Falls back to local when there is no authenticated session.
 ///
-/// Until Seed UI uploads real recordings, `startProcess` uploads the bundled
-/// `voice_phrase_mom` sample as the source asset so the remote path can be smoked end-to-end.
+/// Prefers `pendingSourceFileURL` from Seed UI when set; otherwise uploads the bundled
+/// `voice_phrase_mom` sample so the remote path can still be smoked end-to-end.
 @MainActor
 final class RemoteSeedPipelineService: SeedPipelineService {
     private let client: APIClient
@@ -14,6 +14,12 @@ final class RemoteSeedPipelineService: SeedPipelineService {
     private var authorizationId: UUID?
     private var lastDurationSeconds: Int = 3
 
+    /// Optional real recording chosen by Seed UI. Cleared after `startProcess` uploads it.
+    /// Avoids extending `SeedPipelineService` / AppState until the backend protocol lands.
+    var pendingSourceFileURL: URL?
+    var pendingSourceFilename: String?
+    var pendingSourceContentType: String?
+
     init(
         client: APIClient = .shared,
         library: RemoteUserLibraryService,
@@ -22,6 +28,12 @@ final class RemoteSeedPipelineService: SeedPipelineService {
         self.client = client
         self.library = library
         self.fallback = fallback ?? LocalSeedPipelineService()
+    }
+
+    func clearPendingSource() {
+        pendingSourceFileURL = nil
+        pendingSourceFilename = nil
+        pendingSourceContentType = nil
     }
 
     func analyze(durationSeconds: Int) async throws -> SeedQualityReport {
@@ -103,20 +115,45 @@ final class RemoteSeedPipelineService: SeedPipelineService {
     }
 
     private func uploadDemoSource(durationSeconds: Int) async throws -> SoundAsset {
-        guard let fileURL = Bundle.main.url(forResource: "voice_phrase_mom", withExtension: "wav")
+        let source: (url: URL, filename: String, contentType: String)
+        if let pending = pendingSourceFileURL {
+            let filename = pendingSourceFilename ?? pending.lastPathComponent
+            let contentType = pendingSourceContentType ?? mimeType(for: pending)
+            source = (pending, filename, contentType)
+        } else if let bundled = Bundle.main.url(forResource: "voice_phrase_mom", withExtension: "wav")
             ?? Bundle.main.url(forResource: "voice_phrase_mom", withExtension: "m4a")
-        else {
-            throw ServiceError.invalidState("缺少演示人声音频资源 voice_phrase_mom")
+        {
+            let ext = bundled.pathExtension.lowercased()
+            source = (bundled, "seed-source.\(ext)", ext == "wav" ? "audio/wav" : "audio/mp4")
+        } else {
+            throw ServiceError.invalidState("缺少种子录音素材，请先从本地选择音频")
         }
-        let ext = fileURL.pathExtension.lowercased()
-        let contentType = ext == "wav" ? "audio/wav" : "audio/mp4"
+
+        defer { clearPendingSource() }
+
+        let accessed = source.url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { source.url.stopAccessingSecurityScopedResource() }
+        }
+
         return try await library.uploadAudio(
-            fileURL: fileURL,
-            filename: "seed-source.\(ext)",
-            contentType: contentType,
+            fileURL: source.url,
+            filename: source.filename,
+            contentType: source.contentType,
             kind: .seed,
             name: "种子录音素材",
             durationSeconds: max(durationSeconds, 3)
         )
+    }
+
+    private func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "m4a", "mp4", "aac": return "audio/mp4"
+        case "mp3": return "audio/mpeg"
+        case "wav": return "audio/wav"
+        case "aiff", "aif": return "audio/aiff"
+        case "caf": return "audio/x-caf"
+        default: return "application/octet-stream"
+        }
     }
 }

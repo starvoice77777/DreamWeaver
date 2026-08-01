@@ -1,4 +1,6 @@
+import AVFoundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SeedCreationFlow: View {
     @EnvironmentObject private var appState: AppState
@@ -19,6 +21,18 @@ struct SeedCreationFlow: View {
     @State private var qualityReport: SeedQualityReport?
     @State private var errorMessage: String?
     @State private var activeJobId: UUID?
+    @State private var showFileImporter = false
+    @State private var showLoginHint = false
+    @State private var selectedSourceURL: URL?
+    @State private var usedLocalPick = false
+
+    private var needsRemoteLogin: Bool {
+        appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated
+    }
+
+    private var remoteSeedPipeline: RemoteSeedPipelineService? {
+        appState.seedPipeline as? RemoteSeedPipelineService
+    }
 
     private let tips = [
         "选择安静的环境",
@@ -65,9 +79,36 @@ struct SeedCreationFlow: View {
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: Self.uploadContentTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                handleImportedSource(result)
+            }
+            .alert("需要登录", isPresented: $showLoginHint) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text("远程创建声音种子需要先登录（开发登录或 Apple）。可在「我的」完成登录。")
+            }
         }
         .interactiveDismissDisabled(step >= 2 && step <= 5)
+        .onDisappear {
+            stopRecording()
+            appState.playback.stopPreview()
+            // Keep pending source only while the flow is alive; process clears it after upload.
+            if step < 5 {
+                remoteSeedPipeline?.clearPendingSource()
+            }
+        }
     }
+
+    private static let uploadContentTypes: [UTType] = {
+        var types: [UTType] = [.audio, .mp3, .wav, .aiff]
+        if let m4a = UTType(filenameExtension: "m4a") { types.append(m4a) }
+        if let caf = UTType(filenameExtension: "caf") { types.append(caf) }
+        return types
+    }()
 
     private func handleBlankTap() {
         // Tap empty areas to step back / dismiss, except during processing.
@@ -89,7 +130,7 @@ struct SeedCreationFlow: View {
         switch step {
         case 0: return "声音种子"
         case 1: return "录制准备"
-        case 2: return "模拟录制"
+        case 2: return usedLocalPick ? "本地音频" : "模拟录制"
         case 3: return "质量检测"
         case 4: return "授权确认"
         case 5: return "正在准备"
@@ -109,11 +150,21 @@ struct SeedCreationFlow: View {
                 .font(.system(size: 16))
                 .foregroundStyle(DreamTheme.secondaryText)
             Spacer().allowsHitTesting(false)
-            primaryButton("开始录制") { step = 1 }
+            primaryButton("开始录制") {
+                guard ensureRemoteReady() else { return }
+                usedLocalPick = false
+                step = 1
+            }
             secondaryButton("从本地选择") {
-                // Mock local pick → jump to quality
-                recordSeconds = 95
-                step = 3
+                guard ensureRemoteReady() else { return }
+                showFileImporter = true
+            }
+            if appState.contentBackendMode == .remote {
+                Text(appState.isRemoteAuthenticated
+                     ? "已登录：本地音频会作为种子素材上传；麦克风录制仍为演示计时。"
+                     : "远程模式需先登录后再创建种子。")
+                    .font(.system(size: 12))
+                    .foregroundStyle(DreamTheme.tertiaryText)
             }
         }
     }
@@ -165,9 +216,13 @@ struct SeedCreationFlow: View {
                 .frame(height: 72)
                 .padding(.horizontal, 8)
 
-            Text(isPaused ? "已暂停" : (isRecording ? "正在录制（演示）" : "准备就绪"))
+            Text(isPaused ? "已暂停" : (isRecording ? "正在录制（演示计时）" : "准备就绪"))
                 .font(.system(size: 14))
                 .foregroundStyle(DreamTheme.secondaryText)
+            Text("真实麦克风录音待后续接入；当前远程处理在未选本地文件时使用包内占位音。")
+                .font(.system(size: 12))
+                .foregroundStyle(DreamTheme.tertiaryText)
+                .multilineTextAlignment(.center)
 
             Spacer().allowsHitTesting(false)
 
@@ -428,6 +483,82 @@ struct SeedCreationFlow: View {
         .accessibilityLabel(title)
     }
 
+    private func ensureRemoteReady() -> Bool {
+        guard needsRemoteLogin else { return true }
+        showLoginHint = true
+        return false
+    }
+
+    private func handleImportedSource(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            Task { await ingestPickedAudio(from: url) }
+        }
+    }
+
+    @MainActor
+    private func ingestPickedAudio(from fileURL: URL) async {
+        let accessed = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { fileURL.stopAccessingSecurityScopedResource() }
+        }
+        do {
+            let ext = fileURL.pathExtension.isEmpty ? "m4a" : fileURL.pathExtension
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("seed-source-\(UUID().uuidString).\(ext)")
+            if FileManager.default.fileExists(atPath: dest.path) {
+                try FileManager.default.removeItem(at: dest)
+            }
+            try FileManager.default.copyItem(at: fileURL, to: dest)
+
+            let duration = max(1, Int((try await audioDurationSeconds(of: dest)).rounded()))
+            selectedSourceURL = dest
+            usedLocalPick = true
+            recordSeconds = duration
+            if seedName.isEmpty {
+                seedName = fileURL.deletingPathExtension().lastPathComponent
+            }
+            syncPendingSourceToRemote()
+            qualityReport = nil
+            errorMessage = nil
+            step = 3
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func syncPendingSourceToRemote() {
+        guard let remote = remoteSeedPipeline else { return }
+        guard let url = selectedSourceURL else {
+            remote.clearPendingSource()
+            return
+        }
+        remote.pendingSourceFileURL = url
+        remote.pendingSourceFilename = url.lastPathComponent
+        remote.pendingSourceContentType = mimeType(for: url)
+    }
+
+    private func audioDurationSeconds(of url: URL) async throws -> Double {
+        let asset = AVURLAsset(url: url)
+        let duration = try await asset.load(.duration)
+        let seconds = CMTimeGetSeconds(duration)
+        return seconds.isFinite ? seconds : 1
+    }
+
+    private func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "m4a", "mp4", "aac": return "audio/mp4"
+        case "mp3": return "audio/mpeg"
+        case "wav": return "audio/wav"
+        case "aiff", "aif": return "audio/aiff"
+        case "caf": return "audio/x-caf"
+        default: return "application/octet-stream"
+        }
+    }
+
     private func startRecording() {
         isRecording = true
         isPaused = false
@@ -450,11 +581,12 @@ struct SeedCreationFlow: View {
 
     private func runProcessing() {
         processProgress = 0
-        processMessage = "正在整理声音片段"
+        processMessage = usedLocalPick ? "正在上传并整理声音片段" : "正在整理声音片段"
         errorMessage = nil
+        syncPendingSourceToRemote()
         Task {
             do {
-                let job = try await appState.seedPipeline.startProcess(durationSeconds: max(recordSeconds, 60))
+                let job = try await appState.seedPipeline.startProcess(durationSeconds: max(recordSeconds, 3))
                 activeJobId = job.id
                 var current = job
                 while current.status != .completed {
@@ -533,6 +665,12 @@ struct SeedCreationFlow: View {
         qualityReport = nil
         errorMessage = nil
         activeJobId = nil
+        usedLocalPick = false
+        if let selectedSourceURL {
+            try? FileManager.default.removeItem(at: selectedSourceURL)
+        }
+        selectedSourceURL = nil
+        remoteSeedPipeline?.clearPendingSource()
         appState.playback.stopPreview()
     }
 }
