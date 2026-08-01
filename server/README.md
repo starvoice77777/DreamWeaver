@@ -98,12 +98,18 @@ ruff check app tests
 
 ## 分支说明
 
-- 集成分支：`integration/frontend-backend`
-- 服务端：`feat/apple-jwks`（JWKS）已合入 integration
-- iOS Remote：`feat/ios-remote-content`
+- 集成分支：`integration/frontend-backend`（阶段 0–3 主路径已合入）
+- 服务端鉴权：Apple JWKS + 开发 `dev:<sub>`
+- iOS Remote（已合入）：
   - 游客：bootstrap / scenes / presets
   - 登录后：`RemoteAuthService` + `RemoteUserService`（home / 收藏 / 设置 / 显式保存）
-  - 正式登录 UI 仍由前端 `feat/ui-auth-shell` 负责；设置页仅有 `dev:` 烟雾登录
+  - 登录壳：`feat/ui-auth-shell`（Profile Sign in with Apple + 演示登录）
+
+冒烟（API 已启动时）：
+
+```powershell
+.\scripts\smoke_remote_auth.ps1
+```
 
 ### iOS 登录后调用约定（给前端）
 
@@ -118,9 +124,9 @@ ruff check app tests
 
 ## 下一阶段
 
-1. 前端 `feat/ui-auth-shell` 接上 `signInWithApple`；联调收藏 / 设置 / 显式保存
-2. 预签名上传与 SeedJob
-3. 离线队列 / 冲突策略细化
+1. **阶段 4**：预签名上传 + 用户声音库（`feat/presigned-upload`）
+2. 阶段 5：SeedJob / StubVoiceProvider
+3. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 4. Apple 账号撤销通知（可选加强）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。
