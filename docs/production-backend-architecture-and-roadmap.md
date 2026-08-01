@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-01）：阶段 **0–4** 与 **5 PR1**（SeedJob API）/ **RemoteSeed** / 官方 13 场景目录已合入 `integration/frontend-backend @ 624a392`。当前进行：**阶段 5 PR2**（授权撤回级联）。
+进度说明（2026-08-01）：阶段 **0–5**（含授权撤回级联、RemoteSeed、官方 13 场景）已合入 `integration/frontend-backend`。当前进行：**阶段 6 PR1**（`GET /v1/scenes/{id}/timeline` 契约与官方种子时间线）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -565,21 +565,21 @@ VoiceProvider
 - 删除影响检查与二次确认所需的影响范围数据；
 - iOS `RemoteUserLibraryService`。
 
-### 阶段 5：授权与声音处理 — 进行中
+### 阶段 5：授权与声音处理 — 基本完成
 
 - 创建者流程内授权记录；
 - SeedJob；
-- Worker；
+- Worker（骨架）；
 - Stub 供应商；
-- 候选供应商 PoC；
-- 撤回和删除闭环。
+- 撤回和删除闭环（级联取消任务 / 软删资产 / scrub 场景）；
+- 候选供应商 PoC（后续）。
 
-### 阶段 6：场景时间线与播放编排
+### 阶段 6：场景时间线与播放编排 — 进行中
 
-- 时间线 / Cue / Phrase 契约；
-- 官方自动编排与用户覆盖规则；
-- 客户端调度器接入 `AVAudioEngine`；
-- 保存版本中携带时间线快照。
+- 时间线 / Cue / Phrase 契约（`GET /v1/scenes/{id}/timeline`，版本化 JSON）；
+- 官方自动编排与用户覆盖规则（`override_policy=per_source_manual_exit`）；
+- 客户端调度器接入 `AVAudioEngine`（后续）；
+- 保存版本中携带时间线快照（后续）。
 
 ### 阶段 7：陪伴记录与可观测性
 

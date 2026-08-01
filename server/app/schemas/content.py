@@ -53,6 +53,64 @@ class SceneDetailOut(SceneSummaryOut):
     tracks: list[SceneTrackOut] = Field(default_factory=list)
 
 
+class VoiceBindingOut(BaseModel):
+    """Where a phrase gets its audio from."""
+
+    kind: str = Field(description="official_resource | system | authorized_asset")
+    resource_key: str | None = None
+    asset_id: uuid.UUID | None = None
+    track_id: uuid.UUID | None = None
+    track_layer: str | None = "voice"
+
+
+class PhraseOut(BaseModel):
+    id: uuid.UUID
+    text: str
+    review_status: str = Field(description="draft | pending | approved | rejected")
+    voice_binding: VoiceBindingOut
+
+
+class CueActionOut(BaseModel):
+    """Client-executed action. Unknown types should be ignored by older clients."""
+
+    type: str = Field(
+        description="play_phrase | play | pause | fade_in | fade_out | set_volume | set_position | replace_source"
+    )
+    phrase_id: uuid.UUID | None = None
+    track_id: uuid.UUID | None = None
+    volume: float | None = Field(default=None, ge=0, le=1)
+    fade_ms: int | None = Field(default=None, ge=0)
+    angle: float | None = None
+    radius: float | None = Field(default=None, ge=0, le=1)
+    resource_key: str | None = None
+
+
+class SceneCueOut(BaseModel):
+    id: uuid.UUID
+    at_seconds: float | None = Field(
+        default=None, description="Wall-clock offset from scene start; mutually exclusive with progress"
+    )
+    progress: float | None = Field(
+        default=None, ge=0, le=1, description="Normalized session/text progress 0…1"
+    )
+    repeat_every_seconds: float | None = Field(default=None, ge=0)
+    until_seconds: float | None = Field(default=None, ge=0)
+    actions: list[CueActionOut] = Field(default_factory=list)
+
+
+class SceneTimelineOut(BaseModel):
+    scene_id: uuid.UUID
+    version: int
+    automation_mode: str = Field(description="official_auto | manual")
+    duration_hint_seconds: int | None = None
+    override_policy: str = Field(
+        default="per_source_manual_exit",
+        description="Manual edits on a source exit official automation for that source only",
+    )
+    phrases: list[PhraseOut] = Field(default_factory=list)
+    cues: list[SceneCueOut] = Field(default_factory=list)
+
+
 class MixPresetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

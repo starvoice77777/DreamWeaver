@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。集成分支已含阶段 5 PR1（授权 + SeedJob）；当前 iOS 侧在 `feat/ios-remote-seed` 接 RemoteSeed。
+DreamWeaver 生产后端。集成分支已含阶段 5（授权 + SeedJob + 撤回级联）。阶段 6 起提供场景时间线契约。
 
 ## 本机直接运行 API
 
@@ -36,6 +36,7 @@ uvicorn app.main:app --reload
 | GET | `/v1/scenes` | 否 | 官方场景列表 |
 | GET | `/v1/scenes/{id}` | 否 | 场景详情 + 音轨 |
 | GET | `/v1/scenes/{id}/presets` | 否 | 场景混音预设 |
+| GET | `/v1/scenes/{id}/timeline` | 否 | 版本化 Cue/Phrase 时间线（客户端调度） |
 | GET | `/v1/presets` | 否 | 全部预设（可选 `scene_id`） |
 | POST | `/v1/auth/apple` | 否 | Sign in with Apple：JWKS 验签；开发可用 `dev:<sub>` |
 | POST | `/v1/auth/refresh` | 否 | 用 refresh_token 轮换会话 |
@@ -72,7 +73,7 @@ Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮�
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
-首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 13 个场景；多数可无完整音频资源，仅元数据与占位轨）。
+首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 13 个场景；多数可无完整音频资源，仅元数据与占位轨）。同时会为缺时间线的场景写入版本化 Cue/Phrase 文档；「洗头陪伴」对齐本地播放节奏（约 6s 首句、之后每 28s，并含音量/进度示例 cue）。
 
 ### Sign in with Apple
 
@@ -152,10 +153,10 @@ Seed 远程说明：在 Seed UI 尚未上传真实录音前，`startProcess` 会
 
 ## 下一阶段
 
-1. **阶段 4–5 PR1 / RemoteSeed / 场景目录（已合入）**
-2. **阶段 5 PR2（本分支）**：授权撤回级联取消任务并清理种子资产
-3. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
-4. 阶段 6：场景时间线与播放编排
+1. **阶段 0–5（已合入 integration）**：内容、上传、SeedJob、授权撤回级联、RemoteSeed、官方场景目录
+2. **阶段 6 PR1（本分支）**：`GET /v1/scenes/{id}/timeline` 契约与官方种子时间线
+3. 阶段 6 余量：iOS 调度器替换固定 28s 人声；私有场景保存携带 timeline 快照
+4. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。

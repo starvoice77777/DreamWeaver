@@ -755,3 +755,7 @@ async def ensure_official_catalog(session: AsyncSession) -> None:
 
     if added:
         await session.commit()
+
+    from app.services.timeline import ensure_official_timelines
+
+    await ensure_official_timelines(session)
