@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import MixPreset, Scene, SceneTrack
@@ -20,6 +20,10 @@ GREETINGS = [
 
 def _palette(top: int, mid: int, bottom: int, accent: int) -> dict[str, int]:
     return {"top": top, "mid": mid, "bottom": bottom, "accent": accent}
+
+
+def _tid(suffix: int) -> uuid.UUID:
+    return uuid.UUID(f"f6666666-6666-4666-8666-{suffix:012d}")
 
 
 def _track(
@@ -50,6 +54,7 @@ def _track(
 
 
 def official_scene_specs() -> list[dict]:
+    """Official catalog aligned with iOS MockDataService / DemoIDs (13 scenes)."""
     pi = math.pi
     return [
         {
@@ -160,15 +165,15 @@ def official_scene_specs() -> list[dict]:
             "subtitle": "风穿过树梢，微光停在夜色里。",
             "description": "林间微风与零星萤火交织，把呼吸带回更慢的节奏。",
             "category": "forest",
-            "tags": ["森林", "安静"],
-            "palette": _palette(0x102418, 0x1C3A28, 0x0C1410, 0xA8C989),
+            "tags": ["森林", "微光"],
+            "palette": _palette(0x0B1A14, 0x163028, 0x0A1520, 0xC8E6A0),
             "visual_style": "fireflies",
             "is_demo_playable": False,
             "sort_order": 2,
-            "mock_listener_count": 942,
+            "mock_listener_count": 964,
             "tracks": [
                 _track(
-                    track_id=uuid.uuid4(),
+                    track_id=_tid(10301),
                     name="风声",
                     symbol="wind",
                     angle=pi * 0.15,
@@ -176,6 +181,480 @@ def official_scene_specs() -> list[dict]:
                     volume=0.65,
                     resource_key="wind_realistic",
                     sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10302),
+                    name="虫鸣",
+                    symbol="leaf.fill",
+                    angle=pi * 0.7,
+                    radius=0.55,
+                    volume=0.5,
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10303),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.4,
+                    radius=0.4,
+                    volume=0.4,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111104"),
+            "name": "雾岸听潮",
+            "subtitle": "潮声从雾的另一边缓缓靠近。",
+            "description": "远岸潮水起伏，雾气把世界推远一点，只留下规律的海声。",
+            "category": "ocean",
+            "tags": ["海洋", "雾"],
+            "palette": _palette(0x1A2533, 0x3A4E63, 0x1C2430, 0xA8C4D8),
+            "visual_style": "mistTide",
+            "is_demo_playable": False,
+            "sort_order": 3,
+            "mock_listener_count": 742,
+            "tracks": [
+                _track(
+                    track_id=_tid(10401),
+                    name="潮声",
+                    symbol="water.waves",
+                    angle=pi * 0.9,
+                    radius=0.65,
+                    volume=0.8,
+                    resource_key="stream_nature",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10402),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.25,
+                    radius=0.7,
+                    volume=0.4,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10403),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.3,
+                    radius=0.45,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111105"),
+            "name": "幽谷清流",
+            "subtitle": "水声沿着石缝，轻轻绕过心口。",
+            "description": "山谷溪流清亮而连续，适合需要被轻轻带着走的夜晚。",
+            "category": "nature",
+            "tags": ["流水", "山谷"],
+            "palette": _palette(0x13241F, 0x1F3D38, 0x101820, 0x7FB8A8),
+            "visual_style": "valleyStream",
+            "is_demo_playable": False,
+            "sort_order": 4,
+            "mock_listener_count": 531,
+            "tracks": [
+                _track(
+                    track_id=_tid(10501),
+                    name="流水",
+                    symbol="drop.fill",
+                    angle=pi * 0.8,
+                    radius=0.5,
+                    volume=0.75,
+                    resource_key="stream_nature",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10502),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.2,
+                    radius=0.7,
+                    volume=0.3,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10503),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=pi * 1.35,
+                    radius=0.42,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111106"),
+            "name": "月下静湖",
+            "subtitle": "月光落在水面，夜色变得很薄。",
+            "description": "静湖倒映月光，几乎没有多余的声音，只留下一层柔和的回响。",
+            "category": "nature",
+            "tags": ["月光", "湖"],
+            "palette": _palette(0x10182A, 0x243552, 0x0C1018, 0xE8E2D0),
+            "visual_style": "moonLake",
+            "is_demo_playable": False,
+            "sort_order": 5,
+            "mock_listener_count": 1102,
+            "tracks": [
+                _track(
+                    track_id=_tid(10601),
+                    name="湖面",
+                    symbol="water.waves",
+                    angle=pi * 0.95,
+                    radius=0.58,
+                    volume=0.45,
+                    resource_key="stream_nature",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10602),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.18,
+                    radius=0.68,
+                    volume=0.25,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10603),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=pi * 1.4,
+                    radius=0.4,
+                    volume=0.3,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111107"),
+            "name": "星河远眠",
+            "subtitle": "把目光交给很远的光。",
+            "description": "星河缓慢流动，像把白天的嘈杂一点点推到天边。",
+            "category": "lightMusic",
+            "tags": ["星空", "空灵"],
+            "palette": _palette(0x090B18, 0x1A1F3A, 0x0A0C16, 0x9AA6D8),
+            "visual_style": "starRiver",
+            "is_demo_playable": False,
+            "sort_order": 6,
+            "mock_listener_count": 1588,
+            "tracks": [
+                _track(
+                    track_id=_tid(10701),
+                    name="星声",
+                    symbol="sparkles",
+                    angle=pi * 0.6,
+                    radius=0.75,
+                    volume=0.35,
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10702),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.15,
+                    radius=0.7,
+                    volume=0.2,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10703),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=pi * 1.2,
+                    radius=0.42,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111108"),
+            "name": "暖灯陪伴",
+            "subtitle": "房间不大，灯光刚刚好。",
+            "description": "一盏暖灯、轻微人声与柔和钢琴，像有人静静坐在旁边。",
+            "category": "companion",
+            "tags": ["陪伴", "暖光"],
+            "palette": _palette(0x2A1E16, 0x4A3424, 0x18120E, 0xE0A878),
+            "visual_style": "warmLamp",
+            "is_demo_playable": False,
+            "sort_order": 7,
+            "mock_listener_count": 2031,
+            "tracks": [
+                _track(
+                    track_id=_tid(10801),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.15,
+                    radius=0.35,
+                    volume=0.55,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10802),
+                    name="雨声",
+                    symbol="cloud.rain.fill",
+                    angle=pi * 0.3,
+                    radius=0.72,
+                    volume=0.25,
+                    resource_key="rain_soft",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10803),
+                    name="炉火",
+                    symbol="flame.fill",
+                    angle=pi * 0.55,
+                    radius=0.48,
+                    volume=0.3,
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-111111111109"),
+            "name": "雪夜书房",
+            "subtitle": "窗外落雪，纸页很静。",
+            "description": "雪夜把世界盖软，书房里只剩细小的翻页与远处风声。",
+            "category": "whisper",
+            "tags": ["雪夜", "安静"],
+            "palette": _palette(0x1A2230, 0x3A4658, 0x12161E, 0xD8DEE8),
+            "visual_style": "snowStudy",
+            "is_demo_playable": False,
+            "sort_order": 8,
+            "mock_listener_count": 687,
+            "tracks": [
+                _track(
+                    track_id=_tid(10901),
+                    name="雪声",
+                    symbol="snowflake",
+                    angle=pi * 0.7,
+                    radius=0.65,
+                    volume=0.5,
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(10902),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.2,
+                    radius=0.75,
+                    volume=0.3,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(10903),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.35,
+                    radius=0.4,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110a"),
+            "name": "风过麦田",
+            "subtitle": "风把白天的热气带走了。",
+            "description": "麦浪轻轻起伏，风声开阔而不喧闹，适合想要一点空间感的夜晚。",
+            "category": "nature",
+            "tags": ["田野", "风"],
+            "palette": _palette(0x1C2418, 0x3A4630, 0x141810, 0xC8B070),
+            "visual_style": "wheatWind",
+            "is_demo_playable": False,
+            "sort_order": 9,
+            "mock_listener_count": 412,
+            "tracks": [
+                _track(
+                    track_id=_tid(11001),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.25,
+                    radius=0.6,
+                    volume=0.7,
+                    resource_key="wind_realistic",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(11002),
+                    name="虫鸣",
+                    symbol="leaf.fill",
+                    angle=pi * 0.8,
+                    radius=0.55,
+                    volume=0.4,
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(11003),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.4,
+                    radius=0.42,
+                    volume=0.3,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110b"),
+            "name": "云间呼吸",
+            "subtitle": "跟着云层一起慢慢呼气。",
+            "description": "柔和的呼吸引导与轻薄氛围声，帮助身体一点点松下来。",
+            "category": "breath",
+            "tags": ["呼吸", "放松"],
+            "palette": _palette(0x182030, 0x2E3C52, 0x10161E, 0xA8B8D0),
+            "visual_style": "cloudBreath",
+            "is_demo_playable": False,
+            "sort_order": 10,
+            "mock_listener_count": 895,
+            "tracks": [
+                _track(
+                    track_id=_tid(11101),
+                    name="呼吸",
+                    symbol="wind.circle.fill",
+                    angle=-pi * 0.1,
+                    radius=0.35,
+                    volume=0.65,
+                    resource_key="wind_realistic",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(11102),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=pi * 0.9,
+                    radius=0.45,
+                    volume=0.45,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(11103),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 1.3,
+                    radius=0.72,
+                    volume=0.25,
+                    resource_key="wind_realistic",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110c"),
+            "name": "夏夜虫鸣",
+            "subtitle": "院子里，夏天还没走远。",
+            "description": "虫鸣层层叠叠，像夏天的夜还停在窗外，温柔而不打扰。",
+            "category": "nature",
+            "tags": ["夏夜", "虫鸣"],
+            "palette": _palette(0x142018, 0x243828, 0x101410, 0x88C878),
+            "visual_style": "summerInsects",
+            "is_demo_playable": False,
+            "sort_order": 11,
+            "mock_listener_count": 623,
+            "tracks": [
+                _track(
+                    track_id=_tid(11201),
+                    name="虫鸣",
+                    symbol="leaf.fill",
+                    angle=pi * 0.6,
+                    radius=0.55,
+                    volume=0.7,
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(11202),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.15,
+                    radius=0.7,
+                    volume=0.3,
+                    resource_key="wind_realistic",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(11203),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.35,
+                    radius=0.42,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110d"),
+            "name": "炉边低语",
+            "subtitle": "火光轻轻说着不重要的事。",
+            "description": "炉火细碎作响，低语与暖色把夜晚收得很近。",
+            "category": "companion",
+            "tags": ["炉火", "低语"],
+            "palette": _palette(0x241810, 0x4A2C1A, 0x140E0A, 0xE09060),
+            "visual_style": "fireplaceWhisper",
+            "is_demo_playable": False,
+            "sort_order": 12,
+            "mock_listener_count": 1344,
+            "tracks": [
+                _track(
+                    track_id=_tid(11301),
+                    name="炉火",
+                    symbol="flame.fill",
+                    angle=pi * 0.55,
+                    radius=0.4,
+                    volume=0.65,
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(11302),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=-pi * 0.25,
+                    radius=0.38,
+                    volume=0.5,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(11303),
+                    name="雨声",
+                    symbol="cloud.rain.fill",
+                    angle=pi * 0.95,
+                    radius=0.72,
+                    volume=0.3,
+                    resource_key="rain_soft",
+                    sort_order=2,
                 ),
             ],
         },
@@ -235,33 +714,44 @@ def official_preset_specs() -> list[dict]:
     ]
 
 
+def _add_scene(session: AsyncSession, spec: dict) -> None:
+    tracks = spec.pop("tracks")
+    session.add(Scene(**spec))
+    for index, track_spec in enumerate(tracks):
+        session.add(
+            SceneTrack(
+                scene_id=spec["id"],
+                id=track_spec["id"],
+                name=track_spec["name"],
+                symbol_name=track_spec["symbol_name"],
+                layer=track_spec["layer"],
+                volume=track_spec["volume"],
+                angle=track_spec["angle"],
+                radius=track_spec["radius"],
+                resource_key=track_spec["resource_key"],
+                enabled_by_default=track_spec["enabled_by_default"],
+                sort_order=track_spec.get("sort_order", index),
+            )
+        )
+
+
 async def ensure_official_catalog(session: AsyncSession) -> None:
-    count = await session.scalar(select(func.count()).select_from(Scene))
-    if count and count > 0:
-        return
+    """Insert any missing official scenes/presets (idempotent; safe for existing DBs)."""
+    existing_scene_ids = set(await session.scalars(select(Scene.id)))
+    existing_preset_ids = set(await session.scalars(select(MixPreset.id)))
+    added = False
 
     for spec in official_scene_specs():
-        tracks = spec.pop("tracks")
-        scene = Scene(**spec)
-        session.add(scene)
-        for index, track_spec in enumerate(tracks):
-            session.add(
-                SceneTrack(
-                    scene_id=scene.id,
-                    id=track_spec["id"],
-                    name=track_spec["name"],
-                    symbol_name=track_spec["symbol_name"],
-                    layer=track_spec["layer"],
-                    volume=track_spec["volume"],
-                    angle=track_spec["angle"],
-                    radius=track_spec["radius"],
-                    resource_key=track_spec["resource_key"],
-                    enabled_by_default=track_spec["enabled_by_default"],
-                    sort_order=track_spec.get("sort_order", index),
-                )
-            )
+        if spec["id"] in existing_scene_ids:
+            continue
+        _add_scene(session, dict(spec))
+        added = True
 
     for preset in official_preset_specs():
+        if preset["id"] in existing_preset_ids:
+            continue
         session.add(MixPreset(**preset))
+        added = True
 
-    await session.commit()
+    if added:
+        await session.commit()

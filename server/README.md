@@ -72,7 +72,7 @@ Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮�
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
-首次访问内容接口时，若库中无场景，会自动写入与演示 UUID 对齐的官方种子（洗头陪伴、檐下听雨等）。
+首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 13 个场景；多数可无完整音频资源，仅元数据与占位轨）。
 
 ### Sign in with Apple
 
