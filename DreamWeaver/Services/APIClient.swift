@@ -48,6 +48,27 @@ actor APIClient {
         try await request(path, method: "POST", body: body, authorized: authorized)
     }
 
+    /// POST with empty body; decodes JSON or accepts 204 No Content when `T` is unused via `postNoContent`.
+    func postEmpty<T: Decodable>(_ path: String, authorized: Bool = true) async throws -> T {
+        try await request(
+            path,
+            method: "POST",
+            body: nil as EmptyBody?,
+            authorized: authorized,
+            allowEmptyBody: true
+        )
+    }
+
+    func postNoContent(_ path: String, authorized: Bool = true) async throws {
+        let _: EmptyResponse = try await request(
+            path,
+            method: "POST",
+            body: nil as EmptyBody?,
+            authorized: authorized,
+            allowEmptyBody: true
+        )
+    }
+
     func put<Body: Encodable, T: Decodable>(
         _ path: String,
         body: Body,

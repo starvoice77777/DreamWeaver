@@ -43,8 +43,12 @@ final class RemoteAuthService {
 
     func logout() async throws {
         if KeychainTokenStore.accessToken != nil {
-            try? await client.delete("/v1/auth/logout", authorized: true)
+            try? await client.postNoContent("/v1/auth/logout", authorized: true)
         }
         KeychainTokenStore.clear()
+    }
+
+    var hasStoredSession: Bool {
+        KeychainTokenStore.hasSession
     }
 }

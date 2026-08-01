@@ -2,7 +2,7 @@ import Foundation
 
 /// Snake_case DTOs matching FastAPI `/v1` JSON. Mapped into app models.
 enum APIContentDTO {
-    struct SpatialPosition: Decodable {
+    struct SpatialPosition: Codable {
         let angle: Double
         let radius: Double
     }
@@ -78,7 +78,7 @@ enum APIContentDTO {
         let position: SpatialPosition?
     }
 
-    struct Settings: Decodable {
+    struct Settings: Codable {
         let reduce_motion: Bool?
         let auto_play_enabled: Bool?
         let background_play_enabled: Bool?
@@ -88,6 +88,18 @@ enum APIContentDTO {
         let audio_quality: String?
         let notifications_enabled: Bool?
         let default_scene_id: UUID?
+    }
+
+    struct SettingsUpdate: Encodable {
+        var reduce_motion: Bool?
+        var auto_play_enabled: Bool?
+        var background_play_enabled: Bool?
+        var lock_screen_play_enabled: Bool?
+        var animation_intensity: Double?
+        var dark_mode_forced: Bool?
+        var audio_quality: String?
+        var notifications_enabled: Bool?
+        var default_scene_id: UUID?
     }
 
     struct Bootstrap: Decodable {
@@ -106,6 +118,86 @@ enum APIContentDTO {
         let expires_in: Int?
         let user_id: UUID
         let nickname: String
+    }
+
+    struct SceneStatePatch: Encodable {
+        var is_favorite: Bool?
+        var mark_opened: Bool = false
+    }
+
+    struct SceneState: Decodable {
+        let scene_id: UUID
+        let is_favorite: Bool
+        let last_opened_at: Date?
+        let listen_count: Int
+    }
+
+    struct PrivateSceneSummary: Decodable, Hashable, Identifiable {
+        let id: UUID
+        let name: String
+        let subtitle: String
+        let description: String
+        let category: String
+        let tags: [String]
+        let visual_style: String
+        let source_scene_id: UUID?
+        let has_saved_version: Bool
+        let saved_version: Int
+        let saved_at: Date?
+        let updated_at: Date
+    }
+
+    struct PrivateSceneDetail: Decodable {
+        let id: UUID
+        let name: String
+        let subtitle: String
+        let description: String
+        let category: String
+        let tags: [String]
+        let visual_style: String
+        let source_scene_id: UUID?
+        let has_saved_version: Bool
+        let saved_version: Int
+        let saved_at: Date?
+        let updated_at: Date
+        let palette: [String: Int]?
+        let recommended_duration_seconds: Int?
+        let draft_sources: [PresetSource]?
+        let saved_sources: [PresetSource]?
+    }
+
+    struct PrivateSceneCreate: Encodable {
+        let name: String
+        let subtitle: String
+        let description: String
+        let category: String
+        let tags: [String]
+        let palette: [String: UInt32]?
+        let visual_style: String
+        let sources: [MixSourcePayload]
+    }
+
+    struct PrivateSceneDraftUpdate: Encodable {
+        var name: String?
+        var sources: [MixSourcePayload]?
+    }
+
+    struct MixSourcePayload: Encodable {
+        let name: String
+        let symbolName: String
+        let layer: String
+        let volume: Double
+        let position: SpatialPosition
+        let resourceName: String?
+        let isEnabled: Bool
+    }
+
+    struct Home: Decodable {
+        let greeting_scene_id: UUID
+        let recommended: [SceneSummary]
+        let recent: [SceneSummary]
+        let favorites: [SceneSummary]
+        let private_scenes: [PrivateSceneSummary]
     }
 }
 
@@ -201,6 +293,30 @@ enum APIContentMapper {
             isAppleSignedIn: KeychainTokenStore.hasSession,
             isMember: true
         )
+    }
+
+    static func mixSourcePayload(from source: SoundSource) -> APIContentDTO.MixSourcePayload {
+        APIContentDTO.MixSourcePayload(
+            name: source.name,
+            symbolName: source.symbolName,
+            layer: source.layer.rawValue,
+            volume: source.volume,
+            position: APIContentDTO.SpatialPosition(
+                angle: source.position.angle,
+                radius: source.position.radius
+            ),
+            resourceName: source.resourceName,
+            isEnabled: source.isEnabled
+        )
+    }
+
+    static func paletteDict(from palette: ScenePalette) -> [String: UInt32] {
+        [
+            "top": palette.top,
+            "mid": palette.mid,
+            "bottom": palette.bottom,
+            "accent": palette.accent,
+        ]
     }
 
     private static func soundSource(from track: APIContentDTO.Track) -> SoundSource {

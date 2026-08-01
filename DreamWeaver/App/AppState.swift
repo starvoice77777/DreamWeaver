@@ -37,6 +37,10 @@ final class AppState: ObservableObject {
     @Published var nickname: String
     @Published var isAppleSignedIn: Bool
     @Published var isMember: Bool
+    /// Remote session present (Keychain tokens). Frontend login shell should call `applyRemoteAuth` / `signOutRemote`.
+    @Published private(set) var isRemoteAuthenticated = false
+    @Published private(set) var sessionUserId: UUID?
+    @Published private(set) var privateSceneSummaries: [APIContentDTO.PrivateSceneSummary] = []
 
     @Published var playbackProgress: Double = 0.22
     @Published var previewingSoundId: UUID?
@@ -59,6 +63,8 @@ final class AppState: ObservableObject {
     let seedPipeline: LocalSeedPipelineService
     let analyticsService: LocalAnalyticsService
     let playback: LocalPlaybackService
+    let authService: RemoteAuthService?
+    let remoteUserService: RemoteUserService?
     /// Frontend-visible: which content backend this process started with.
     let contentBackendMode: ServiceBackendMode
 
@@ -69,15 +75,24 @@ final class AppState: ObservableObject {
     private var hideMixPaletteTask: Task<Void, Never>?
     private var idleReturnToNowTask: Task<Void, Never>?
     private var sessionStartedAt: Date?
+    /// Maps official scene id → private scene id when home/save links them.
+    private var privateSceneIdBySource: [UUID: UUID] = [:]
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
         let content: ContentService
+        let auth: RemoteAuthService?
+        let remoteUser: RemoteUserService?
         switch mode {
         case .remote:
-            content = RemoteContentService(client: .shared)
+            let client = APIClient.shared
+            content = RemoteContentService(client: client)
+            auth = RemoteAuthService(client: client)
+            remoteUser = RemoteUserService(client: client)
         case .local:
             content = LocalContentService()
+            auth = nil
+            remoteUser = nil
         }
         self.init(
             contentService: content,
@@ -85,7 +100,9 @@ final class AppState: ObservableObject {
             seedPipeline: LocalSeedPipelineService(),
             analyticsService: LocalAnalyticsService(),
             playback: LocalPlaybackService(),
-            contentBackendMode: mode
+            contentBackendMode: mode,
+            authService: auth,
+            remoteUserService: remoteUser
         )
     }
 
@@ -95,7 +112,9 @@ final class AppState: ObservableObject {
         seedPipeline: LocalSeedPipelineService,
         analyticsService: LocalAnalyticsService,
         playback: LocalPlaybackService,
-        contentBackendMode: ServiceBackendMode = .local
+        contentBackendMode: ServiceBackendMode = .local,
+        authService: RemoteAuthService? = nil,
+        remoteUserService: RemoteUserService? = nil
     ) {
         self.contentService = contentService
         self.libraryService = libraryService
@@ -103,6 +122,8 @@ final class AppState: ObservableObject {
         self.analyticsService = analyticsService
         self.playback = playback
         self.contentBackendMode = contentBackendMode
+        self.authService = authService
+        self.remoteUserService = remoteUserService
 
         store.migrateIfNeeded()
 
@@ -122,6 +143,10 @@ final class AppState: ObservableObject {
         isAppleSignedIn = defaults.object(forKey: "dw.appleSignIn") as? Bool ?? true
         isMember = defaults.object(forKey: "dw.member") as? Bool ?? true
         preferredContentBackend = contentBackendMode
+        isRemoteAuthenticated = contentBackendMode == .remote && KeychainTokenStore.hasSession
+        if let idString = defaults.string(forKey: "dw.sessionUserId") {
+            sessionUserId = UUID(uuidString: idString)
+        }
 
         scenes = MockDataService.makeScenes()
         soundAssets = MockDataService.makeSoundAssets()
@@ -181,9 +206,130 @@ final class AppState: ObservableObject {
                 personalMixByScene[currentSceneId] = currentScene.soundSources
             }
 
+            if contentBackendMode == .remote, KeychainTokenStore.hasSession {
+                await refreshAuthenticatedRemoteState()
+            } else {
+                isRemoteAuthenticated = false
+            }
+
             reloadPlayback(autoPlay: autoPlayEnabled)
         } catch {
             lastServiceMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Remote auth (UI shell stays with frontend; these are AppState entry points)
+
+    /// Call after Sign in with Apple (or any path that already obtained tokens via `RemoteAuthService`).
+    func applyRemoteAuth(_ tokens: APIContentDTO.AuthTokens) async {
+        sessionUserId = tokens.user_id
+        nickname = tokens.nickname
+        isAppleSignedIn = true
+        isRemoteAuthenticated = true
+        defaults.set(tokens.user_id.uuidString, forKey: "dw.sessionUserId")
+        persistSettings()
+        await refreshAuthenticatedRemoteState()
+        lastServiceMessage = "已登录：\(tokens.nickname)"
+    }
+
+    /// Frontend: pass Apple identity token (+ optional nonce).
+    func signInWithApple(
+        identityToken: String,
+        nickname: String? = nil,
+        nonce: String? = nil
+    ) async {
+        guard let authService else {
+            lastServiceMessage = "当前为本地演示模式，无法远程登录"
+            return
+        }
+        do {
+            let tokens = try await authService.signInWithApple(
+                identityToken: identityToken,
+                nickname: nickname ?? self.nickname,
+                nonce: nonce
+            )
+            await applyRemoteAuth(tokens)
+        } catch {
+            lastServiceMessage = error.localizedDescription
+        }
+    }
+
+    /// Demo / smoke login without Apple UI (`dev:<sub>`).
+    func signInWithDevAccount(sub: String = "demo-user") async {
+        guard let authService else {
+            lastServiceMessage = "当前为本地演示模式，无法远程登录"
+            return
+        }
+        do {
+            let tokens = try await authService.signInWithDevToken(sub: sub, nickname: nickname)
+            await applyRemoteAuth(tokens)
+        } catch {
+            lastServiceMessage = error.localizedDescription
+        }
+    }
+
+    func signOutRemote() async {
+        if let authService {
+            try? await authService.logout()
+        } else {
+            KeychainTokenStore.clear()
+        }
+        isRemoteAuthenticated = false
+        sessionUserId = nil
+        privateSceneSummaries = []
+        privateSceneIdBySource = [:]
+        defaults.removeObject(forKey: "dw.sessionUserId")
+        lastServiceMessage = "已退出远程登录"
+    }
+
+    private func refreshAuthenticatedRemoteState() async {
+        guard let remoteUserService, KeychainTokenStore.hasSession else {
+            isRemoteAuthenticated = false
+            return
+        }
+        isRemoteAuthenticated = true
+        do {
+            if let settings = try? await remoteUserService.fetchSettings() {
+                applyRemoteSettings(settings)
+            }
+            let home = try await remoteUserService.fetchHome()
+            applyHome(home)
+        } catch {
+            if case ServiceError.unauthorized = error {
+                isRemoteAuthenticated = false
+                KeychainTokenStore.clear()
+            }
+            lastServiceMessage = error.localizedDescription
+        }
+    }
+
+    private func applyHome(_ home: APIContentDTO.Home) {
+        let favoriteIds = Set(home.favorites.map(\.id))
+        for i in scenes.indices {
+            scenes[i].isFavorite = favoriteIds.contains(scenes[i].id)
+        }
+        privateSceneSummaries = home.private_scenes
+        privateSceneIdBySource = Dictionary(
+            uniqueKeysWithValues: home.private_scenes.compactMap { summary in
+                guard let source = summary.source_scene_id else { return nil }
+                return (source, summary.id)
+            }
+        )
+    }
+
+    private func applyRemoteSettings(_ settings: APIContentDTO.Settings) {
+        if let v = settings.reduce_motion { reduceMotion = v }
+        if let v = settings.auto_play_enabled { autoPlayEnabled = v }
+        if let v = settings.background_play_enabled { backgroundPlayEnabled = v }
+        if let v = settings.lock_screen_play_enabled { lockScreenPlayEnabled = v }
+        if let v = settings.animation_intensity { animationIntensity = v }
+        if let v = settings.dark_mode_forced { darkModeForced = v }
+        if let v = settings.audio_quality { audioQuality = v }
+        if let v = settings.notifications_enabled { notificationsEnabled = v }
+        if let sceneId = settings.default_scene_id,
+           scenes.contains(where: { $0.id == sceneId }) {
+            currentSceneId = sceneId
+            defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
         }
     }
 
@@ -527,8 +673,23 @@ final class AppState: ObservableObject {
     func toggleFavorite(sceneId: UUID) {
         guard let idx = scenes.firstIndex(where: { $0.id == sceneId }) else { return }
         scenes[idx].isFavorite.toggle()
+        let favored = scenes[idx].isFavorite
         try? contentService.persistSceneOverlay(scenes: scenes)
         bumpInteraction()
+        guard contentBackendMode == .remote, isRemoteAuthenticated, let remoteUserService else { return }
+        Task {
+            do {
+                let state = try await remoteUserService.patchSceneState(
+                    sceneId: sceneId,
+                    isFavorite: favored
+                )
+                if let i = scenes.firstIndex(where: { $0.id == sceneId }) {
+                    scenes[i].isFavorite = state.is_favorite
+                }
+            } catch {
+                lastServiceMessage = error.localizedDescription
+            }
+        }
     }
 
     func recordListening(sceneId: UUID) {
@@ -542,6 +703,10 @@ final class AppState: ObservableObject {
             if let summary = try? await analyticsService.summary() {
                 usageRecord = summary
             }
+        }
+        guard contentBackendMode == .remote, isRemoteAuthenticated, let remoteUserService else { return }
+        Task {
+            try? await remoteUserService.patchSceneState(sceneId: sceneId, markOpened: true)
         }
     }
 
@@ -717,6 +882,43 @@ final class AppState: ObservableObject {
         )
         savedMixes.insert(mix, at: 0)
         markMixInteraction()
+        // Explicit remote save only when authenticated — never auto on drag.
+        guard contentBackendMode == .remote, isRemoteAuthenticated else { return }
+        Task { await saveCurrentMixToRemote(name: mix.name) }
+    }
+
+    /// Explicit cloud save for frontend confirm dialogs.
+    func saveCurrentMixToRemote(name: String? = nil) async {
+        guard let remoteUserService, isRemoteAuthenticated else {
+            lastServiceMessage = "需要远程登录后才能云端保存"
+            return
+        }
+        let mixName = name ?? "\(currentScene.name) · 组合"
+        let sources = currentScene.soundSources
+        do {
+            let detail: APIContentDTO.PrivateSceneDetail
+            if let existingId = privateSceneIdBySource[currentSceneId]
+                ?? privateSceneSummaries.first(where: { $0.source_scene_id == currentSceneId })?.id {
+                detail = try await remoteUserService.updateDraftAndSave(
+                    privateSceneId: existingId,
+                    name: mixName,
+                    sources: sources
+                )
+            } else {
+                detail = try await remoteUserService.createAndSaveMix(
+                    name: mixName,
+                    scene: currentScene,
+                    sources: sources
+                )
+                privateSceneIdBySource[currentSceneId] = detail.id
+            }
+            if let listed = try? await remoteUserService.listPrivateScenes() {
+                privateSceneSummaries = listed
+            }
+            lastServiceMessage = "已保存「\(detail.name)」v\(detail.saved_version)"
+        } catch {
+            lastServiceMessage = error.localizedDescription
+        }
     }
 
     func updateSourcePosition(id: UUID, position: SpatialPosition) {
@@ -803,5 +1005,26 @@ final class AppState: ObservableObject {
         defaults.set(isAppleSignedIn, forKey: "dw.appleSignIn")
         defaults.set(isMember, forKey: "dw.member")
         defaults.set(currentSceneId.uuidString, forKey: "dw.lastSceneId")
+
+        guard contentBackendMode == .remote, isRemoteAuthenticated, let remoteUserService else { return }
+        Task {
+            do {
+                _ = try await remoteUserService.updateSettings(
+                    APIContentDTO.SettingsUpdate(
+                        reduce_motion: reduceMotion,
+                        auto_play_enabled: autoPlayEnabled,
+                        background_play_enabled: backgroundPlayEnabled,
+                        lock_screen_play_enabled: lockScreenPlayEnabled,
+                        animation_intensity: animationIntensity,
+                        dark_mode_forced: darkModeForced,
+                        audio_quality: audioQuality,
+                        notifications_enabled: notificationsEnabled,
+                        default_scene_id: currentSceneId
+                    )
+                )
+            } catch {
+                lastServiceMessage = error.localizedDescription
+            }
+        }
     }
 }

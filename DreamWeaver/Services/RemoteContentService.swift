@@ -61,6 +61,6 @@ final class RemoteContentService: ContentService {
     }
 
     func persistSceneOverlay(scenes: [DreamScene]) throws {
-        // Favorites / listen counts for remote users go through authenticated APIs later.
+        // Favorites / listen for remote users go through RemoteUserService when authenticated.
     }
 }

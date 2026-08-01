@@ -23,6 +23,28 @@ struct SettingsView: View {
                 Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换后请完全退出 App 再打开。")
                     .font(.footnote)
                     .foregroundStyle(DreamTheme.tertiaryText)
+                if appState.contentBackendMode == .remote {
+                    Text(appState.isRemoteAuthenticated
+                         ? "远程会话：已登录\(appState.sessionUserId.map { "（\(String($0.uuidString.prefix(8)))…）" } ?? "")"
+                         : "远程会话：游客（可开发登录）")
+                        .font(.footnote)
+                        .foregroundStyle(DreamTheme.secondaryText)
+                    if appState.isRemoteAuthenticated {
+                        Button("退出远程登录") {
+                            Task { await appState.signOutRemote() }
+                        }
+                        .foregroundStyle(DreamTheme.warmApricot)
+                        Button("云端保存当前混音") {
+                            Task { await appState.saveCurrentMixToRemote() }
+                        }
+                        .foregroundStyle(DreamTheme.warmApricot)
+                    } else {
+                        Button("开发登录（dev:demo-user）") {
+                            Task { await appState.signInWithDevAccount() }
+                        }
+                        .foregroundStyle(DreamTheme.warmApricot)
+                    }
+                }
                 Button("重置为标准演示状态") {
                     appState.resetDemoState()
                 }
