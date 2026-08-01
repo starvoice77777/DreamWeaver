@@ -5,7 +5,6 @@ struct SceneLibraryView: View {
     @State private var selectedCategory: SceneCategory = .frequent
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var sortByName = false
 
     private var filtered: [DreamScene] {
         var list = appState.scenes
@@ -22,9 +21,6 @@ struct SceneLibraryView: View {
                 $0.name.localizedCaseInsensitiveContains(searchText)
                     || $0.subtitle.localizedCaseInsensitiveContains(searchText)
             }
-        }
-        if sortByName {
-            list.sort { $0.name < $1.name }
         }
         return list
     }
@@ -43,16 +39,15 @@ struct SceneLibraryView: View {
                     }
                     .accessibilityLabel("搜索")
 
-                    Menu {
-                        Button(sortByName ? "默认排序" : "按名称") {
-                            sortByName.toggle()
-                        }
+                    Button {
+                        // TODO: 用户自行创建场景入口（交互待实现）
                     } label: {
-                        Image(systemName: "arrow.up.arrow.down")
+                        Image(systemName: "plus")
+                            .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(DreamTheme.moonWhite)
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("排序")
+                    .accessibilityLabel("创建场景")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)

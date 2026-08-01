@@ -183,83 +183,146 @@ struct NowTimerButton: View {
     @Binding var showPicker: Bool
 
     var body: some View {
-        Button {
-            appState.bumpInteraction()
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: "timer")
-                    .font(.system(size: 16, weight: .medium))
-                Text(appState.timerOption.shortLabel)
-                    .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+        ZStack(alignment: .bottom) {
+            if showPicker {
+                NowTimerPickerPopup(isPresented: $showPicker)
+                    .padding(.bottom, 56 + 14)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.92, anchor: .bottom)),
+                            removal: .opacity.combined(with: .scale(scale: 0.96, anchor: .bottom))
+                        )
+                    )
+                    .zIndex(1)
             }
-            .foregroundStyle(DreamTheme.moonWhite)
-            .frame(width: 56, height: 56)
-            .background {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.12))
 
-                    if appState.timerOption.showsCountdownFill {
+            Button {
+                appState.bumpInteraction()
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                    showPicker.toggle()
+                }
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 16, weight: .medium))
+                    Text(appState.timerOption.shortLabel)
+                        .font(.system(size: 10, weight: .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(DreamTheme.moonWhite)
+                .frame(width: 56, height: 56)
+                .background {
+                    ZStack {
                         Circle()
-                            .trim(from: 0, to: max(appState.timerElapsedProgress, 0.001))
-                            .stroke(
-                                DreamTheme.warmApricot.opacity(0.85),
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .padding(2)
-                            .animation(.linear(duration: 0.25), value: appState.timerElapsedProgress)
+                            .fill(Color.white.opacity(0.12))
+
+                        if appState.timerOption.showsCountdownFill {
+                            Circle()
+                                .trim(from: 0, to: max(appState.timerElapsedProgress, 0.001))
+                                .stroke(
+                                    DreamTheme.warmApricot.opacity(0.85),
+                                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                                )
+                                .rotationEffect(.degrees(-90))
+                                .padding(2)
+                                .animation(.linear(duration: 0.25), value: appState.timerElapsedProgress)
+                        }
                     }
                 }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("定时，当前\(appState.timerOption.rawValue)")
+            .accessibilityHint("点按选择定时时长")
+            .zIndex(2)
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.4)
-                .onEnded { _ in
-                    appState.bumpInteraction()
-                    withAnimation(.easeInOut(duration: 0.35)) {
-                        showPicker = true
-                    }
-                }
-        )
-        .accessibilityLabel("定时，当前\(appState.timerOption.rawValue)")
-        .accessibilityHint("长按选择定时时长")
+        // Layout stays button-sized; peapod draws upward without joining the button.
+        .frame(width: 78, height: 56, alignment: .bottom)
     }
 }
 
+/// Peapod column of timer options that grows upward from the timer button.
+/// The five choices form one continuous capsule; the current button stays separate below.
 struct NowTimerPickerPopup: View {
     @EnvironmentObject private var appState: AppState
     @Binding var isPresented: Bool
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("定时")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(DreamTheme.secondaryText)
-                .padding(.horizontal, 4)
+    private let podWidth: CGFloat = 78
+    private let rowHeight: CGFloat = 40
+    /// Clearance between the outer peapod stroke and inner content / selection.
+    private let podPadding: CGFloat = 5
+    /// Extra inset so the selection frame stays inside that padded area.
+    private let selectInsetX: CGFloat = 6
+    private let selectInsetY: CGFloat = 5
+    private let selectLineWidth: CGFloat = 1.2
 
-            ForEach(appState.showDemoControls ? TimerOption.demoCases : TimerOption.userFacingCases) { option in
-                TimerOptionChip(
-                    option: option,
-                    selected: appState.timerOption == option,
-                    progress: appState.timerOption == option ? appState.timerElapsedProgress : 0
-                ) {
-                    appState.setTimerOption(option)
-                    appState.bumpInteraction()
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isPresented = false
-                    }
+    private var outerCornerRadius: CGFloat { podWidth / 2 }
+    /// Concentric with the outer capsule, after pod padding + selection inset.
+    private var selectCornerRadius: CGFloat {
+        max(outerCornerRadius - podPadding - selectInsetX, 10)
+    }
+
+    private var podOptions: [TimerOption] {
+        TimerOption.userFacingCases
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(podOptions.enumerated()), id: \.element.id) { index, option in
+                podRow(option)
+
+                if index < podOptions.count - 1 {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(height: 1)
+                        .padding(.horizontal, 10)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
-        .padding(14)
-        .frame(width: 148)
-        .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+        .padding(podPadding)
+        .frame(width: podWidth)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.14))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
+        }
         .accessibilityLabel("选择定时时长")
+    }
+
+    private func podRow(_ option: TimerOption) -> some View {
+        let selected = appState.timerOption == option
+
+        return Button {
+            appState.setTimerOption(option)
+            appState.bumpInteraction()
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                isPresented = false
+            }
+        } label: {
+            Text(option.rawValue)
+                .font(.system(size: 12, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? DreamTheme.moonWhite : DreamTheme.moonWhite.opacity(0.72))
+                .frame(maxWidth: .infinity)
+                .frame(height: rowHeight)
+                .background {
+                    if selected {
+                        RoundedRectangle(cornerRadius: selectCornerRadius, style: .continuous)
+                            // strokeBorder keeps the line inside the shape so it won't
+                            // collide with the outer peapod stroke.
+                            .strokeBorder(DreamTheme.moonWhite.opacity(0.85), lineWidth: selectLineWidth)
+                            .padding(.horizontal, selectInsetX)
+                            .padding(.vertical, selectInsetY)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(option.rawValue)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

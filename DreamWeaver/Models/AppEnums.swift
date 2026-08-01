@@ -123,7 +123,7 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
 
 enum SoundLibrarySegment: String, CaseIterable, Identifiable {
     case mine = "我的"
-    case community = "社区"
+    case community = "全部"
     case favorites = "收藏声音"
 
     var id: String { rawValue }

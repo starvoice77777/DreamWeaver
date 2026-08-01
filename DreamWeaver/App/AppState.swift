@@ -586,11 +586,6 @@ final class AppState: ObservableObject {
 
     func removeSource(id: UUID) {
         guard mixBoardSelection.isMine else { return }
-        let enabled = currentScene.soundSources.filter(\.isEnabled)
-        // Keep at least one active source on the disk.
-        if enabled.count <= 1, enabled.contains(where: { $0.id == id }) {
-            return
-        }
         mutateCurrentSources { sources in
             sources.removeAll { $0.id == id }
         }
