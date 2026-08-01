@@ -21,21 +21,23 @@ enum SpatialMixMapping {
         // Near the hole around the listener, shrink max pan so crossing the center
         // does not flip from “only left” to “only right”.
         let t = radiusNormalized(position.radius)
-        // Stronger bias than v1 so azimuth is clearer, still below hard ±1 mute.
-        let maxPan = 0.42 + 0.36 * t // ~0.42 near … ~0.78 far
+        // Slightly softer than prior pass to reduce center-crossing jump,
+        // while keeping azimuth readable at the rim.
+        let maxPan = 0.30 + 0.30 * t // ~0.30 near … ~0.60 far
 
-        let shaped = tanh(lateral * 1.2) / tanh(1.2)
+        let shaped = tanh(lateral * 1.1) / tanh(1.1)
         return Float(max(-1, min(1, shaped * maxPan)))
     }
 
     /// Mix loudness from radius ≈ inverse-square (intensity ∝ 1/r²).
-    /// Edge of the board approaches inaudible.
+    /// Outer rim stays in a similar ballpark to the previous curve’s mid-near level
+    /// (~radius 0.38), so the full board remains usable.
     static func mixVolume(fromRadius radius: Double) -> Double {
         let t = radiusNormalized(radius)
-        // Near d=1 → gain 1; far d≈5 → gain 1/25 ≈ 0.04 before floor.
-        let distance = 1.0 + 4.0 * t
+        // Near d=1 → 1.0; far d≈1.9 → ≈0.28 (was ~outer-silent / early drop before).
+        let distance = 1.0 + 0.9 * t
         let raw = 1.0 / (distance * distance)
-        return min(max(raw, 0.02), 1.0)
+        return min(max(raw, 0.24), 1.0)
     }
 
     private static func radiusNormalized(_ radius: Double) -> Double {
