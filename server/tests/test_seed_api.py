@@ -190,3 +190,65 @@ async def test_analyze_short_sample_fails(client) -> None:
     )
     assert response.status_code == 200
     assert response.json()["passed"] is False
+
+
+async def test_revoke_cascades_jobs_and_finalized_assets(client) -> None:
+    memory = InMemoryObjectStorage()
+    set_object_storage(memory)
+    try:
+        tokens = await _login(client, sub="seed-cascade")
+        headers = _auth(tokens)
+
+        auth = await client.post(
+            "/v1/voice-authorizations",
+            headers=headers,
+            json={"confirmed": True},
+        )
+        auth_id = auth.json()["id"]
+        source = await _create_ready_asset(client, headers, memory)
+
+        process = await client.post(
+            "/v1/seeds/process",
+            headers=headers,
+            json={"authorization_id": auth_id, "source_asset_id": source["id"]},
+        )
+        job_id = process.json()["id"]
+        for _ in range(5):
+            polled = await client.get(f"/v1/seeds/jobs/{job_id}", headers=headers)
+            if polled.json()["status"] == "completed":
+                break
+
+        finalized = await client.post(
+            f"/v1/seeds/jobs/{job_id}/finalize",
+            headers=headers,
+            json={"name": "将撤回的种子", "relation": "家人"},
+        )
+        assert finalized.status_code == 200, finalized.text
+        seed_id = finalized.json()["id"]
+
+        revoke = await client.post(
+            f"/v1/voice-authorizations/{auth_id}/revoke",
+            headers=headers,
+        )
+        assert revoke.status_code == 200, revoke.text
+        body = revoke.json()
+        assert body["revoked_at"] is not None
+        assert body["cancelled_jobs"] >= 1
+        assert body["deleted_assets"] >= 1
+        assert body["provider_deletes"] >= 1
+
+        listed = await client.get("/v1/library/assets", headers=headers)
+        assert all(item["id"] != seed_id for item in listed.json())
+
+        missing_job = await client.get(f"/v1/seeds/jobs/{job_id}", headers=headers)
+        assert missing_job.status_code == 404
+
+        # Process blocked after revoke.
+        again = await client.post(
+            "/v1/seeds/process",
+            headers=headers,
+            json={"authorization_id": auth_id, "source_asset_id": source["id"]},
+        )
+        assert again.status_code == 409
+    finally:
+        set_object_storage(None)
