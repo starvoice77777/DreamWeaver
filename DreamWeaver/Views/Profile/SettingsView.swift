@@ -7,11 +7,19 @@ struct SettingsView: View {
         List {
             Section("演示控制") {
                 Toggle("显示演示加速定时", isOn: $appState.showDemoControls)
-                Picker("内容数据源", selection: $appState.preferredContentBackend) {
-                    ForEach(ServiceBackendMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("内容数据源")
+                        .foregroundStyle(DreamTheme.moonWhite)
+                    Picker("内容数据源", selection: $appState.preferredContentBackend) {
+                        ForEach(ServiceBackendMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .accessibilityLabel("内容数据源")
                 }
+                .listRowBackground(Color.white.opacity(0.05))
                 Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换后请完全退出 App 再打开。")
                     .font(.footnote)
                     .foregroundStyle(DreamTheme.tertiaryText)
@@ -126,6 +134,12 @@ struct SettingsView: View {
         .onChange(of: appState.animationIntensity) { _, _ in appState.persistSettings() }
         .onChange(of: appState.audioQuality) { _, _ in appState.persistSettings() }
         .onChange(of: appState.notificationsEnabled) { _, _ in appState.persistSettings() }
+        .onChange(of: appState.preferredContentBackend) { _, mode in
+            ServiceBackendConfig.mode = mode
+            if mode != appState.contentBackendMode {
+                appState.lastServiceMessage = "已切换到\(mode.title)，请完全退出 App 后重开生效"
+            }
+        }
     }
 }
 

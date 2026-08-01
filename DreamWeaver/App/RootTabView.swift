@@ -46,15 +46,10 @@ struct RootTabView: View {
                 appState.scheduleReturnToNowIfNeeded()
             }
         }
+        // Drag only — a root TapGesture steals Menu/Picker presentation in Settings.
         .simultaneousGesture(
             DragGesture(minimumDistance: 12)
                 .onChanged { _ in
-                    appState.noteUserActivity()
-                }
-        )
-        .simultaneousGesture(
-            TapGesture()
-                .onEnded {
                     appState.noteUserActivity()
                 }
         )
