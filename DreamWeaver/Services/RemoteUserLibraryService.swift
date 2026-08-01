@@ -10,11 +10,11 @@ final class RemoteUserLibraryService: UserLibraryService {
 
     init(
         client: APIClient = .shared,
-        fallback: LocalUserLibraryService = LocalUserLibraryService(),
+        fallback: LocalUserLibraryService? = nil,
         session: URLSession = .shared
     ) {
         self.client = client
-        self.fallback = fallback
+        self.fallback = fallback ?? LocalUserLibraryService()
         self.session = session
     }
 

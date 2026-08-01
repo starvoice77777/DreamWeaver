@@ -1,4 +1,6 @@
+import AVFoundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SoundLibraryView: View {
     @EnvironmentObject private var appState: AppState
@@ -6,11 +8,23 @@ struct SoundLibraryView: View {
     @State private var showSearch = false
     @State private var searchText = ""
     @State private var soundPendingDelete: SoundAsset?
+    @State private var deleteImpact: LibraryDeleteImpact?
+    @State private var isPreparingDelete = false
     @State private var renameTarget: SoundAsset?
     @State private var renameText = ""
     @State private var detailTarget: SoundAsset?
     @State private var showUploadMock = false
     @State private var showRecordMock = false
+    @State private var showFileImporter = false
+    @State private var isUploading = false
+    @State private var libraryNotice: String?
+    @State private var showLoginHint = false
+
+    private var canRemoteUpload: Bool {
+        appState.contentBackendMode == .remote
+            && appState.isRemoteAuthenticated
+            && appState.remoteLibraryService != nil
+    }
 
     private var recordings: [SoundAsset] {
         filterList(appState.soundAssets.filter { $0.kind == .recording })
@@ -35,38 +49,49 @@ struct SoundLibraryView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                if showSearch {
-                    TextField("搜索声音", text: $searchText)
-                        .padding(12)
-                        .dreamGlass(cornerRadius: 14)
+            ZStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+                    if showSearch {
+                        TextField("搜索声音", text: $searchText)
+                            .padding(12)
+                            .dreamGlass(cornerRadius: 14)
+                            .padding(.horizontal, 20)
+                            .foregroundStyle(DreamTheme.moonWhite)
+                    }
+
+                    primaryActions
                         .padding(.horizontal, 20)
+
+                    segmentChips
+
+                    content
+                }
+                .background(DreamTheme.backgroundGradient.ignoresSafeArea())
+
+                if isUploading || isPreparingDelete {
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                    ProgressView(isUploading ? "正在上传…" : "检查引用…")
+                        .padding(20)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                         .foregroundStyle(DreamTheme.moonWhite)
                 }
-
-                primaryActions
-                    .padding(.horizontal, 20)
-
-                segmentChips
-
-                content
             }
-            .background(DreamTheme.backgroundGradient.ignoresSafeArea())
             .navigationBarHidden(true)
             .alert("删除声音", isPresented: Binding(
                 get: { soundPendingDelete != nil },
-                set: { if !$0 { soundPendingDelete = nil } }
+                set: { if !$0 { clearDeletePending() } }
             )) {
                 Button("删除", role: .destructive) {
                     if let id = soundPendingDelete?.id {
                         appState.deleteSound(id: id)
                     }
-                    soundPendingDelete = nil
+                    clearDeletePending()
                 }
-                Button("取消", role: .cancel) { soundPendingDelete = nil }
+                Button("取消", role: .cancel) { clearDeletePending() }
             } message: {
-                Text("确定删除「\(soundPendingDelete?.name ?? "")」吗？此操作仅影响本地演示数据。")
+                Text(deleteConfirmMessage)
             }
             .alert("重命名", isPresented: Binding(
                 get: { renameTarget != nil },
@@ -90,6 +115,13 @@ struct SoundLibraryView: View {
                 SeedCreationFlow()
                     .environmentObject(appState)
             }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: Self.uploadContentTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                handleImportedFiles(result)
+            }
             .alert("上传本地文件", isPresented: $showUploadMock) {
                 Button("选择演示文件") {
                     appState.addSoundAsset(
@@ -110,7 +142,7 @@ struct SoundLibraryView: View {
                 }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("演示模式不会读取真实文件。")
+                Text("本地演示模式不会读取真实文件。")
             }
             .alert("录制声音", isPresented: $showRecordMock) {
                 Button("完成模拟录制") {
@@ -132,10 +164,43 @@ struct SoundLibraryView: View {
                 }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("演示模式不会调用麦克风。")
+                Text("演示模式不会调用麦克风。远程模式下请先上传本地音频文件。")
+            }
+            .alert("需要登录", isPresented: $showLoginHint) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text("远程声音库上传/删除需要先登录（开发登录或 Apple）。可在「我的」完成登录。")
+            }
+            .alert("提示", isPresented: Binding(
+                get: { libraryNotice != nil },
+                set: { if !$0 { libraryNotice = nil } }
+            )) {
+                Button("好", role: .cancel) { libraryNotice = nil }
+            } message: {
+                Text(libraryNotice ?? "")
             }
         }
     }
+
+    private var deleteConfirmMessage: String {
+        let name = soundPendingDelete?.name ?? ""
+        guard let impact = deleteImpact else {
+            return "确定删除「\(name)」吗？"
+        }
+        if impact.totalReferences <= 0 {
+            return "确定删除「\(name)」吗？当前没有场景引用此声音。"
+        }
+        let sceneNames = impact.affectedScenes.prefix(3).map(\.name).joined(separator: "、")
+        let more = impact.affectedScenes.count > 3 ? " 等" : ""
+        return "确定删除「\(name)」吗？将影响 \(impact.totalReferences) 处引用（场景：\(sceneNames)\(more)）。删除后相关混音中的声源会被移除。"
+    }
+
+    private static let uploadContentTypes: [UTType] = {
+        var types: [UTType] = [.audio, .mp3, .wav, .aiff]
+        if let m4a = UTType(filenameExtension: "m4a") { types.append(m4a) }
+        if let caf = UTType(filenameExtension: "caf") { types.append(caf) }
+        return types
+    }()
 
     private var header: some View {
         HStack {
@@ -156,8 +221,97 @@ struct SoundLibraryView: View {
     private var primaryActions: some View {
         HStack(spacing: 10) {
             actionChip(title: "录制声音", symbol: "mic.fill") { showRecordMock = true }
-            actionChip(title: "上传本地文件", symbol: "square.and.arrow.up") { showUploadMock = true }
+            actionChip(title: "上传本地文件", symbol: "square.and.arrow.up", action: beginUpload)
             actionChip(title: "创建声音种子", symbol: "leaf.fill") { appState.showSeedFlow = true }
+        }
+    }
+
+    private func beginUpload() {
+        if canRemoteUpload {
+            showFileImporter = true
+        } else if appState.contentBackendMode == .remote {
+            showLoginHint = true
+        } else {
+            showUploadMock = true
+        }
+    }
+
+    private func beginDelete(_ asset: SoundAsset) {
+        Task {
+            await MainActor.run { isPreparingDelete = true }
+            let impact = await appState.fetchSoundDeleteImpact(id: asset.id)
+            await MainActor.run {
+                isPreparingDelete = false
+                deleteImpact = impact
+                soundPendingDelete = asset
+            }
+        }
+    }
+
+    private func clearDeletePending() {
+        soundPendingDelete = nil
+        deleteImpact = nil
+    }
+
+    private func handleImportedFiles(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            libraryNotice = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            Task { await uploadRemoteAudio(from: url) }
+        }
+    }
+
+    @MainActor
+    private func uploadRemoteAudio(from fileURL: URL) async {
+        guard let remote = appState.remoteLibraryService else {
+            libraryNotice = "远程声音库服务不可用"
+            return
+        }
+        let accessed = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { fileURL.stopAccessingSecurityScopedResource() }
+        }
+
+        isUploading = true
+        defer { isUploading = false }
+
+        do {
+            let duration = max(1, Int(try await audioDurationSeconds(of: fileURL).rounded()))
+            let filename = fileURL.lastPathComponent
+            let name = fileURL.deletingPathExtension().lastPathComponent
+            let asset = try await remote.uploadAudio(
+                fileURL: fileURL,
+                filename: filename,
+                contentType: mimeType(for: fileURL),
+                kind: .recording,
+                name: name.isEmpty ? nil : name,
+                durationSeconds: duration
+            )
+            appState.addSoundAsset(asset)
+            segment = .mine
+            libraryNotice = "已上传「\(asset.name)」"
+        } catch {
+            libraryNotice = error.localizedDescription
+        }
+    }
+
+    private func audioDurationSeconds(of url: URL) async throws -> Double {
+        let asset = AVURLAsset(url: url)
+        let duration = try await asset.load(.duration)
+        let seconds = CMTimeGetSeconds(duration)
+        return seconds.isFinite ? seconds : 1
+    }
+
+    private func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "m4a", "mp4", "aac": return "audio/mp4"
+        case "mp3": return "audio/mpeg"
+        case "wav": return "audio/wav"
+        case "aiff", "aif": return "audio/aiff"
+        case "caf": return "audio/x-caf"
+        default: return "application/octet-stream"
         }
     }
 
@@ -182,6 +336,7 @@ struct SoundLibraryView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .disabled(isUploading || isPreparingDelete)
     }
 
     private var segmentChips: some View {
@@ -237,7 +392,7 @@ struct SoundLibraryView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 22) {
                         mineSection(title: "我的录音", items: recordings, emptyHint: "还没有录音") {
-                            showRecordMock = true
+                            beginUpload()
                         }
                         mineSection(title: "我的声音种子", items: seeds, emptyHint: "还没有声音种子") {
                             appState.showSeedFlow = true
@@ -329,7 +484,7 @@ struct SoundLibraryView: View {
                 appState.selectedTab = .now
                 appState.openMixPalette()
             },
-            onDelete: { soundPendingDelete = asset }
+            onDelete: { beginDelete(asset) }
         )
     }
 }

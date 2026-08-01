@@ -17,11 +17,11 @@ final class RemoteSeedPipelineService: SeedPipelineService {
     init(
         client: APIClient = .shared,
         library: RemoteUserLibraryService,
-        fallback: LocalSeedPipelineService = LocalSeedPipelineService()
+        fallback: LocalSeedPipelineService? = nil
     ) {
         self.client = client
         self.library = library
-        self.fallback = fallback
+        self.fallback = fallback ?? LocalSeedPipelineService()
     }
 
     func analyze(durationSeconds: Int) async throws -> SeedQualityReport {
