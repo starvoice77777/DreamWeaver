@@ -39,6 +39,39 @@ async def test_bootstrap_and_scenes(client) -> None:
     assert any(item["name"] == "洗头轻声" for item in presets.json())
 
 
+async def test_emotional_fluid_scene_seeded(client) -> None:
+    """Frontend immersive fluid backdrop; remote catalog must expose visual_style."""
+    fluid_id = "a1111111-1111-4111-8111-11111111110e"
+    scenes = await client.get("/v1/scenes")
+    assert scenes.status_code == 200
+    match = next((item for item in scenes.json() if item["id"] == fluid_id), None)
+    assert match is not None
+    assert match["name"] == "流光溢彩"
+    assert match["visual_style"] == "emotionalFluid"
+    assert match["category"] == "lightMusic"
+    assert match["tags"] == ["色彩", "助眠", "氛围"]
+    assert match["palette"] == {
+        "top": 0x24324A,
+        "mid": 0x4B4668,
+        "bottom": 0x163A4A,
+        "accent": 0xE8DCC5,
+    }
+
+    detail = await client.get(f"/v1/scenes/{fluid_id}")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["visual_style"] == "emotionalFluid"
+    assert len(body["tracks"]) == 5
+    by_name = {track["name"]: track for track in body["tracks"]}
+    assert by_name["风声"]["resource_key"] == "wind_realistic"
+    assert by_name["雨声"]["resource_key"] == "rain_soft"
+    assert by_name["潮声"]["resource_key"] == "stream_nature"
+    assert by_name["钢琴"]["resource_key"] is None
+    assert by_name["钢琴"]["enabled_by_default"] is False
+    assert by_name["人声"]["layer"] == "voice"
+    assert by_name["人声"]["enabled_by_default"] is False
+
+
 async def test_apple_auth_dev_token(client) -> None:
     response = await client.post(
         "/v1/auth/apple",
