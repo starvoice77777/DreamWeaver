@@ -7,6 +7,14 @@ struct SettingsView: View {
         List {
             Section("演示控制") {
                 Toggle("显示演示加速定时", isOn: $appState.showDemoControls)
+                Picker("内容数据源", selection: $appState.preferredContentBackend) {
+                    ForEach(ServiceBackendMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换后请完全退出 App 再打开。")
+                    .font(.footnote)
+                    .foregroundStyle(DreamTheme.tertiaryText)
                 Button("重置为标准演示状态") {
                     appState.resetDemoState()
                 }

@@ -6,6 +6,8 @@ protocol ContentService: AnyObject {
     func fetchScene(id: UUID) async throws -> DreamScene
     func fetchMixPresets(sceneStyle: SceneVisualStyle?) async throws -> [MixPreset]
     func randomGreeting() -> String
+    /// Local-only favorite/listen overlay. Remote may no-op until auth APIs are wired.
+    func persistSceneOverlay(scenes: [DreamScene]) throws
 }
 
 protocol UserLibraryService: AnyObject {

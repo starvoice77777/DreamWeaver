@@ -43,13 +43,24 @@ final class AppState: ObservableObject {
     @Published var userIsInteracting = false
     @Published var lastServiceMessage: String?
     @Published var showDemoControls = true
+    /// Preferred backend stored in UserDefaults; takes effect on next cold start.
+    @Published var preferredContentBackend: ServiceBackendMode {
+        didSet {
+            ServiceBackendConfig.mode = preferredContentBackend
+            if preferredContentBackend != contentBackendMode {
+                lastServiceMessage = "已切换到\(preferredContentBackend.title)，请完全退出 App 后重开生效"
+            }
+        }
+    }
 
     let isFirstLaunch: Bool
-    let contentService: LocalContentService
+    let contentService: ContentService
     let libraryService: LocalUserLibraryService
     let seedPipeline: LocalSeedPipelineService
     let analyticsService: LocalAnalyticsService
     let playback: LocalPlaybackService
+    /// Frontend-visible: which content backend this process started with.
+    let contentBackendMode: ServiceBackendMode
 
     private let defaults = UserDefaults.standard
     private let store = DemoPersistenceStore.shared
@@ -60,27 +71,38 @@ final class AppState: ObservableObject {
     private var sessionStartedAt: Date?
 
     convenience init() {
+        let mode = ServiceBackendConfig.mode
+        let content: ContentService
+        switch mode {
+        case .remote:
+            content = RemoteContentService(client: .shared)
+        case .local:
+            content = LocalContentService()
+        }
         self.init(
-            contentService: LocalContentService(),
+            contentService: content,
             libraryService: LocalUserLibraryService(),
             seedPipeline: LocalSeedPipelineService(),
             analyticsService: LocalAnalyticsService(),
-            playback: LocalPlaybackService()
+            playback: LocalPlaybackService(),
+            contentBackendMode: mode
         )
     }
 
     init(
-        contentService: LocalContentService,
+        contentService: ContentService,
         libraryService: LocalUserLibraryService,
         seedPipeline: LocalSeedPipelineService,
         analyticsService: LocalAnalyticsService,
-        playback: LocalPlaybackService
+        playback: LocalPlaybackService,
+        contentBackendMode: ServiceBackendMode = .local
     ) {
         self.contentService = contentService
         self.libraryService = libraryService
         self.seedPipeline = seedPipeline
         self.analyticsService = analyticsService
         self.playback = playback
+        self.contentBackendMode = contentBackendMode
 
         store.migrateIfNeeded()
 
@@ -99,6 +121,7 @@ final class AppState: ObservableObject {
         nickname = defaults.string(forKey: "dw.nickname") ?? "夜行者"
         isAppleSignedIn = defaults.object(forKey: "dw.appleSignIn") as? Bool ?? true
         isMember = defaults.object(forKey: "dw.member") as? Bool ?? true
+        preferredContentBackend = contentBackendMode
 
         scenes = MockDataService.makeScenes()
         soundAssets = MockDataService.makeSoundAssets()
@@ -130,6 +153,10 @@ final class AppState: ObservableObject {
 
     func bootstrap() async {
         do {
+            if contentBackendMode == .remote {
+                _ = try await contentService.loadBootstrap()
+            }
+
             let loadedScenes = try await contentService.fetchScenes()
             scenes = loadedScenes
             soundAssets = try await libraryService.fetchAssets()

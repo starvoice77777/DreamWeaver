@@ -98,16 +98,15 @@ ruff check app tests
 
 ## 分支说明
 
-- 阶段 2 底：`feat/server-models`
-- 阶段 3：`feat/api-home-user`（home / settings / 个人场景）
-- 本阶段：`feat/apple-jwks`（Apple JWKS 验签）
-- 与前端 `feat/ui-frontend-sync` 并行；合入前以 `integration/frontend-backend` 为底
+- 集成分支：`integration/frontend-backend`
+- 服务端：`feat/apple-jwks`（JWKS）已合入 integration
+- iOS Remote：`feat/ios-remote-content`（APIClient / 游客读内容）
 
 ## 下一阶段
 
-1. iOS `APIClient` + `RemoteContentService`（与前端约定后再动 AppState）
+1. 登录后 home / 收藏 / 设置 / 显式保存的 Remote 服务 + 前端 `feat/ui-auth-shell`
 2. 预签名上传与 SeedJob
 3. 离线队列 / 冲突策略细化
-4. Apple 服务端 Token 校验 / 账号撤销通知（可选加强）
+4. Apple 账号撤销通知（可选加强）
 
 完整方案见 `../docs/production-backend-architecture-and-roadmap.md`。

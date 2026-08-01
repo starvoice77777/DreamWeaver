@@ -8,13 +8,16 @@ enum ServiceError: Error, LocalizedError, Equatable {
     case processingFailed(String)
     case persistenceFailed(String)
     case invalidState(String)
+    case network(String)
+    case httpStatus(Int, String)
+    case decoding(String)
 
     var errorDescription: String? {
         switch self {
         case .notFound(let id):
             return "未找到资源：\(id)"
         case .unauthorized:
-            return "需要先完成声音授权确认"
+            return "需要登录或授权后才能继续"
         case .audioResourceMissing(let name):
             return "音频资源缺失：\(name)，已跳过该轨"
         case .processingFailed(let reason):
@@ -23,6 +26,12 @@ enum ServiceError: Error, LocalizedError, Equatable {
             return "保存失败：\(reason)"
         case .invalidState(let reason):
             return reason
+        case .network(let reason):
+            return "网络错误：\(reason)"
+        case .httpStatus(let code, let detail):
+            return "服务器错误（\(code)）：\(detail)"
+        case .decoding(let reason):
+            return "数据解析失败：\(reason)"
         }
     }
 
@@ -32,7 +41,8 @@ enum ServiceError: Error, LocalizedError, Equatable {
         switch self {
         case .audioResourceMissing, .notFound:
             return true
-        case .unauthorized, .processingFailed, .persistenceFailed, .invalidState:
+        case .unauthorized, .processingFailed, .persistenceFailed, .invalidState,
+             .network, .httpStatus, .decoding:
             return false
         }
     }
