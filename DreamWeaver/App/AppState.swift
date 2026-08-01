@@ -779,8 +779,7 @@ final class AppState: ObservableObject {
     }
 
     static func volume(fromRadius radius: Double) -> Double {
-        let normalized = (radius - 0.22) / (0.95 - 0.22)
-        return min(max(1.0 - normalized, 0.12), 1.0)
+        SpatialMixMapping.mixVolume(fromRadius: radius)
     }
 
     func toggleSource(id: UUID) {

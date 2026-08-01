@@ -294,9 +294,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     // MARK: - Spatial helpers
 
     static func pan(from position: SpatialPosition) -> Float {
-        // SpatialPosition uses x = cos(angle): 0 = right, π = left.
-        // AVAudioPlayerNode.pan uses -1 = left, 0 = center, 1 = right.
-        Float(cos(position.angle))
+        SpatialMixMapping.playbackPan(from: position)
     }
 
     // MARK: - Private
