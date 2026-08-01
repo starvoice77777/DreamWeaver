@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-01）：阶段 **0–4 主路径已完成**；阶段 **5 PR1**（授权 + SeedJob API）已合入 `integration/frontend-backend @ 0860e0d`。当前进行：**阶段 5 PR2**（iOS RemoteSeed / 撤回闭环）。
+进度说明（2026-08-01）：阶段 **0–4** 与 **5 PR1**（SeedJob API）/ **RemoteSeed** / 官方 13 场景目录已合入 `integration/frontend-backend @ 624a392`。当前进行：**阶段 5 PR2**（授权撤回级联）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 

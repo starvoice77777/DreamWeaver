@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import uuid
 
 from fastapi import HTTPException, status
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.library import UserSoundAsset
 from app.models.seed import SeedJob, VoiceAuthorization
-from app.models.user import User
+from app.models.user import PrivateScene, User
 from app.providers.voice import StubVoiceProvider, VoiceProvider
 from app.schemas.library import SoundAssetOut, utc_now
 from app.schemas.seed import (
@@ -21,8 +22,10 @@ from app.schemas.seed import (
     SeedQualityReportOut,
     VoiceAuthorizationCreate,
     VoiceAuthorizationOut,
+    VoiceAuthorizationRevokeOut,
 )
-from app.services.library import asset_to_out
+from app.services.library import _scrub_asset_refs, asset_to_out
+from app.services.storage import get_object_storage
 
 DEFAULT_PURPOSE = "用于生成个人声音种子并在织梦场景中播放"
 PROGRESS_STEP = 0.34
@@ -88,8 +91,14 @@ async def list_authorizations(session: AsyncSession, user: User) -> list[VoiceAu
 
 
 async def revoke_authorization(
-    session: AsyncSession, user: User, authorization_id: uuid.UUID
-) -> VoiceAuthorizationOut:
+    session: AsyncSession,
+    user: User,
+    authorization_id: uuid.UUID,
+    *,
+    provider: VoiceProvider | None = None,
+) -> VoiceAuthorizationRevokeOut:
+    """Revoke auth and cascade: cancel open jobs, soft-delete seed assets, scrub scenes."""
+    provider = provider or get_voice_provider()
     result = await session.scalars(
         select(VoiceAuthorization).where(
             VoiceAuthorization.id == authorization_id,
@@ -99,13 +108,106 @@ async def revoke_authorization(
     row = result.first()
     if row is None:
         raise HTTPException(status_code=404, detail="Authorization not found")
+
+    cancelled_jobs = 0
+    deleted_assets = 0
+    scrubbed: list[uuid.UUID] = []
+    provider_deletes = 0
+    storage_keys: list[str] = []
+
     if row.revoked_at is None:
         if not row.revocable:
             raise HTTPException(status_code=409, detail="Authorization is not revocable")
         row.revoked_at = utc_now()
+
+        jobs = (
+            await session.scalars(
+                select(SeedJob).where(
+                    SeedJob.authorization_id == authorization_id,
+                    SeedJob.user_id == user.id,
+                    SeedJob.deleted_at.is_(None),
+                )
+            )
+        ).all()
+
+        for job in jobs:
+            if job.provider_job_id:
+                with contextlib.suppress(Exception):
+                    await provider.delete_voice(job.provider_job_id)
+                    provider_deletes += 1
+
+            if job.result_asset_id is not None:
+                asset_result = await session.scalars(
+                    select(UserSoundAsset).where(
+                        UserSoundAsset.id == job.result_asset_id,
+                        UserSoundAsset.owner_user_id == user.id,
+                        UserSoundAsset.deleted_at.is_(None),
+                    )
+                )
+                asset = asset_result.first()
+                if asset is not None:
+                    storage_keys.append(asset.storage_key)
+                    if asset.preview_storage_key:
+                        storage_keys.append(asset.preview_storage_key)
+
+                    scenes = (
+                        await session.scalars(
+                            select(PrivateScene).where(
+                                PrivateScene.owner_user_id == user.id,
+                                PrivateScene.deleted_at.is_(None),
+                            )
+                        )
+                    ).all()
+                    for scene in scenes:
+                        draft_before = list(scene.draft_sources or [])
+                        saved_before = (
+                            list(scene.saved_sources or [])
+                            if scene.saved_sources is not None
+                            else None
+                        )
+                        draft_after = _scrub_asset_refs(draft_before, asset.id)
+                        changed = len(draft_after) != len(draft_before)
+                        scene.draft_sources = draft_after
+                        if saved_before is not None:
+                            saved_after = _scrub_asset_refs(saved_before, asset.id)
+                            if len(saved_after) != len(saved_before):
+                                changed = True
+                            scene.saved_sources = saved_after
+                        if changed:
+                            scrubbed.append(scene.id)
+
+                    asset.deleted_at = utc_now()
+                    asset.updated_at = utc_now()
+                    deleted_assets += 1
+                job.result_asset_id = None
+
+            if job.status != "cancelled":
+                cancelled_jobs += 1
+            job.status = "cancelled"
+            job.deleted_at = utc_now()
+            job.updated_at = utc_now()
+            job.message = "授权已撤回，任务已取消"
+
         await session.commit()
         await session.refresh(row)
-    return _auth_to_out(row)
+
+        storage = get_object_storage()
+        for key in storage_keys:
+            with contextlib.suppress(Exception):
+                storage.delete_object(key)
+
+    return VoiceAuthorizationRevokeOut(
+        id=row.id,
+        confirmed=row.confirmed,
+        revocable=row.revocable,
+        purpose=row.purpose,
+        revoked_at=row.revoked_at,
+        created_at=row.created_at,
+        cancelled_jobs=cancelled_jobs,
+        deleted_assets=deleted_assets,
+        scrubbed_scene_ids=sorted(set(scrubbed), key=str),
+        provider_deletes=provider_deletes,
+    )
 
 
 async def analyze(_user: User, body: SeedAnalyzeIn) -> SeedQualityReportOut:
@@ -233,6 +335,13 @@ async def finalize_job(
     row = await _owned_job(session, user, job_id)
     if row.status != "completed":
         raise HTTPException(status_code=409, detail="Seed job is not completed yet")
+    # Block finalize if the linked authorization was revoked after process started.
+    auth = await session.scalars(
+        select(VoiceAuthorization).where(VoiceAuthorization.id == row.authorization_id)
+    )
+    auth_row = auth.first()
+    if auth_row is None or auth_row.revoked_at is not None:
+        raise HTTPException(status_code=409, detail="Authorization has been revoked")
     if row.result_asset_id is not None:
         existing = await session.scalars(
             select(UserSoundAsset).where(UserSoundAsset.id == row.result_asset_id)
