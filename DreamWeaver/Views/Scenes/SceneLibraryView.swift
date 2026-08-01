@@ -2,19 +2,24 @@ import SwiftUI
 
 struct SceneLibraryView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var selectedCategory: SceneCategory = .frequent
+    /// `nil` = 全部场景（默认）；否则按分类筛选。
+    @State private var selectedCategory: SceneCategory?
     @State private var searchText = ""
     @State private var showSearch = false
 
     private var filtered: [DreamScene] {
         var list = appState.scenes
-        switch selectedCategory {
-        case .frequent:
-            list = list.filter(\.isFrequentlyUsed)
-        case .favorites:
-            list = list.filter(\.isFavorite)
-        default:
-            list = list.filter { $0.category == selectedCategory || $0.tags.contains(selectedCategory.rawValue) }
+        if let selectedCategory {
+            switch selectedCategory {
+            case .frequent:
+                list = list.filter(\.isFrequentlyUsed)
+            case .favorites:
+                list = list.filter(\.isFavorite)
+            default:
+                list = list.filter {
+                    $0.category == selectedCategory || $0.tags.contains(selectedCategory.rawValue)
+                }
+            }
         }
         if !searchText.isEmpty {
             list = list.filter {
@@ -63,8 +68,14 @@ struct SceneLibraryView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
+                        CapsuleChip(title: "全部", selected: selectedCategory == nil) {
+                            selectedCategory = nil
+                        }
                         ForEach(SceneCategory.allCases) { category in
-                            CapsuleChip(title: category.rawValue, selected: selectedCategory == category) {
+                            CapsuleChip(
+                                title: category.rawValue,
+                                selected: selectedCategory == category
+                            ) {
                                 selectedCategory = category
                             }
                         }

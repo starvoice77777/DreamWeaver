@@ -35,7 +35,8 @@ final class RemoteContentService: ContentService {
             }
             // Keep server sort_order by rematching summary order.
             let byId = Dictionary(uniqueKeysWithValues: scenes.map { ($0.id, $0) })
-            return summaries.compactMap { byId[$0.id] }
+            let ordered = summaries.compactMap { byId[$0.id] }
+            return MockDataService.markTopFrequentScenes(ordered)
         }
     }
 
