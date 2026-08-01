@@ -10,9 +10,22 @@
 		0D02A0C53016657E00EF51F8 /* DreamWeaver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DreamWeaver.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D43016657E00EF51F8 /* Exceptions for "DreamWeaver" folder in "DreamWeaver" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 0D02A0C43016657E00EF51F8 /* DreamWeaver */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0D02A0C73016657E00EF51F8 /* DreamWeaver */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B2C3D43016657E00EF51F8 /* Exceptions for "DreamWeaver" folder in "DreamWeaver" target */,
+			);
 			path = DreamWeaver;
 			sourceTree = "<group>";
 		};
