@@ -4,14 +4,17 @@ import uuid
 
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 from app.services.timeline import (
-    CUE_RAIN_SETTLE_ID,
     HAIR_CARE_TIMELINE_VERSION,
+    RAIN_EAVES_TIMELINE_VERSION,
     VOICE_TRACK_ID,
 )
 
 RAIN_EAVES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
 FIRST_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666701")
 FIRST_PHRASE_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666802")
+RAIN_SOFT_ENTER_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666630")
+RAIN_SOFT_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
+RAIN_BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
 
 
 async def _login(client, sub: str = "timeline-user") -> dict:
@@ -63,9 +66,22 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
+    assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
+    assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
-    assert any(c["id"] == str(CUE_RAIN_SETTLE_ID) for c in body["cues"])
+    assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
+    assert any(
+        a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
+        for c in body["cues"]
+        for a in c.get("actions", [])
+    )
+    assert any(
+        a.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
+        for c in body["cues"]
+        for a in c.get("actions", [])
+    )
     assert any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
+    assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
 
 
 async def test_scene_timeline_missing_scene(client) -> None:

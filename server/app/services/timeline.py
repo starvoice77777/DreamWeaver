@@ -21,14 +21,10 @@ from app.schemas.content import (
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
-RAIN_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555501")
-WIND_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555502")
-
-CUE_RAIN_SETTLE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666621")
-CUE_WIND_SOFTEN_ID = uuid.UUID("f6666666-6666-4666-8666-666666666622")
-
 HAIR_CARE_TIMELINE_VERSION = 4
-_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
+RAIN_EAVES_TIMELINE_VERSION = 2
+_HAIR_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
+_RAIN_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v2.json"
 
 
 def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
@@ -51,9 +47,8 @@ def timeline_document_dict(out: SceneTimelineOut) -> dict:
     return out.model_dump(mode="json")
 
 
-def _load_hair_care_fixture() -> dict:
-    raw = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
-    # Validate shape via pydantic, then dump for JSONB storage.
+def _load_fixture(path: Path) -> dict:
+    raw = json.loads(path.read_text(encoding="utf-8"))
     out = SceneTimelineOut.model_validate(raw)
     return {
         "version": out.version,
@@ -65,40 +60,16 @@ def _load_hair_care_fixture() -> dict:
     }
 
 
+def _load_hair_care_fixture() -> dict:
+    return _load_fixture(_HAIR_FIXTURE_PATH)
+
+
+def _load_rain_eaves_fixture() -> dict:
+    return _load_fixture(_RAIN_FIXTURE_PATH)
+
+
 def _empty_document() -> tuple[list[dict], list[dict]]:
     return [], []
-
-
-def _rain_eaves_document() -> tuple[list[dict], list[dict]]:
-    """Non-voice demo scene: gentle environment automation only."""
-    phrases: list[dict] = []
-    cues = [
-        SceneCueOut(
-            id=CUE_RAIN_SETTLE_ID,
-            at_seconds=90.0,
-            actions=[
-                CueActionOut(
-                    type="set_volume",
-                    track_id=RAIN_TRACK_ID,
-                    volume=0.65,
-                    fade_ms=5000,
-                )
-            ],
-        ).model_dump(mode="json"),
-        SceneCueOut(
-            id=CUE_WIND_SOFTEN_ID,
-            at_seconds=240.0,
-            actions=[
-                CueActionOut(
-                    type="set_volume",
-                    track_id=WIND_TRACK_ID,
-                    volume=0.22,
-                    fade_ms=6000,
-                )
-            ],
-        ).model_dump(mode="json"),
-    ]
-    return phrases, cues
 
 
 def build_official_timeline_payload(scene: Scene) -> dict:
@@ -114,58 +85,65 @@ def build_official_timeline_payload(scene: Scene) -> dict:
             "phrases": payload["phrases"],
             "cues": payload["cues"],
         }
-    elif scene.visual_style == "rainEaves":
-        phrases, cues = _rain_eaves_document()
+    if scene.visual_style == "rainEaves":
+        payload = _load_rain_eaves_fixture()
+        return {
+            "version": payload["version"],
+            "automation_mode": payload["automation_mode"],
+            "duration_hint_seconds": payload["duration_hint_seconds"],
+            "override_policy": payload["override_policy"],
+            "phrases": payload["phrases"],
+            "cues": payload["cues"],
+        }
+
+    # Scenes with a voice layer get a minimal approved phrase hook; others stay empty.
+    voice_tracks = [t for t in scene.tracks if t.layer == "voice" and t.resource_key]
+    if voice_tracks:
+        track = voice_tracks[0]
+        phrase_id = uuid.uuid5(scene.id, "official-phrase-0")
+        phrases = [
+            PhraseOut(
+                id=phrase_id,
+                text="",
+                review_status="approved",
+                voice_binding=VoiceBindingOut(
+                    kind="official_resource",
+                    resource_key=track.resource_key,
+                    track_id=track.id,
+                    track_layer="voice",
+                ),
+            ).model_dump(mode="json")
+        ]
+        cues = [
+            SceneCueOut(
+                id=uuid.uuid5(scene.id, "official-cue-first"),
+                at_seconds=6.0,
+                actions=[
+                    CueActionOut(
+                        type="play_phrase",
+                        phrase_id=phrase_id,
+                        track_id=track.id,
+                    )
+                ],
+            ).model_dump(mode="json"),
+            SceneCueOut(
+                id=uuid.uuid5(scene.id, "official-cue-repeat"),
+                at_seconds=34.0,
+                repeat_every_seconds=28.0,
+                until_seconds=float(duration),
+                actions=[
+                    CueActionOut(
+                        type="play_phrase",
+                        phrase_id=phrase_id,
+                        track_id=track.id,
+                    )
+                ],
+            ).model_dump(mode="json"),
+        ]
         version = 1
     else:
-        # Scenes with a voice layer get a minimal approved phrase hook; others stay empty.
-        voice_tracks = [t for t in scene.tracks if t.layer == "voice" and t.resource_key]
-        if voice_tracks:
-            track = voice_tracks[0]
-            phrase_id = uuid.uuid5(scene.id, "official-phrase-0")
-            phrases = [
-                PhraseOut(
-                    id=phrase_id,
-                    text="",
-                    review_status="approved",
-                    voice_binding=VoiceBindingOut(
-                        kind="official_resource",
-                        resource_key=track.resource_key,
-                        track_id=track.id,
-                        track_layer="voice",
-                    ),
-                ).model_dump(mode="json")
-            ]
-            cues = [
-                SceneCueOut(
-                    id=uuid.uuid5(scene.id, "official-cue-first"),
-                    at_seconds=6.0,
-                    actions=[
-                        CueActionOut(
-                            type="play_phrase",
-                            phrase_id=phrase_id,
-                            track_id=track.id,
-                        )
-                    ],
-                ).model_dump(mode="json"),
-                SceneCueOut(
-                    id=uuid.uuid5(scene.id, "official-cue-repeat"),
-                    at_seconds=34.0,
-                    repeat_every_seconds=28.0,
-                    until_seconds=float(duration),
-                    actions=[
-                        CueActionOut(
-                            type="play_phrase",
-                            phrase_id=phrase_id,
-                            track_id=track.id,
-                        )
-                    ],
-                ).model_dump(mode="json"),
-            ]
-            version = 1
-        else:
-            phrases, cues = _empty_document()
-            version = 1
+        phrases, cues = _empty_document()
+        version = 1
 
     return {
         "version": version,
@@ -178,7 +156,7 @@ def build_official_timeline_payload(scene: Scene) -> dict:
 
 
 async def ensure_official_timelines(session: AsyncSession) -> None:
-    """Insert missing timelines; upgrade hairCare when version < HAIR_CARE_TIMELINE_VERSION."""
+    """Insert missing timelines; upgrade hairCare / rainEaves when behind fixture version."""
     from sqlalchemy.orm import selectinload
 
     result = await session.scalars(
@@ -206,9 +184,8 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
             dirty = True
             continue
         needs_upgrade = (
-            scene.visual_style == "hairCare"
-            and row.version < HAIR_CARE_TIMELINE_VERSION
-        )
+            scene.visual_style == "hairCare" and row.version < HAIR_CARE_TIMELINE_VERSION
+        ) or (scene.visual_style == "rainEaves" and row.version < RAIN_EAVES_TIMELINE_VERSION)
         if needs_upgrade:
             row.version = payload["version"]
             row.automation_mode = payload["automation_mode"]

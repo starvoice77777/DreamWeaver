@@ -8,6 +8,7 @@ struct BasicMixSound: Identifiable, Hashable {
     static let all: [BasicMixSound] = [
         .init(id: "rain", name: "雨声", symbolName: "cloud.rain.fill"),
         .init(id: "wind", name: "风声", symbolName: "wind"),
+        .init(id: "bamboo", name: "竹叶雨", symbolName: "leaf.fill"),
         .init(id: "voice", name: "人声", symbolName: "person.wave.2.fill"),
         .init(id: "piano", name: "钢琴", symbolName: "pianokeys"),
         .init(id: "insect", name: "虫鸣", symbolName: "leaf.fill"),
@@ -20,6 +21,7 @@ struct BasicMixSound: Identifiable, Hashable {
         switch id {
         case "rain": return "rain_parasol"
         case "wind": return "wind_realistic"
+        case "bamboo": return "rain_bamboo_leaf"
         case "stream":
             switch style {
             case .hairCare:
@@ -37,7 +39,7 @@ struct BasicMixSound: Identifiable, Hashable {
     var layer: AudioLayerKind {
         switch id {
         case "voice": return .voice
-        case "wind": return .ambience
+        case "wind", "bamboo": return .ambience
         default: return .environment
         }
     }
@@ -53,7 +55,7 @@ extension SceneVisualStyle {
     var allowedBasicSoundIds: Set<String> {
         switch self {
         case .rainEaves:
-            return ["rain", "wind", "voice", "piano"]
+            return ["rain", "wind", "bamboo", "piano"]
         case .fireflies:
             return ["wind", "insect", "voice", "piano"]
         case .mistTide:

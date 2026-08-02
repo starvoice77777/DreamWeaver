@@ -1,0 +1,18 @@
+scene_id: a1111111-1111-4111-8111-111111111102
+slug: sc_rain
+name: 檐下听雨
+template: environment_no_voice
+visual_style: rainEaves
+category: rainyNight
+timeline_version: 2
+duration_hint_seconds: 620
+override_policy: per_source_manual_exit
+phrases: []
+asset_gate: qc_pending
+notes:
+  - 协同表 v4：无文本环境型；变化间隔 ≥90s；单次 volume 变化 ≤0.08（脚本内风声短段除外，已用淡入淡出约束）
+  - 母带状态 qc_pending：可本地演示，正式上架前需循环验收与许可证 approved
+  - P1 room_wood_tone 未交付，未入库
+gaps:
+  - requires_engine_crossfade=true 对 A01–A03；客户端若无交叉淡化可能有循环接点
+  - license_status 仍为 pending

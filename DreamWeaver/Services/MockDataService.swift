@@ -403,47 +403,47 @@ enum MockDataService {
     }
 
     private static func rainEavesScene() -> DreamScene {
+        // Template B (environment, no voice): A01 far soft → A02 near parasol → A03 bamboo → A04 wind cues.
         let sources: [SoundSource] = [
-            SoundSource(
-                id: DemoIDs.sourceRain,
-                name: "雨声",
-                symbolName: "cloud.rain.fill",
-                isEnabled: true,
-                volume: 0.82,
-                position: SpatialPosition(angle: .pi * 0.9, radius: 0.38),
-                resourceName: "rain_parasol",
-                layer: .environment
-            ),
-            SoundSource(
-                id: DemoIDs.sourceWind,
-                name: "风声",
-                symbolName: "wind",
-                isEnabled: true,
-                volume: 0.32,
-                position: SpatialPosition(angle: .pi * 0.2, radius: 0.78),
-                resourceName: "wind_realistic",
-                layer: .ambience
-            ),
             SoundSource(
                 id: DemoIDs.sourceRainSoftFar,
                 name: "远雨",
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
-                volume: 0.2,
-                position: SpatialPosition(angle: .pi * 1.3, radius: 0.85),
+                volume: 0.08,
+                position: SpatialPosition(angle: 0.52, radius: 0.85),
                 resourceName: "rain_soft",
                 layer: .ambience
             ),
             SoundSource(
-                id: DemoIDs.sourceRainEavesVoice,
-                name: "妈妈的晚安",
-                symbolName: "person.wave.2.fill",
+                id: DemoIDs.sourceRain,
+                name: "檐下雨",
+                symbolName: "cloud.rain.fill",
                 isEnabled: false,
-                volume: 0.42,
-                position: SpatialPosition(angle: -.pi * 0.28, radius: 0.4),
-                assetId: DemoIDs.seedMom,
-                resourceName: "voice_phrase_mom",
-                layer: .voice
+                volume: 0.0,
+                position: SpatialPosition(angle: 2.83, radius: 0.38),
+                resourceName: "rain_parasol",
+                layer: .environment
+            ),
+            SoundSource(
+                id: DemoIDs.sourceRainBambooLeaf,
+                name: "竹叶雨",
+                symbolName: "leaf.fill",
+                isEnabled: false,
+                volume: 0.0,
+                position: SpatialPosition(angle: -0.70, radius: 0.62),
+                resourceName: "rain_bamboo_leaf",
+                layer: .ambience
+            ),
+            SoundSource(
+                id: DemoIDs.sourceWind,
+                name: "远风",
+                symbolName: "wind",
+                isEnabled: false,
+                volume: 0.0,
+                position: SpatialPosition(angle: 2.62, radius: 0.88),
+                resourceName: "wind_realistic",
+                layer: .ambience
             )
         ]
         let manifest = SceneAudioManifest(
@@ -455,13 +455,13 @@ enum MockDataService {
                     symbolName: s.symbolName,
                     resourceName: resource,
                     layer: s.layer,
-                    loops: s.layer != .voice,
+                    loops: true,
                     defaultVolume: s.volume,
                     defaultPosition: s.position,
-                    isRequired: s.layer == .environment
+                    isRequired: s.id == DemoIDs.sourceRainSoftFar
                 )
             },
-            voicePhraseResourceName: "voice_phrase_mom"
+            voicePhraseResourceName: nil
         )
         return DreamScene(
             id: DemoIDs.rainEavesScene,
@@ -608,14 +608,13 @@ enum MockDataService {
             MixPreset(
                 id: DemoIDs.presetRainFine,
                 title: "檐下细雨",
-                subtitle: "雨近、风远，暖灯停在身侧",
+                subtitle: "远雨垫底，檐雨近听，竹叶轻扫",
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.9, radius: 0.38, volume: 0.82, resourceName: "rain_parasol"),
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.78, volume: 0.28, resourceName: "wind_realistic", layer: .ambience),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.34, volume: 0.48, resourceName: "voice_phrase_mom", layer: .voice),
-                    source("远雨", "cloud.drizzle.fill", angle: .pi * 1.35, radius: 0.62, volume: 0.22, resourceName: "rain_soft", layer: .ambience)
+                    source("远雨", "cloud.drizzle.fill", angle: 0.52, radius: 0.85, volume: 0.28, resourceName: "rain_soft", layer: .ambience),
+                    source("檐下雨", "cloud.rain.fill", angle: 2.83, radius: 0.38, volume: 0.42, resourceName: "rain_parasol"),
+                    source("竹叶雨", "leaf.fill", angle: -0.70, radius: 0.62, volume: 0.22, resourceName: "rain_bamboo_leaf", layer: .ambience)
                 ]
             ),
             MixPreset(

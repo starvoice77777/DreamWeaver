@@ -63,4 +63,5 @@ enum DemoIDs {
     // Rain eaves extras (must not collide with hair-care 508–50F)
     static let sourceRainSoftFar = UUID(uuidString: "E5555555-5555-4555-8555-555555555510")!
     static let sourceRainEavesVoice = UUID(uuidString: "E5555555-5555-4555-8555-555555555511")!
+    static let sourceRainBambooLeaf = UUID(uuidString: "E5555555-5555-4555-8555-555555555512")!
 }

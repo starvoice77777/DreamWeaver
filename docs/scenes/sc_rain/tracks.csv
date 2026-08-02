@@ -1,0 +1,8 @@
+track_id,resource_key,layer,loop,master_file,asset_status,default_volume,angle_rad,radius,license_status,requires_engine_crossfade,usage
+e5555555-5555-4555-8555-555555555510,rain_soft,ambience,true,dw_official_amb_rain_soft_loop_sc_rain_far_v01_t01.wav,qc_pending,0.28,0.52,0.85,pending,true,A01 远雨垫底；全程基底
+e5555555-5555-4555-8555-555555555501,rain_parasol,environment,true,dw_official_env_rain_parasol_loop_sc_rain_near_v01_t01.wav,qc_pending,0.42,2.83,0.38,pending,true,A02 近雨/檐面主环境
+e5555555-5555-4555-8555-555555555512,rain_bamboo_leaf,ambience,true,dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v01_t01.wav,qc_pending,0.22,-0.70,0.62,pending,true,A03 竹叶雨细腻层；音量低于 A01/A02
+e5555555-5555-4555-8555-555555555502,wind_realistic,ambience,true,dw_official_env_wind_realistic_loop_sc_rain_far_v01_t01.wav,qc_pending,0.18,2.62,0.88,pending,false,A04 远风短段；脚本仅两段启用
+,,,,,,,,,,,,
+# room_wood_tone planned P1 — not delivered
+# e5555555-5555-4555-8555-555555555513,room_wood_tone,ambience,true,dw_official_amb_room_wood_tone_loop_sc_rain_soft_v01_t01.wav,planned,,,,pending,,木腔静态氛围；未收集

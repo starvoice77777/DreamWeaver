@@ -8,9 +8,13 @@
 | `hair_wash.m4a` | `384924__beeproductive__washing-hair.wav` | beeproductive | Freesound | 采用前复核页面许可证 | 洗头陪伴 · 水流 | 按许可证署名 |
 | `hair_dryer.mp3` | `150303__orginaljun__hair-dryer.mp3` | orginaljun | Freesound | 采用前复核 | 洗头陪伴 · 吹风机 | 按许可证署名 |
 | `ac_hum.m4a` | `573034__jptalty__air-conditioner-with-rattle.wav` | jptalty | Freesound | 采用前复核 | 洗头陪伴 · 底噪 | 按许可证署名 |
-| `rain_parasol.m4a` | `531947__straget__the-rain-falls-against-the-parasol.wav` | straget | [Freesound 531947](https://freesound.org/people/straget/sounds/531947/) | CC BY 4.0 | 檐下听雨 · 雨声 | 需署名 straget |
-| `wind_realistic.m4a` | `405561__inspectorj__wind-realistic-a.wav` | InspectorJ | [Freesound 405561](https://freesound.org/people/InspectorJ/sounds/405561/) | 需署名（非公有领域） | 檐下听雨 · 风声 | 署名 InspectorJ (www.jshaw.co.uk) of Freesound.org |
-| `rain_soft.mp3` | `34070__arctura__ambient-rain-soft-thunder-loop.mp3` | arctura | Freesound | 采用前复核 | 檐下听雨 · 远雨备选 | 按许可证署名 |
+| `rain_parasol.wav` | `dw_official_env_rain_parasol_loop_sc_rain_near_v01_t01.wav` | 素材交付（原 Close-up_gentle_rain） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A02 近雨 | 正式上架前补许可证 |
+| `rain_soft.wav` | `dw_official_amb_rain_soft_loop_sc_rain_far_v01_t01.wav` | 素材交付（原 Indoor_perspective） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A01 远雨 | 正式上架前补许可证 |
+| `rain_bamboo_leaf.wav` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v01_t01.wav` | 素材交付（原 Soft_rainy_bamboo） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A03 竹叶雨 | 正式上架前补许可证 |
+| `wind_realistic.wav` | `dw_official_env_wind_realistic_loop_sc_rain_far_v01_t01.wav` | 素材交付（原 audiomass-output） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A04 远风 | 正式上架前补许可证 |
+| `rain_parasol.m4a`（旧） | Freesound 531947 | straget | Freesound | CC BY 4.0 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
+| `rain_soft.mp3`（旧） | Freesound 34070 | arctura | Freesound | 采用前复核 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
+| `wind_realistic.m4a`（旧） | Freesound 405561 | InspectorJ | Freesound | 需署名 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
 | `stream_nature.wav` | `267311__viznoman__river.wav` | viznoman | [Freesound 267311](https://freesound.org/people/viznoman/sounds/267311/) | CC BY | 幽谷清流 / 月下静湖 · 自然流水 | 需署名 viznoman |
 | `ambient_dreamy.mp3` | `796505__matio888__tranquil-and-dreamy-soundscape.mp3` | Matio888 | [Freesound 796505](https://freesound.org/people/Matio888/sounds/796505/) | **待确认** | 低音量氛围（可选） | 确认前勿默认商用 |
 | `voice_phrase_mom.m4a` | 团队录制 | 待填 | 团队授权 | 书面授权 | 人声短句 / 种子产物 | 见授权书 |
