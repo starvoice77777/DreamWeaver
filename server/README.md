@@ -47,8 +47,8 @@ uvicorn app.main:app --reload
 | POST | `/v1/scenes/{id}/copy` | Bearer | 从官方场景复制为个人草稿 |
 | GET/POST | `/v1/users/me/scenes` | Bearer | 列出 / 空白创建个人场景 |
 | GET | `/v1/users/me/scenes/{id}` | Bearer | 个人场景详情 |
-| PUT | `/v1/users/me/scenes/{id}/draft` | Bearer | 更新草稿（不发布） |
-| POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本 |
+| PUT | `/v1/users/me/scenes/{id}/draft` | Bearer | 更新草稿（可含 `draft_timeline`，不发布） |
+| POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本（快照 `saved_sources` + `saved_timeline`） |
 | DELETE | `/v1/users/me/scenes/{id}` | Bearer | 软删除个人场景 |
 | POST | `/v1/uploads` | Bearer | 创建预签名上传会话（返回 `put_url`） |
 | POST | `/v1/uploads/{id}/complete` | Bearer | 确认对象已上传并创建 `SoundAsset` |
@@ -154,8 +154,8 @@ Seed 远程说明：在 Seed UI 尚未上传真实录音前，`startProcess` 会
 ## 下一阶段
 
 1. **阶段 0–5（已合入 integration）**：内容、上传、SeedJob、授权撤回级联、RemoteSeed、官方场景目录
-2. **阶段 6 PR1（本分支）**：`GET /v1/scenes/{id}/timeline` 契约与官方种子时间线
-3. 阶段 6 余量：iOS 调度器替换固定 28s 人声；私有场景保存携带 timeline 快照
+2. **阶段 6 PR1（本分支）**：契约 `docs/scene-timeline-contract.md`；`GET /v1/scenes/{id}/timeline`；私人 `draft_timeline`/`saved_timeline`；iOS DTO
+3. **阶段 6 PR2**：iOS 调度器替换固定 28s 人声；运行时写入 `manual_override_track_ids`
 4. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 

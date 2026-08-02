@@ -5,6 +5,8 @@ protocol ContentService: AnyObject {
     func fetchScenes() async throws -> [DreamScene]
     func fetchScene(id: UUID) async throws -> DreamScene
     func fetchMixPresets(sceneStyle: SceneVisualStyle?) async throws -> [MixPreset]
+    /// Versioned cue/phrase document for client scheduling (Stage 6).
+    func fetchTimeline(sceneId: UUID) async throws -> APIContentDTO.SceneTimeline
     func randomGreeting() -> String
     /// Local-only favorite/listen overlay. Remote may no-op until auth APIs are wired.
     func persistSceneOverlay(scenes: [DreamScene]) throws

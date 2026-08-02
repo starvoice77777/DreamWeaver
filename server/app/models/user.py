@@ -136,6 +136,8 @@ class PrivateScene(Base):
     source_scene_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     draft_sources: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
     saved_sources: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    draft_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    saved_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     saved_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

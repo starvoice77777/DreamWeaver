@@ -57,6 +57,54 @@ enum APIContentDTO {
         let tracks: [Track]
     }
 
+    // MARK: - Scene timeline (Stage 6 PR1; scheduler wired in PR2)
+
+    struct VoiceBinding: Codable, Hashable {
+        let kind: String
+        let resource_key: String?
+        let asset_id: UUID?
+        let track_id: UUID?
+        let track_layer: String?
+    }
+
+    struct Phrase: Codable, Hashable, Identifiable {
+        let id: UUID
+        let text: String
+        let review_status: String
+        let voice_binding: VoiceBinding
+    }
+
+    struct CueAction: Codable, Hashable {
+        let type: String
+        let phrase_id: UUID?
+        let track_id: UUID?
+        let volume: Double?
+        let fade_ms: Int?
+        let angle: Double?
+        let radius: Double?
+        let resource_key: String?
+    }
+
+    struct Cue: Codable, Hashable, Identifiable {
+        let id: UUID
+        let at_seconds: Double?
+        let progress: Double?
+        let repeat_every_seconds: Double?
+        let until_seconds: Double?
+        let actions: [CueAction]
+    }
+
+    struct SceneTimeline: Codable, Hashable {
+        let scene_id: UUID
+        let version: Int
+        let automation_mode: String
+        let duration_hint_seconds: Int?
+        let override_policy: String
+        let manual_override_track_ids: [UUID]?
+        let phrases: [Phrase]
+        let cues: [Cue]
+    }
+
     struct MixPreset: Decodable {
         let id: UUID
         let name: String
@@ -164,6 +212,8 @@ enum APIContentDTO {
         let recommended_duration_seconds: Int?
         let draft_sources: [PresetSource]?
         let saved_sources: [PresetSource]?
+        let draft_timeline: SceneTimeline?
+        let saved_timeline: SceneTimeline?
     }
 
     struct PrivateSceneCreate: Encodable {

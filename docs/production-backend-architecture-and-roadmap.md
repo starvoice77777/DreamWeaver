@@ -2,7 +2,7 @@
 
 版本：v1.2  
 日期：2026-08-01  
-状态：阶段 0–4 主路径完成；阶段 5 进行中（授权与 SeedJob）  
+状态：阶段 0–5 主路径完成；阶段 6 PR1 进行中（场景时间线契约与 API）  
 适用范围：iOS 客户端、服务器后端、音频处理、测试、部署与团队协作
 
 ## 1. 文档目的
@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-01）：阶段 **0–5**（含授权撤回级联、RemoteSeed、官方 13 场景）已合入 `integration/frontend-backend`。当前进行：**阶段 6 PR1**（`GET /v1/scenes/{id}/timeline` 契约与官方种子时间线）。
+进度说明（2026-08-02）：阶段 **0–5**（含授权撤回级联、RemoteSeed、官方 14 场景）已合入 `integration/frontend-backend`。当前进行：**阶段 6 PR1**（契约见 `docs/scene-timeline-contract.md`；`GET /v1/scenes/{id}/timeline`；私人场景 `draft_timeline` / `saved_timeline`；iOS DTO）。PR2：客户端调度器替换固定 28s 人声。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -576,10 +576,11 @@ VoiceProvider
 
 ### 阶段 6：场景时间线与播放编排 — 进行中
 
-- 时间线 / Cue / Phrase 契约（`GET /v1/scenes/{id}/timeline`，版本化 JSON）；
-- 官方自动编排与用户覆盖规则（`override_policy=per_source_manual_exit`）；
-- 客户端调度器接入 `AVAudioEngine`（后续）；
-- 保存版本中携带时间线快照（后续）。
+- 时间线 / Cue / Phrase 契约（见 `docs/scene-timeline-contract.md`）；
+- 官方自动编排与用户覆盖规则（`override_policy=per_source_manual_exit` + `manual_override_track_ids`）；
+- 私人场景 `draft_timeline` / `saved_timeline` 快照（PR1）；
+- 客户端调度器接入 `AVAudioEngine`（PR2）；
+- iOS DTO / `fetchTimeline`（PR1）；调度替换固定 28s Timer（PR2）。
 
 ### 阶段 7：陪伴记录与可观测性
 

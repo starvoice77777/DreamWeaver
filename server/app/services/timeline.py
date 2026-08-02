@@ -21,12 +21,17 @@ DRYER_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555505")
 WASH_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555504")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
+RAIN_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555501")
+WIND_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555502")
+
 # Stable phrase/cue ids so clients can cache by id across restarts.
 PHRASE_MOM_ID = uuid.UUID("f6666666-6666-4666-8666-666666666601")
 CUE_FIRST_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666611")
 CUE_REPEAT_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666612")
 CUE_SOFTEN_DRYER_ID = uuid.UUID("f6666666-6666-4666-8666-666666666613")
 CUE_NIGHT_PROGRESS_ID = uuid.UUID("f6666666-6666-4666-8666-666666666614")
+CUE_RAIN_SETTLE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666621")
+CUE_WIND_SOFTEN_ID = uuid.UUID("f6666666-6666-4666-8666-666666666622")
 
 
 def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
@@ -38,9 +43,16 @@ def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
         automation_mode=row.automation_mode,
         duration_hint_seconds=row.duration_hint_seconds,
         override_policy=row.override_policy,
+        manual_override_track_ids=[],
         phrases=phrases,
         cues=cues,
     )
+
+
+def timeline_document_dict(out: SceneTimelineOut) -> dict:
+    """Serialize timeline for private-scene JSON columns."""
+    return out.model_dump(mode="json")
+
 
 
 def _hair_care_document(duration_hint: int) -> tuple[list[dict], list[dict]]:
@@ -112,10 +124,45 @@ def _empty_document() -> tuple[list[dict], list[dict]]:
     return [], []
 
 
+def _rain_eaves_document() -> tuple[list[dict], list[dict]]:
+    """Non-voice demo scene: gentle environment automation only."""
+    phrases: list[dict] = []
+    cues = [
+        SceneCueOut(
+            id=CUE_RAIN_SETTLE_ID,
+            at_seconds=90.0,
+            actions=[
+                CueActionOut(
+                    type="set_volume",
+                    track_id=RAIN_TRACK_ID,
+                    volume=0.65,
+                    fade_ms=5000,
+                )
+            ],
+        ).model_dump(mode="json"),
+        SceneCueOut(
+            id=CUE_WIND_SOFTEN_ID,
+            at_seconds=240.0,
+            actions=[
+                CueActionOut(
+                    type="set_volume",
+                    track_id=WIND_TRACK_ID,
+                    volume=0.22,
+                    fade_ms=6000,
+                )
+            ],
+        ).model_dump(mode="json"),
+    ]
+    return phrases, cues
+
+
 def build_official_timeline_payload(scene: Scene) -> dict:
     duration = scene.recommended_duration_seconds or 2700
     if scene.visual_style == "hairCare":
         phrases, cues = _hair_care_document(duration)
+        version = 1
+    elif scene.visual_style == "rainEaves":
+        phrases, cues = _rain_eaves_document()
         version = 1
     else:
         # Scenes with a voice layer get a minimal approved phrase hook; others stay empty.
@@ -229,6 +276,7 @@ async def get_timeline(session: AsyncSession, scene_id: uuid.UUID) -> SceneTimel
             automation_mode="official_auto",
             duration_hint_seconds=scene.recommended_duration_seconds,
             override_policy="per_source_manual_exit",
+            manual_override_track_ids=[],
             phrases=[],
             cues=[],
         )

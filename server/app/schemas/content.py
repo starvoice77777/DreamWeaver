@@ -74,7 +74,10 @@ class CueActionOut(BaseModel):
     """Client-executed action. Unknown types should be ignored by older clients."""
 
     type: str = Field(
-        description="play_phrase | play | pause | fade_in | fade_out | set_volume | set_position | replace_source"
+        description=(
+            "play_phrase | play | pause | fade_in | fade_out | set_volume | "
+            "set_position | enable | disable | replace_source"
+        )
     )
     phrase_id: uuid.UUID | None = None
     track_id: uuid.UUID | None = None
@@ -106,6 +109,10 @@ class SceneTimelineOut(BaseModel):
     override_policy: str = Field(
         default="per_source_manual_exit",
         description="Manual edits on a source exit official automation for that source only",
+    )
+    manual_override_track_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        description="Tracks that exited official automation after user edits",
     )
     phrases: list[PhraseOut] = Field(default_factory=list)
     cues: list[SceneCueOut] = Field(default_factory=list)
@@ -208,6 +215,8 @@ class PrivateSceneDetailOut(PrivateSceneSummaryOut):
     recommended_duration_seconds: int
     draft_sources: list[dict] = Field(default_factory=list)
     saved_sources: list[dict] | None = None
+    draft_timeline: dict | None = None
+    saved_timeline: dict | None = None
 
 
 class PrivateSceneCreate(BaseModel):
@@ -219,6 +228,7 @@ class PrivateSceneCreate(BaseModel):
     palette: dict | None = None
     visual_style: str = "custom"
     sources: list[dict] = Field(default_factory=list)
+    timeline: dict | None = None
 
 
 class PrivateSceneDraftUpdate(BaseModel):
@@ -230,6 +240,7 @@ class PrivateSceneDraftUpdate(BaseModel):
     palette: dict | None = None
     visual_style: str | None = None
     sources: list[dict] | None = None
+    draft_timeline: dict | None = None
 
 
 class HomeOut(BaseModel):
