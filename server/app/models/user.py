@@ -33,6 +33,12 @@ class User(Base):
     settings: Mapped[UserSettings | None] = relationship(back_populates="user", uselist=False)
     scene_states: Mapped[list[UserSceneState]] = relationship(back_populates="user")
     private_scenes: Mapped[list[PrivateScene]] = relationship(back_populates="owner")
+    analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(
+        "AnalyticsEvent", back_populates="user"
+    )
+    usage_summary: Mapped["UsageSummary | None"] = relationship(
+        "UsageSummary", back_populates="user", uselist=False
+    )
 
 
 class AppleIdentity(Base):

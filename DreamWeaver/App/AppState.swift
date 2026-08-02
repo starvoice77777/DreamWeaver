@@ -62,7 +62,7 @@ final class AppState: ObservableObject {
     let libraryService: UserLibraryService
     /// Local or remote seed pipeline (`RemoteSeedPipelineService` when content backend is remote).
     let seedPipeline: SeedPipelineService
-    let analyticsService: LocalAnalyticsService
+    let analyticsService: AnalyticsService
     let playback: LocalPlaybackService
     let authService: RemoteAuthService?
     let remoteUserService: RemoteUserService?
@@ -89,6 +89,7 @@ final class AppState: ObservableObject {
         let library: UserLibraryService
         let remoteLibrary: RemoteUserLibraryService?
         let seed: SeedPipelineService
+        let analytics: AnalyticsService
         switch mode {
         case .remote:
             let client = APIClient.shared
@@ -99,6 +100,7 @@ final class AppState: ObservableObject {
             library = remoteLib
             remoteLibrary = remoteLib
             seed = RemoteSeedPipelineService(client: client, library: remoteLib)
+            analytics = RemoteAnalyticsService(client: client)
         case .local:
             content = LocalContentService()
             auth = nil
@@ -106,12 +108,13 @@ final class AppState: ObservableObject {
             library = LocalUserLibraryService()
             remoteLibrary = nil
             seed = LocalSeedPipelineService()
+            analytics = LocalAnalyticsService()
         }
         self.init(
             contentService: content,
             libraryService: library,
             seedPipeline: seed,
-            analyticsService: LocalAnalyticsService(),
+            analyticsService: analytics,
             playback: LocalPlaybackService(),
             contentBackendMode: mode,
             authService: auth,
@@ -124,7 +127,7 @@ final class AppState: ObservableObject {
         contentService: ContentService,
         libraryService: UserLibraryService,
         seedPipeline: SeedPipelineService,
-        analyticsService: LocalAnalyticsService,
+        analyticsService: AnalyticsService,
         playback: LocalPlaybackService,
         contentBackendMode: ServiceBackendMode = .local,
         authService: RemoteAuthService? = nil,

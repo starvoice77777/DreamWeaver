@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。集成分支已含阶段 5（授权 + SeedJob + 撤回级联）。阶段 6 起提供场景时间线契约。
+DreamWeaver 生产后端。集成分支已含阶段 0–6（内容、上传、Seed、时间线调度、洗头脚本 v4）。当前：阶段 7 PR1 陪伴事件与摘要。
 
 ## 本机直接运行 API
 
@@ -66,6 +66,8 @@ uvicorn app.main:app --reload
 | GET | `/v1/seeds/jobs/{id}` | Bearer | 轮询；stub 进度在此推进直至 `completed` |
 | POST | `/v1/seeds/jobs/{id}/finalize` | Bearer | body: `name` + `relation` → `kind=voice` 资产 |
 | DELETE | `/v1/seeds/jobs/{id}` | Bearer | 取消未完成任务 |
+| POST | `/v1/analytics/events` | Bearer | 批量上报陪伴事件（对齐 iOS `AnalyticsEvent`） |
+| GET | `/v1/analytics/summary` | Bearer | 陪伴摘要（对齐 iOS `UsageRecord`） |
 
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
 
@@ -73,7 +75,7 @@ Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮�
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
-首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 14 个场景，含「流光溢彩」`emotionalFluid`；多数可无完整音频资源，仅元数据与占位轨）。同时会为缺时间线的场景写入版本化 Cue/Phrase 文档；「洗头陪伴」对齐本地播放节奏（约 6s 首句、之后每 28s，并含音量/进度示例 cue）。
+首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 14 个场景，含「流光溢彩」`emotionalFluid`；多数可无完整音频资源，仅元数据与占位轨）。同时会为缺时间线的场景写入版本化 Cue/Phrase 文档；「洗头陪伴」使用脚本 **v4**（约 620s，多句 `play_phrase` + `play_oneshot` / 分层音量与空间 cue；见 `app/fixtures/hair_care_timeline_v4.json`）。
 
 ### Sign in with Apple
 
@@ -153,9 +155,9 @@ Seed 远程说明：在 Seed UI 尚未上传真实录音前，`startProcess` 会
 
 ## 下一阶段
 
-1. **阶段 0–5（已合入 integration）**：内容、上传、SeedJob、授权撤回级联、RemoteSeed、官方场景目录
-2. **阶段 6 PR1（本分支）**：契约 `docs/scene-timeline-contract.md`；`GET /v1/scenes/{id}/timeline`；私人 `draft_timeline`/`saved_timeline`；iOS DTO
-3. **阶段 6 PR2**：iOS 调度器替换固定 28s 人声；运行时写入 `manual_override_track_ids`
+1. **阶段 0–6（已合入 integration）**：内容、上传、SeedJob、时间线调度、洗头脚本 v4
+2. **阶段 7 PR1（本分支）**：`POST /v1/analytics/events`、`GET /v1/analytics/summary`、iOS `RemoteAnalyticsService`
+3. **阶段 7 PR2**：结构化日志、指标与告警
 4. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 

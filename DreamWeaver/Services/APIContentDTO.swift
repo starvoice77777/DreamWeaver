@@ -150,6 +150,33 @@ enum APIContentDTO {
         var default_scene_id: UUID?
     }
 
+    struct UsageSummary: Decodable {
+        let id: UUID
+        let total_minutes: Int
+        let week_minutes: Int
+        let usual_bedtime: String
+        let last_used_at: Date
+        let sleep_trend: [Int]
+    }
+
+    struct AnalyticsEventPayload: Encodable {
+        let type: String
+        let scene_id: UUID?
+        let asset_id: UUID?
+        let duration_seconds: Int?
+        let occurred_at: Date?
+        let idempotency_key: String?
+    }
+
+    struct AnalyticsEventsBatch: Encodable {
+        let events: [AnalyticsEventPayload]
+    }
+
+    struct AnalyticsEventsAccepted: Decodable {
+        let accepted: Int
+        let skipped_duplicates: Int?
+    }
+
     struct Bootstrap: Decodable {
         let greeting: String
         let default_scene_id: UUID
@@ -443,6 +470,17 @@ enum APIContentMapper {
             authorType: .official,
             authorName: dto.author_name,
             sources: dto.sources.map(soundSource(from:))
+        )
+    }
+
+    static func usageRecord(from dto: APIContentDTO.UsageSummary) -> UsageRecord {
+        UsageRecord(
+            id: dto.id,
+            totalMinutes: dto.total_minutes,
+            weekMinutes: dto.week_minutes,
+            usualBedtime: dto.usual_bedtime,
+            lastUsedAt: dto.last_used_at,
+            sleepTrend: dto.sleep_trend
         )
     }
 

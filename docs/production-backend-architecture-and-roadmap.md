@@ -2,7 +2,7 @@
 
 版本：v1.2  
 日期：2026-08-01  
-状态：阶段 0–5 主路径完成；阶段 6 PR1 已合入；阶段 6 PR2 进行中（客户端时间线调度）  
+状态：阶段 0–6 主路径完成；当前进行：阶段 7 PR1（陪伴事件上报与摘要 API）  
 适用范围：iOS 客户端、服务器后端、音频处理、测试、部署与团队协作
 
 ## 1. 文档目的
@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-02）：阶段 **0–5** 与 **6 PR1**（时间线契约 / `GET .../timeline` / 私人快照 / iOS DTO）已合入 `integration/frontend-backend @ d922f0c`。当前进行：**阶段 6 PR2**（`SceneTimelineScheduler` 替换固定 6s/28s 人声；混音编辑写入 `manual_override`）。
+进度说明（2026-08-02）：阶段 **0–6** 已合入 `integration/frontend-backend`（含时间线契约、私人快照、`SceneTimelineScheduler`、洗头脚本 v4）。当前进行：**阶段 7 PR1**（`POST /v1/analytics/events`、`GET /v1/analytics/summary` 与 iOS `RemoteAnalyticsService`）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -574,20 +574,20 @@ VoiceProvider
 - 撤回和删除闭环（级联取消任务 / 软删资产 / scrub 场景）；
 - 候选供应商 PoC（后续）。
 
-### 阶段 6：场景时间线与播放编排 — 进行中
+### 阶段 6：场景时间线与播放编排 — 完成
 
 - 时间线 / Cue / Phrase 契约（见 `docs/scene-timeline-contract.md`）；
 - 官方自动编排与用户覆盖规则（`override_policy=per_source_manual_exit` + `manual_override_track_ids`）；
-- 私人场景 `draft_timeline` / `saved_timeline` 快照（PR1）；
-- 客户端调度器接入 `AVAudioEngine`（PR2：`SceneTimelineScheduler`）；
-- iOS DTO / `fetchTimeline`（PR1）；调度替换固定 28s Timer（PR2）。
+- 私人场景 `draft_timeline` / `saved_timeline` 快照；
+- 客户端 `SceneTimelineScheduler` 接入 `AVAudioEngine`，替换固定 6s/28s 人声 Timer；
+- 洗头陪伴官方时间线脚本 v4（约 620s，`play_oneshot` / 分层 cue）。
 
-### 阶段 7：陪伴记录与可观测性
+### 阶段 7：陪伴记录与可观测性 — 进行中
 
-- 事件批量上报；
-- 陪伴摘要；
-- 结构化日志；
-- 指标、告警和审计。
+- 事件批量上报（PR1：`POST /v1/analytics/events`）；
+- 陪伴摘要（PR1：`GET /v1/analytics/summary`，对齐 `UsageRecord`）；
+- 结构化日志（PR2）；
+- 指标、告警和审计（PR2）。
 
 ### 阶段 8：中国大陆部署
 
