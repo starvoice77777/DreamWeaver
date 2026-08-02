@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import uuid
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,21 +19,16 @@ from app.schemas.content import (
 )
 
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
-DRYER_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555505")
-WASH_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555504")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 RAIN_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555501")
 WIND_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555502")
 
-# Stable phrase/cue ids so clients can cache by id across restarts.
-PHRASE_MOM_ID = uuid.UUID("f6666666-6666-4666-8666-666666666601")
-CUE_FIRST_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666611")
-CUE_REPEAT_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666612")
-CUE_SOFTEN_DRYER_ID = uuid.UUID("f6666666-6666-4666-8666-666666666613")
-CUE_NIGHT_PROGRESS_ID = uuid.UUID("f6666666-6666-4666-8666-666666666614")
 CUE_RAIN_SETTLE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666621")
 CUE_WIND_SOFTEN_ID = uuid.UUID("f6666666-6666-4666-8666-666666666622")
+
+HAIR_CARE_TIMELINE_VERSION = 4
+_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
 
 
 def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
@@ -54,70 +51,18 @@ def timeline_document_dict(out: SceneTimelineOut) -> dict:
     return out.model_dump(mode="json")
 
 
-
-def _hair_care_document(duration_hint: int) -> tuple[list[dict], list[dict]]:
-    """Mirrors current iOS LocalPlaybackService voice cadence (6s then every 28s)."""
-    phrases = [
-        PhraseOut(
-            id=PHRASE_MOM_ID,
-            text="睡吧，我在。",
-            review_status="approved",
-            voice_binding=VoiceBindingOut(
-                kind="official_resource",
-                resource_key="voice_phrase_mom",
-                track_id=VOICE_TRACK_ID,
-                track_layer="voice",
-            ),
-        ).model_dump(mode="json")
-    ]
-    cues = [
-        SceneCueOut(
-            id=CUE_FIRST_PHRASE_ID,
-            at_seconds=6.0,
-            actions=[
-                CueActionOut(type="play_phrase", phrase_id=PHRASE_MOM_ID, track_id=VOICE_TRACK_ID)
-            ],
-        ).model_dump(mode="json"),
-        SceneCueOut(
-            id=CUE_REPEAT_PHRASE_ID,
-            at_seconds=34.0,
-            repeat_every_seconds=28.0,
-            until_seconds=float(duration_hint),
-            actions=[
-                CueActionOut(type="play_phrase", phrase_id=PHRASE_MOM_ID, track_id=VOICE_TRACK_ID)
-            ],
-        ).model_dump(mode="json"),
-        SceneCueOut(
-            id=CUE_SOFTEN_DRYER_ID,
-            at_seconds=180.0,
-            actions=[
-                CueActionOut(
-                    type="set_volume",
-                    track_id=DRYER_TRACK_ID,
-                    volume=0.18,
-                    fade_ms=4000,
-                )
-            ],
-        ).model_dump(mode="json"),
-        SceneCueOut(
-            id=CUE_NIGHT_PROGRESS_ID,
-            progress=0.85,
-            actions=[
-                CueActionOut(
-                    type="fade_out",
-                    track_id=WASH_TRACK_ID,
-                    fade_ms=8000,
-                ),
-                CueActionOut(
-                    type="set_volume",
-                    track_id=AC_TRACK_ID,
-                    volume=0.15,
-                    fade_ms=6000,
-                ),
-            ],
-        ).model_dump(mode="json"),
-    ]
-    return phrases, cues
+def _load_hair_care_fixture() -> dict:
+    raw = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
+    # Validate shape via pydantic, then dump for JSONB storage.
+    out = SceneTimelineOut.model_validate(raw)
+    return {
+        "version": out.version,
+        "automation_mode": out.automation_mode,
+        "duration_hint_seconds": out.duration_hint_seconds,
+        "override_policy": out.override_policy,
+        "phrases": [p.model_dump(mode="json") for p in out.phrases],
+        "cues": [c.model_dump(mode="json") for c in out.cues],
+    }
 
 
 def _empty_document() -> tuple[list[dict], list[dict]]:
@@ -159,8 +104,16 @@ def _rain_eaves_document() -> tuple[list[dict], list[dict]]:
 def build_official_timeline_payload(scene: Scene) -> dict:
     duration = scene.recommended_duration_seconds or 2700
     if scene.visual_style == "hairCare":
-        phrases, cues = _hair_care_document(duration)
-        version = 1
+        # Fixture is authoritative (script length + cues); do not override with stale scene duration.
+        payload = _load_hair_care_fixture()
+        return {
+            "version": payload["version"],
+            "automation_mode": payload["automation_mode"],
+            "duration_hint_seconds": payload["duration_hint_seconds"],
+            "override_policy": payload["override_policy"],
+            "phrases": payload["phrases"],
+            "cues": payload["cues"],
+        }
     elif scene.visual_style == "rainEaves":
         phrases, cues = _rain_eaves_document()
         version = 1
@@ -225,7 +178,7 @@ def build_official_timeline_payload(scene: Scene) -> dict:
 
 
 async def ensure_official_timelines(session: AsyncSession) -> None:
-    """Insert missing timelines for published scenes (idempotent)."""
+    """Insert missing timelines; upgrade hairCare when version < HAIR_CARE_TIMELINE_VERSION."""
     from sqlalchemy.orm import selectinload
 
     result = await session.scalars(
@@ -234,24 +187,39 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
         .options(selectinload(Scene.tracks), selectinload(Scene.timeline))
     )
     scenes = list(result.all())
-    added = False
+    dirty = False
     for scene in scenes:
-        if scene.timeline is not None:
-            continue
         payload = build_official_timeline_payload(scene)
-        session.add(
-            SceneTimeline(
-                scene_id=scene.id,
-                version=payload["version"],
-                automation_mode=payload["automation_mode"],
-                duration_hint_seconds=payload["duration_hint_seconds"],
-                override_policy=payload["override_policy"],
-                phrases=payload["phrases"],
-                cues=payload["cues"],
+        row = scene.timeline
+        if row is None:
+            session.add(
+                SceneTimeline(
+                    scene_id=scene.id,
+                    version=payload["version"],
+                    automation_mode=payload["automation_mode"],
+                    duration_hint_seconds=payload["duration_hint_seconds"],
+                    override_policy=payload["override_policy"],
+                    phrases=payload["phrases"],
+                    cues=payload["cues"],
+                )
             )
+            dirty = True
+            continue
+        needs_upgrade = (
+            scene.visual_style == "hairCare"
+            and row.version < HAIR_CARE_TIMELINE_VERSION
         )
-        added = True
-    if added:
+        if needs_upgrade:
+            row.version = payload["version"]
+            row.automation_mode = payload["automation_mode"]
+            row.duration_hint_seconds = payload["duration_hint_seconds"]
+            row.override_policy = payload["override_policy"]
+            row.phrases = payload["phrases"]
+            row.cues = payload["cues"]
+            if payload.get("duration_hint_seconds"):
+                scene.recommended_duration_seconds = payload["duration_hint_seconds"]
+            dirty = True
+    if dirty:
         await session.commit()
 
 

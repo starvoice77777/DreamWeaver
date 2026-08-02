@@ -4,13 +4,14 @@ import uuid
 
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 from app.services.timeline import (
-    CUE_FIRST_PHRASE_ID,
     CUE_RAIN_SETTLE_ID,
-    PHRASE_MOM_ID,
+    HAIR_CARE_TIMELINE_VERSION,
     VOICE_TRACK_ID,
 )
 
 RAIN_EAVES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
+FIRST_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666701")
+FIRST_PHRASE_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666802")
 
 
 async def _login(client, sub: str = "timeline-user") -> dict:
@@ -27,28 +28,34 @@ async def test_scene_timeline_hair_care(client) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["scene_id"] == str(DEFAULT_SCENE_ID)
-    assert body["version"] >= 1
+    assert body["version"] >= HAIR_CARE_TIMELINE_VERSION
     assert body["automation_mode"] == "official_auto"
     assert body["override_policy"] == "per_source_manual_exit"
     assert body["manual_override_track_ids"] == []
-    assert body["duration_hint_seconds"] is not None
+    assert body["duration_hint_seconds"] == 620
 
+    assert len(body["phrases"]) >= 20
     phrase_ids = {item["id"] for item in body["phrases"]}
-    assert str(PHRASE_MOM_ID) in phrase_ids
-    mom = next(p for p in body["phrases"] if p["id"] == str(PHRASE_MOM_ID))
-    assert mom["review_status"] == "approved"
-    assert mom["voice_binding"]["resource_key"] == "voice_phrase_mom"
-    assert mom["voice_binding"]["track_id"] == str(VOICE_TRACK_ID)
+    assert str(FIRST_PHRASE_ID) in phrase_ids
+    first_phrase = next(p for p in body["phrases"] if p["id"] == str(FIRST_PHRASE_ID))
+    assert first_phrase["text"] == "先靠好，什么都不用做。"
+    assert first_phrase["review_status"] == "approved"
+    assert first_phrase["voice_binding"]["resource_key"] == "voice_phrase_mom"
+    assert first_phrase["voice_binding"]["track_id"] == str(VOICE_TRACK_ID)
 
-    cue_ids = {item["id"] for item in body["cues"]}
-    assert str(CUE_FIRST_PHRASE_ID) in cue_ids
-    first = next(c for c in body["cues"] if c["id"] == str(CUE_FIRST_PHRASE_ID))
-    assert first["at_seconds"] == 6.0
+    first = next(c for c in body["cues"] if c["id"] == str(FIRST_PHRASE_CUE_ID))
+    assert first["at_seconds"] == 3.0
     assert first["actions"][0]["type"] == "play_phrase"
-    assert first["actions"][0]["phrase_id"] == str(PHRASE_MOM_ID)
+    assert first["actions"][0]["phrase_id"] == str(FIRST_PHRASE_ID)
 
-    assert any(c.get("repeat_every_seconds") == 28.0 for c in body["cues"])
-    assert any(c.get("progress") == 0.85 for c in body["cues"])
+    assert any(
+        a.get("type") == "play_oneshot" for c in body["cues"] for a in c.get("actions", [])
+    )
+    assert any(
+        a.get("type") == "set_position" for c in body["cues"] for a in c.get("actions", [])
+    )
+    # No legacy 28s repeat cadence from pre-v4 placeholder timeline.
+    assert not any(c.get("repeat_every_seconds") == 28.0 for c in body["cues"])
 
 
 async def test_scene_timeline_rain_eaves(client) -> None:

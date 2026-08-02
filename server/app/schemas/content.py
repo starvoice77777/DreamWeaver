@@ -75,7 +75,7 @@ class CueActionOut(BaseModel):
 
     type: str = Field(
         description=(
-            "play_phrase | play | pause | fade_in | fade_out | set_volume | "
+            "play_phrase | play_oneshot | play | pause | fade_in | fade_out | set_volume | "
             "set_position | enable | disable | replace_source"
         )
     )

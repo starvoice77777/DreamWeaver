@@ -241,44 +241,106 @@ enum MockDataService {
     }
 
     private static func hairCareScene() -> DreamScene {
+        // Tracks follow 洗头场景_文本与声音时间戳协同表 v4. Start quiet;
+        // SceneTimelineScheduler raises/fades layers per cue.
         let sources: [SoundSource] = [
             SoundSource(
-                id: DemoIDs.sourceHairWash,
-                name: "水流",
-                symbolName: "drop.fill",
-                isEnabled: true,
-                volume: 0.78,
-                position: SpatialPosition(angle: .pi * 0.85, radius: 0.42),
-                resourceName: "hair_wash",
-                layer: .environment
-            ),
-            SoundSource(
-                id: DemoIDs.sourceHairDryer,
-                name: "吹风机",
-                symbolName: "wind",
-                isEnabled: true,
-                volume: 0.35,
-                position: SpatialPosition(angle: .pi * 0.2, radius: 0.72),
-                resourceName: "hair_dryer",
-                layer: .trigger
-            ),
-            SoundSource(
                 id: DemoIDs.sourceAC,
-                name: "空调",
+                name: "底噪",
                 symbolName: "wind.circle.fill",
                 isEnabled: true,
-                volume: 0.22,
-                position: SpatialPosition(angle: .pi * 1.25, radius: 0.8),
+                volume: 0.18,
+                position: SpatialPosition(angle: .pi * 1.2, radius: 0.82),
                 resourceName: "ac_hum",
                 layer: .ambience
             ),
             SoundSource(
+                id: DemoIDs.sourceHairWaterCycle,
+                name: "水循环",
+                symbolName: "drop.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: 0.4, radius: 0.78),
+                resourceName: "hair_wash_water_cycle",
+                layer: .environment
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairWet,
+                name: "打湿",
+                symbolName: "drop.triangle.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.85, radius: 0.55),
+                resourceName: "hair_wash_wet",
+                layer: .trigger
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairFoamStart,
+                name: "起泡",
+                symbolName: "bubbles.and.sparkles",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.5, radius: 0.45),
+                resourceName: "hair_wash_foam_start",
+                layer: .trigger
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairFoamRub,
+                name: "泡沫揉洗",
+                symbolName: "hand.raised.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.9, radius: 0.48),
+                resourceName: "hair_wash_foam_rub",
+                layer: .ambience
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairScalpFoam,
+                name: "头皮按摩",
+                symbolName: "hand.point.up.left.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.5, radius: 0.42),
+                resourceName: "hair_wash_scalp_foam",
+                layer: .ambience
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairRinse,
+                name: "冲洗",
+                symbolName: "shower.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.7, radius: 0.58),
+                resourceName: "hair_wash_rinse",
+                layer: .trigger
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairFingerMassage,
+                name: "指腹按压",
+                symbolName: "hand.tap.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.5, radius: 0.4),
+                resourceName: "hair_wash_finger_massage",
+                layer: .ambience
+            ),
+            SoundSource(
+                id: DemoIDs.sourceHairTowel,
+                name: "毛巾",
+                symbolName: "rectangle.fill",
+                isEnabled: true,
+                volume: 0.01,
+                position: SpatialPosition(angle: .pi * 0.55, radius: 0.5),
+                resourceName: "hair_towel",
+                layer: .trigger
+            ),
+            SoundSource(
                 id: DemoIDs.sourceVoice,
-                name: "妈妈的晚安",
+                name: "轻声陪伴",
                 symbolName: "person.wave.2.fill",
                 isEnabled: true,
                 volume: 0.48,
-                position: SpatialPosition(angle: -.pi * 0.3, radius: 0.36),
+                position: SpatialPosition(angle: -.pi * 0.25, radius: 0.36),
                 assetId: DemoIDs.seedMom,
                 resourceName: "voice_phrase_mom",
                 layer: .voice
@@ -293,10 +355,10 @@ enum MockDataService {
                     symbolName: s.symbolName,
                     resourceName: resource,
                     layer: s.layer,
-                    loops: s.layer != .voice,
+                    loops: s.layer == .environment || s.layer == .ambience,
                     defaultVolume: s.volume,
                     defaultPosition: s.position,
-                    isRequired: s.layer != .voice
+                    isRequired: s.layer == .ambience || s.layer == .voice
                 )
             },
             voicePhraseResourceName: "voice_phrase_mom"
@@ -305,7 +367,7 @@ enum MockDataService {
             id: DemoIDs.hairCareScene,
             name: "洗头陪伴",
             subtitle: "温水、轻声，还有熟悉的陪伴。",
-            description: "模拟洗头过程的生活声与低信息短句，让注意力慢慢放下。手机外放即可成立。",
+            description: "约 10 分 20 秒的温和洗头实景演绎：文本提示 + 水流/泡沫/冲洗/毛巾分层时间线。手机外放即可成立。人声短句待正式录制前暂用占位音频。",
             category: .companion,
             tags: ["洗头", "陪伴"],
             palette: ScenePalette(top: 0x1A2438, mid: 0x2E4058, bottom: 0x141820, accent: 0xA8C8E0),
@@ -343,7 +405,7 @@ enum MockDataService {
                 layer: .ambience
             ),
             SoundSource(
-                id: UUID(uuidString: "E5555555-5555-4555-8555-555555555508")!,
+                id: DemoIDs.sourceRainSoftFar,
                 name: "远雨",
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
@@ -353,7 +415,7 @@ enum MockDataService {
                 layer: .ambience
             ),
             SoundSource(
-                id: UUID(uuidString: "E5555555-5555-4555-8555-555555555509")!,
+                id: DemoIDs.sourceRainEavesVoice,
                 name: "妈妈的晚安",
                 symbolName: "person.wave.2.fill",
                 isEnabled: false,
@@ -513,14 +575,14 @@ enum MockDataService {
             MixPreset(
                 id: DemoIDs.presetHairCare,
                 title: "温水近处",
-                subtitle: "水流贴近，吹风机稍远，人声在身侧",
+                subtitle: "水循环与泡沫贴近，人声在身侧",
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("水流", "drop.fill", angle: .pi * 0.9, radius: 0.34, volume: 0.85, resourceName: "hair_wash"),
-                    source("吹风机", "wind", angle: .pi * 0.25, radius: 0.7, volume: 0.3, resourceName: "hair_dryer", layer: .trigger),
-                    source("空调", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, volume: 0.18, resourceName: "ac_hum", layer: .ambience),
-                    source("妈妈的晚安", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, volume: 0.5, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
+                    source("水循环", "drop.fill", angle: 0.4, radius: 0.55, volume: 0.32, resourceName: "hair_wash_water_cycle"),
+                    source("泡沫揉洗", "hand.raised.fill", angle: .pi * 0.9, radius: 0.48, volume: 0.3, resourceName: "hair_wash_foam_rub", layer: .ambience),
+                    source("底噪", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, volume: 0.18, resourceName: "ac_hum", layer: .ambience),
+                    source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, volume: 0.48, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
                 ]
             ),
             MixPreset(

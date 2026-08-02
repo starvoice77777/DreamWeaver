@@ -394,6 +394,10 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             switch action.type {
             case "play_phrase":
                 playPhraseAction(action)
+            case "play_oneshot":
+                if let id = action.track_id, let source = currentSources[id] {
+                    playOneShot(source: source)
+                }
             case "set_volume":
                 if let id = action.track_id, let volume = action.volume {
                     applyVolume(trackId: id, volume: volume, fadeMs: action.fade_ms)
@@ -524,8 +528,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             environment: environment
         )
 
-        if source.layer == .voice {
-            // Voice phrases are oneshot via timeline cues; keep node ready and silent.
+        if source.layer == .voice || source.layer == .trigger {
+            // Oneshot layers stay silent until a timeline cue fires play_phrase / play_oneshot.
             node.volume = 0
         } else {
             scheduleLoop(node: node, file: file)

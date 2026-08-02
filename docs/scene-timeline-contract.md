@@ -78,6 +78,7 @@
 | type | 用途 |
 |------|------|
 | `play_phrase` | 播放 `phrase_id`（通常 oneshot 人声） |
+| `play_oneshot` | 从头播放指定轨一次（动作/触感触发音；不循环） |
 | `play` / `pause` | 启停轨 |
 | `fade_in` / `fade_out` | 淡入淡出（`fade_ms`） |
 | `set_volume` | 目标音量（`volume` + 可选 `fade_ms`） |
@@ -103,8 +104,9 @@
 
 ## 4. 官方种子
 
-- 「洗头陪伴」：约 6s 首句 `play_phrase`，其后每 28s 重复至 `duration_hint`；另含吹风机降量与进度淡出示例 cue。
-- 「檐下听雨」等含 voice 层的场景：最小首句 + 28s 重复。
+- 「洗头陪伴」：脚本 **v4**（约 620s），见 `docs/hair-care-scene-brief.md` 与 `hair_care_timeline_v4.json`；多句 `play_phrase` + 分层 `play_oneshot` / `set_volume` / `set_position`（人声母带未齐前用 `voice_phrase_mom` 占位）。
+- 「檐下听雨」：无 phrases；环境 `set_volume` 示例 cue。
+- 其他含 voice 轨的场景：最小首句 + 28s 重复。
 - 无 voice 轨：空 `phrases` / `cues`，仍返回合法文档壳。
 
 ## 5. 私人场景快照
