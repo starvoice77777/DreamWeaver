@@ -1,0 +1,56 @@
+# Production-shaped stack (example only — no real endpoints or secrets)
+#
+# Copy to docker-compose.prod.yml and replace placeholders before use.
+# Do NOT commit real passwords, AK/SK, or production hostnames with credentials.
+#
+# Typical mapping for China deploy:
+#   postgres  -> RDS PostgreSQL
+#   redis     -> Tair / Redis
+#   minio     -> OSS (remove minio service; point DW_OBJECT_STORAGE_* at OSS)
+#   api/worker -> ECS / SAE / ACK
+
+services:
+  api:
+    image: dreamweaver-api:latest
+    build:
+      context: ../server
+    environment:
+      DW_ENVIRONMENT: production
+      DW_DEBUG: "false"
+      DW_ALLOW_DEV_APPLE_AUTH: "false"
+      DW_FORCE_RESEED_CATALOG: "false"
+      DW_READY_PROBE_REDIS: "true"
+      DW_DATABASE_URL: postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/dreamweaver
+      DW_REDIS_URL: redis://REDIS_HOST:6379/0
+      DW_OBJECT_STORAGE_ENDPOINT: oss-cn-REGION.aliyuncs.com
+      DW_OBJECT_STORAGE_ACCESS_KEY: REPLACE_ME
+      DW_OBJECT_STORAGE_SECRET_KEY: REPLACE_ME
+      DW_OBJECT_STORAGE_BUCKET: dreamweaver-private
+      DW_OBJECT_STORAGE_SECURE: "true"
+      DW_APPLE_CLIENT_ID: zhimeng.DreamWeaver
+    ports:
+      - "8000:8000"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/ready"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+
+  worker:
+    image: dreamweaver-api:latest
+    build:
+      context: ../server
+    command: celery -A app.workers.celery_app:celery_app worker --loglevel=INFO
+    environment:
+      DW_ENVIRONMENT: production
+      DW_DATABASE_URL: postgresql+asyncpg://USER:PASSWORD@RDS_HOST:5432/dreamweaver
+      DW_REDIS_URL: redis://REDIS_HOST:6379/0
+      DW_OBJECT_STORAGE_ENDPOINT: oss-cn-REGION.aliyuncs.com
+      DW_OBJECT_STORAGE_ACCESS_KEY: REPLACE_ME
+      DW_OBJECT_STORAGE_SECRET_KEY: REPLACE_ME
+      DW_OBJECT_STORAGE_BUCKET: dreamweaver-private
+      DW_OBJECT_STORAGE_SECURE: "true"
+      DW_VOICE_PROVIDER: stub
+
+# Managed Postgres / Redis / OSS are expected outside this file in real China deployments.
+# For local parity only, see docker-compose.yml (postgres + redis + minio).

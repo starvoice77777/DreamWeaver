@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。集成分支已含阶段 0–6（内容、上传、Seed、时间线调度、洗头脚本 v4）与阶段 7 PR1（陪伴事件/摘要）。当前：阶段 7 PR2 可观测性（结构化日志、metrics、审计）。
+DreamWeaver 生产后端。阶段 **0–7** 已合入 `integration/frontend-backend`；本仓库本地收口含官方 catalog 强制对齐、`/ready` 依赖探活，以及阶段 8 部署准备材料（不上真实云）。
 
 ## 本机直接运行 API
 
@@ -25,7 +25,7 @@ uvicorn app.main:app --reload
 访问：
 
 - 健康检查：http://127.0.0.1:8000/health
-- 就绪：http://127.0.0.1:8000/ready
+- 就绪：http://127.0.0.1:8000/ready（探测 Postgres；默认再 PING Redis；MinIO/OSS **不**纳入就绪条件）
 - 指标：http://127.0.0.1:8000/metrics（Prometheus 文本；进程内计数，重启清零）
 - OpenAPI：http://127.0.0.1:8000/docs
 
@@ -71,14 +71,24 @@ uvicorn app.main:app --reload
 | DELETE | `/v1/seeds/jobs/{id}` | Bearer | 取消未完成任务 |
 | POST | `/v1/analytics/events` | Bearer | 批量上报陪伴事件（对齐 iOS `AnalyticsEvent`） |
 | GET | `/v1/analytics/summary` | Bearer | 陪伴摘要（对齐 iOS `UsageRecord`） |
+| POST | `/v1/admin/reseed-catalog` | 否 | **非 production**：upsert 官方场景元数据 / 音轨 / 预设并刷新时间线（不删孤儿轨） |
 
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
 
-Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮询 `jobs/{id}` → `finalize`。进度对齐本地 iOS，**不依赖 Celery worker**；可选任务名 `seeds.advance_job` 仅骨架。
+Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮询 `jobs/{id}` → `finalize`。进度对齐本地 iOS，**不依赖 Celery worker**；可选任务名 `seeds.advance_job` 仅骨架，正式异步执行留阶段 8 之后。
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 
-首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 14 个场景，含「流光溢彩」`emotionalFluid`；多数可无完整音频资源，仅元数据与占位轨）。同时会为缺时间线的场景写入版本化 Cue/Phrase 文档；「洗头陪伴」使用脚本 **v4**（约 620s，多句 `play_phrase` + `play_oneshot` / 分层音量与空间 cue；见 `app/fixtures/hair_care_timeline_v4.json`）。
+首次访问内容接口时，若库中缺官方场景，会按需补齐与演示 UUID 对齐的完整目录（约 14 个场景，含「流光溢彩」`emotionalFluid`、雨檐 `rainEaves` 与竹叶轨；多数可无完整音频资源，仅元数据与占位轨）。同时会为缺时间线的场景写入版本化 Cue/Phrase 文档；「洗头陪伴」使用脚本 **v4**，「檐下听雨」使用 **v2**。
+
+### 官方 catalog 强制对齐（无需清库）
+
+`ensure_official_catalog` 对**已存在**场景默认跳过整场插入。旧库若缺竹叶轨或 `resource_key` 过期，任选其一：
+
+1. **HTTP（推荐开发机）**：`POST /v1/admin/reseed-catalog`（`DW_ENVIRONMENT=production` 时返回 403）
+2. **启动开关**：`.env` 设 `DW_FORCE_RESEED_CATALOG=true` 后重启 API（生产环境忽略）
+
+行为：按 track / preset **id upsert**；**不删除**规格中已去掉的轨（避免破坏私人快照引用）。
 
 ### Sign in with Apple
 
@@ -107,14 +117,35 @@ docker compose -f infra\docker-compose.yml up --build
 
 端口：API 8000 / Postgres 5432 / Redis 6379 / MinIO 9000·9001。
 
+生产形态样例（无真实密钥）：见 `../infra/docker-compose.prod.example.yml` 与 `../docs/deploy-china-checklist.md`。
+
 ## Worker
+
+Compose 已包含 `worker` 服务。Seed **主路径不依赖** Worker（API 轮询推进 stub 进度）。Worker 用于验证 Celery ↔ Redis 连通与后续异步任务骨架。
+
+本机单独启动：
 
 ```powershell
 cd server
-celery -A app.workers.celery_app:celery_app worker --loglevel=INFO
+.\.venv\Scripts\Activate.ps1
+celery -A app.workers.celery_app:celery_app worker --loglevel=INFO --pool=solo
 ```
 
-Windows 本地建议加 `--pool=solo`。
+另开终端验证 ping（需 Redis 已起）：
+
+```powershell
+cd server
+.\.venv\Scripts\Activate.ps1
+celery -A app.workers.celery_app:celery_app call system.ping
+```
+
+预期输出含 `{"status": "ok"}`。任务 `seeds.advance_job` 当前为 noop 骨架。
+
+Compose 一键（含 worker）：
+
+```powershell
+docker compose -f infra\docker-compose.yml up --build api worker postgres redis minio
+```
 
 ## 检查
 
@@ -126,12 +157,12 @@ ruff check app tests
 
 ## 分支说明
 
-- 集成分支：`integration/frontend-backend`（阶段 0–3 主路径已合入）
+- 集成分支：`integration/frontend-backend`（阶段 0–7 + 本地收口）
 - 服务端鉴权：Apple JWKS + 开发 `dev:<sub>`
 - iOS Remote（已合入）：
-  - 游客：bootstrap / scenes / presets
+  - 游客：bootstrap / scenes / presets / timeline
   - 登录后：`RemoteAuthService` + `RemoteUserService`（home / 收藏 / 设置 / 显式保存）
-  - 登录壳：`feat/ui-auth-shell`（Profile Sign in with Apple + 演示登录）
+  - Analytics：`RemoteAnalyticsService`
 
 冒烟（API 已启动时）：
 
@@ -158,9 +189,9 @@ Seed 远程说明：Seed UI 选择本地音频后，`startProcess` 会上传该�
 
 ## 下一阶段
 
-1. **阶段 0–6（已合入 integration）**：内容、上传、SeedJob、时间线调度、洗头脚本 v4
-2. **阶段 7 PR1（本分支）**：`POST /v1/analytics/events`、`GET /v1/analytics/summary`、iOS `RemoteAnalyticsService`
-3. **阶段 7 PR2**：结构化日志、指标与告警
+1. **阶段 0–7（已完成）**：内容、上传、Seed、时间线、Analytics、可观测性
+2. **本地收口（本轮）**：雨檐 catalog、`POST /v1/admin/reseed-catalog`、`/ready` 探活、部署清单
+3. **阶段 8**：中国大陆云部署（见 `../docs/deploy-china-checklist.md`）——需企业主体 / 域名备案 / 云账号后执行
 4. 阶段 5 余量：真实供应商 PoC；前端「我的 → 授权与隐私」撤回 UI
 5. 离线队列实现（契约见 `../docs/offline-queue-and-conflict.md`，本期仅文档）
 

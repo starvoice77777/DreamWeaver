@@ -900,30 +900,123 @@ def official_preset_specs() -> list[dict]:
     ]
 
 
+_SCENE_META_KEYS = (
+    "name",
+    "subtitle",
+    "description",
+    "category",
+    "tags",
+    "palette",
+    "visual_style",
+    "is_demo_playable",
+    "sort_order",
+    "mock_listener_count",
+)
+
+
+def _track_row(scene_id: uuid.UUID, track_spec: dict, index: int) -> SceneTrack:
+    return SceneTrack(
+        scene_id=scene_id,
+        id=track_spec["id"],
+        name=track_spec["name"],
+        symbol_name=track_spec["symbol_name"],
+        layer=track_spec["layer"],
+        volume=track_spec["volume"],
+        angle=track_spec["angle"],
+        radius=track_spec["radius"],
+        resource_key=track_spec["resource_key"],
+        loop=track_spec.get("loop", True),
+        enabled_by_default=track_spec["enabled_by_default"],
+        sort_order=track_spec.get("sort_order", index),
+    )
+
+
+def _apply_track_fields(row: SceneTrack, track_spec: dict, index: int) -> None:
+    row.name = track_spec["name"]
+    row.symbol_name = track_spec["symbol_name"]
+    row.layer = track_spec["layer"]
+    row.volume = track_spec["volume"]
+    row.angle = track_spec["angle"]
+    row.radius = track_spec["radius"]
+    row.resource_key = track_spec["resource_key"]
+    row.loop = track_spec.get("loop", True)
+    row.enabled_by_default = track_spec["enabled_by_default"]
+    row.sort_order = track_spec.get("sort_order", index)
+
+
 def _add_scene(session: AsyncSession, spec: dict) -> None:
     tracks = spec.pop("tracks")
     session.add(Scene(**spec))
     for index, track_spec in enumerate(tracks):
-        session.add(
-            SceneTrack(
-                scene_id=spec["id"],
-                id=track_spec["id"],
-                name=track_spec["name"],
-                symbol_name=track_spec["symbol_name"],
-                layer=track_spec["layer"],
-                volume=track_spec["volume"],
-                angle=track_spec["angle"],
-                radius=track_spec["radius"],
-                resource_key=track_spec["resource_key"],
-                loop=track_spec.get("loop", True),
-                enabled_by_default=track_spec["enabled_by_default"],
-                sort_order=track_spec.get("sort_order", index),
-            )
-        )
+        session.add(_track_row(spec["id"], track_spec, index))
 
 
-async def ensure_official_catalog(session: AsyncSession) -> None:
-    """Insert any missing official scenes/presets (idempotent; safe for existing DBs)."""
+async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:
+    """Upsert official scene metadata/tracks/presets by id. Does not delete orphan tracks."""
+    tracks_inserted = 0
+    tracks_updated = 0
+    scenes_updated = 0
+    presets_inserted = 0
+    presets_updated = 0
+
+    for spec in official_scene_specs():
+        scene = await session.get(Scene, spec["id"])
+        if scene is None:
+            continue
+        for key in _SCENE_META_KEYS:
+            if key in spec:
+                setattr(scene, key, spec[key])
+        scenes_updated += 1
+        for index, track_spec in enumerate(spec["tracks"]):
+            row = await session.get(SceneTrack, track_spec["id"])
+            if row is None:
+                session.add(_track_row(spec["id"], track_spec, index))
+                tracks_inserted += 1
+            else:
+                _apply_track_fields(row, track_spec, index)
+                tracks_updated += 1
+
+    for preset in official_preset_specs():
+        existing = await session.get(MixPreset, preset["id"])
+        if existing is None:
+            session.add(MixPreset(**preset))
+            presets_inserted += 1
+        else:
+            for key, value in preset.items():
+                if key == "id":
+                    continue
+                setattr(existing, key, value)
+            presets_updated += 1
+
+    await session.commit()
+    return {
+        "scenes_updated": scenes_updated,
+        "tracks_inserted": tracks_inserted,
+        "tracks_updated": tracks_updated,
+        "presets_inserted": presets_inserted,
+        "presets_updated": presets_updated,
+    }
+
+
+async def reseed_official_catalog(session: AsyncSession) -> dict[str, int]:
+    """Insert missing official rows, then upsert tracks/presets and refresh timelines."""
+    await ensure_official_catalog(session, refresh_tracks=False)
+    stats = await sync_official_scene_tracks(session)
+    from app.services.timeline import ensure_official_timelines
+
+    await ensure_official_timelines(session)
+    return stats
+
+
+async def ensure_official_catalog(
+    session: AsyncSession,
+    *,
+    refresh_tracks: bool = False,
+) -> None:
+    """Insert any missing official scenes/presets (idempotent; safe for existing DBs).
+
+    When ``refresh_tracks`` is true, also upsert official track/preset fields (no deletes).
+    """
     existing_scene_ids = set(await session.scalars(select(Scene.id)))
     existing_preset_ids = set(await session.scalars(select(MixPreset.id)))
     added = False
@@ -942,6 +1035,9 @@ async def ensure_official_catalog(session: AsyncSession) -> None:
 
     if added:
         await session.commit()
+
+    if refresh_tracks:
+        await sync_official_scene_tracks(session)
 
     from app.services.timeline import ensure_official_timelines
 

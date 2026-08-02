@@ -1,18 +1,28 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response
+from fastapi import Depends, FastAPI, Response
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.router import router as api_v1_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.core.metrics import render_prometheus
 from app.core.middleware import ObservabilityASGIMiddleware
+from app.core.readiness import probe_database, probe_redis
+from app.db.session import get_db_session, session_factory
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
+    settings = get_settings()
+    if settings.force_reseed_catalog and not settings.is_production:
+        from app.services.seed_catalog import reseed_official_catalog
+
+        async with session_factory() as session:
+            await reseed_official_catalog(session)
     yield
 
 
@@ -34,15 +44,43 @@ def create_app() -> FastAPI:
             "environment": settings.environment,
         }
 
-    @app.get("/ready", tags=["system"], summary="Dependency readiness check")
-    async def ready() -> dict[str, str]:
-        # Phase 2: process is ready to accept traffic; deeper dependency probes
-        # can be expanded once production health policy is finalized.
-        return {
-            "status": "ready",
+    @app.get(
+        "/ready",
+        tags=["system"],
+        summary="Dependency readiness check",
+        response_model=None,
+    )
+    async def ready(
+        session: AsyncSession = Depends(get_db_session),
+    ) -> JSONResponse | dict[str, str]:
+        checks: dict[str, str] = {
             "service": "dreamweaver-api",
             "environment": settings.environment,
         }
+        try:
+            await probe_database(session)
+            checks["database"] = "ok"
+        except Exception as exc:  # noqa: BLE001 — surface probe failure as not ready
+            checks["status"] = "not_ready"
+            checks["database"] = "error"
+            checks["detail"] = str(exc)
+            return JSONResponse(status_code=503, content=checks)
+
+        if settings.ready_probe_redis:
+            try:
+                await probe_redis(settings.redis_url)
+                checks["redis"] = "ok"
+            except Exception as exc:  # noqa: BLE001
+                checks["status"] = "not_ready"
+                checks["redis"] = "error"
+                checks["detail"] = str(exc)
+                return JSONResponse(status_code=503, content=checks)
+        else:
+            checks["redis"] = "skipped"
+
+        # Object storage (MinIO/OSS) is not required for content API readiness.
+        checks["status"] = "ready"
+        return checks
 
     @app.get("/metrics", tags=["system"], summary="Prometheus-style process metrics")
     async def metrics() -> Response:

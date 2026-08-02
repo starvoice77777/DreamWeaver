@@ -58,6 +58,8 @@ services:
       minio:
         condition: service_started
 
+  # Optional: Seed API path does not require this worker. Use it to verify Celery↔Redis
+  # (celery -A app.workers.celery_app:celery_app call system.ping) and future async jobs.
   worker:
     build:
       context: ../server

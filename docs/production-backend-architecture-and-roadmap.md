@@ -1,8 +1,8 @@
 # DreamWeaver 生产后端技术方案与实施路线
 
-版本：v1.2  
-日期：2026-08-01  
-状态：阶段 0–6 主路径完成；当前进行：阶段 7 PR1（陪伴事件上报与摘要 API）  
+版本：v1.3  
+日期：2026-08-02  
+状态：阶段 0–7 完成；本地后端收口完成（catalog reseed、`/ready` 探活、部署清单）；下一阶段：阶段 8 中国大陆部署  
 适用范围：iOS 客户端、服务器后端、音频处理、测试、部署与团队协作
 
 ## 1. 文档目的
@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-02）：阶段 **0–6** 已合入 `integration/frontend-backend`（含时间线契约、私人快照、`SceneTimelineScheduler`、洗头脚本 v4）。当前进行：**阶段 7 PR1**（`POST /v1/analytics/events`、`GET /v1/analytics/summary` 与 iOS `RemoteAnalyticsService`）。
+进度说明（2026-08-02）：阶段 **0–7** 已合入 `integration/frontend-backend`。本地收口已完成：雨檐官方素材与 timeline v2、`POST /v1/admin/reseed-catalog` / `DW_FORCE_RESEED_CATALOG`、`/ready` Postgres+Redis 探活、`docs/deploy-china-checklist.md`。**下一阶段：阶段 8**（需企业主体与云账号）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -590,7 +590,7 @@ VoiceProvider
 - 进程内 `/metrics`（Prometheus 文本）与 `audit_events` 敏感操作审计（PR2）；
 - 云日志 / 告警 / 错误跟踪：阶段 8 部署时接入。
 
-### 阶段 8：中国大陆部署
+### 阶段 8：中国大陆部署 — 未开始（准备材料已就位）
 
 - 企业主体和云账号；
 - 域名与备案；
@@ -599,7 +599,16 @@ VoiceProvider
 - OSS 与 CDN；
 - ECS 或 SAE；
 - HTTPS、备份和灾难恢复；
-- 隐私与合规审核。
+- 隐私与合规审核；
+- 清单与样例：`docs/deploy-china-checklist.md`、`infra/docker-compose.prod.example.yml`。
+
+### 本地收口（阶段 7 之后）— 完成
+
+- 雨檐官方场景音频短键与 timeline v2（含竹叶轨）；
+- 官方 catalog 强制 upsert（不删孤儿轨；非 production admin / 启动开关）；
+- `/ready` 探测数据库与 Redis（对象存储不纳入）；
+- Celery `system.ping` 本地验证说明（Seed 主路径仍不依赖 Worker）；
+- GitHub Actions 跑 `server` pytest。
 
 ## 17. 当前阶段完成定义
 

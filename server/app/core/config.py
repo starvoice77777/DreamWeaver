@@ -42,11 +42,20 @@ class Settings(BaseSettings):
     # Defaults to true only in development; set explicitly in production.
     allow_dev_apple_auth: bool | None = None
 
+    # When true (and not production), lifespan upserts official catalog tracks once at startup.
+    force_reseed_catalog: bool = False
+    # When false, /ready skips Redis PING (useful for unit tests without Redis).
+    ready_probe_redis: bool = True
+
     @property
     def dev_apple_auth_enabled(self) -> bool:
         if self.allow_dev_apple_auth is not None:
             return self.allow_dev_apple_auth
         return self.environment.lower() in {"development", "test", "local"}
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() == "production"
 
 
 @lru_cache
