@@ -10,11 +10,12 @@ final class RemoteUserLibraryService: UserLibraryService {
 
     init(
         client: APIClient = .shared,
-        fallback: LocalUserLibraryService = LocalUserLibraryService(),
+        fallback: LocalUserLibraryService? = nil,
         session: URLSession = .shared
     ) {
         self.client = client
-        self.fallback = fallback
+        // Default-arg expressions are nonisolated; construct on the main actor here.
+        self.fallback = fallback ?? LocalUserLibraryService()
         self.session = session
     }
 

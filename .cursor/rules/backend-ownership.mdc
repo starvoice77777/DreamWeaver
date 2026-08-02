@@ -13,6 +13,7 @@ alwaysApply: false
 - Local/Remote Service、播放引擎、持久化、API、DB、Worker
 - 为接 API 扩展 Model 字段（保持 Codable 兼容时注明）
 - 更新 `docs/` 中的契约与路线图
+- Swift 并发：默认参数勿调 MainActor `init()`（见 `swift-mainactor-defaults.mdc`）
 
 ## 不要做
 
