@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 
-/// Multi-track local playback with volume / pan driven by spatial mix board.
+/// Multi-track local playback with Apple `AVAudioEnvironmentNode` spatialization.
 @MainActor
 final class LocalPlaybackService: ObservableObject, PlaybackService {
     @Published private(set) var isPlaying = false
@@ -10,6 +10,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     @Published private(set) var lastErrorMessage: String?
 
     private let engine = AVAudioEngine()
+    private let environment = AVAudioEnvironmentNode()
     private var playbackRequested = false
     private var players: [UUID: AVAudioPlayerNode] = [:]
     private var layers: [UUID: AudioLayerKind] = [:]
@@ -50,10 +51,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             throw ServiceError.invalidState("音频会话启动失败：\(error.localizedDescription)")
         }
 
-        // AVAudioEngine creates these singleton nodes lazily. Access both
-        // before attaching players so start() always has a valid output graph.
-        _ = engine.mainMixerNode
-        _ = engine.outputNode
+        prepareSpatialGraph()
 
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
         configuredResources = desiredResourceMap(for: sources)
@@ -109,16 +107,28 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         progress = 0.08
     }
 
-    func updateSource(id: UUID, volume: Double, pan: Float, enabled: Bool) {
+    func updateSource(id: UUID, volume: Double, position: SpatialPosition, enabled: Bool) {
         guard let node = players[id] else { return }
         let fade = fadeMultipliers[id] ?? 1
         let gain = Float(max(volume, 0)) * fade
         node.volume = enabled ? gain : 0
-        node.pan = max(min(pan, 1), -1)
+        SpatialMixMapping.applySourceSpatialization(
+            to: node,
+            position: position,
+            environment: environment
+        )
         baseVolumes[id] = volume
+        if let existing = currentSources[id] {
+            var updated = existing
+            updated.volume = volume
+            updated.position = position
+            updated.isEnabled = enabled
+            currentSources[id] = updated
+        }
     }
 
     func syncSources(_ sources: [SoundSource]) {
+        prepareSpatialGraph()
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
 
         let desiredResources = desiredResourceMap(for: sources)
@@ -154,8 +164,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         configuredResources = desiredResources
 
         for source in sources {
-            let pan = Self.pan(from: source.position)
-            updateSource(id: source.id, volume: source.volume, pan: pan, enabled: source.isEnabled)
+            updateSource(
+                id: source.id,
+                volume: source.volume,
+                position: source.position,
+                enabled: source.isEnabled
+            )
         }
 
         if players.isEmpty {
@@ -202,11 +216,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
         do {
             try configureSession()
-            _ = engine.mainMixerNode
-            _ = engine.outputNode
+            prepareSpatialGraph()
             let file = try AVAudioFile(forReading: url)
             let node = AVAudioPlayerNode()
             engine.attach(node)
+            // Preview stays non-spatial so library audition is consistent.
             engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
             node.scheduleFile(file, at: nil, completionHandler: nil)
             previewPlayer = node
@@ -291,15 +305,19 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         fadeTasks.append(finishTask)
     }
 
-    // MARK: - Spatial helpers
+    // MARK: - Private graph
 
-    static func pan(from position: SpatialPosition) -> Float {
-        // SpatialPosition uses x = cos(angle): 0 = right, π = left.
-        // AVAudioPlayerNode.pan uses -1 = left, 0 = center, 1 = right.
-        Float(cos(position.angle))
+    /// Attach / reconnect the environment mixer used for HRTF spatialization.
+    private func prepareSpatialGraph() {
+        _ = engine.mainMixerNode
+        _ = engine.outputNode
+
+        if !engine.attachedNodes.contains(environment) {
+            engine.attach(environment)
+        }
+        SpatialMixMapping.configureEnvironment(environment)
+        engine.connect(environment, to: engine.mainMixerNode, format: nil)
     }
-
-    // MARK: - Private
 
     private func startEngineIfNeeded() throws {
         guard !players.isEmpty || previewPlayer != nil else {
@@ -307,9 +325,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
         guard !engine.isRunning else { return }
 
-        // Force creation of the lazily initialized output graph before start().
-        _ = engine.mainMixerNode
-        _ = engine.outputNode
+        prepareSpatialGraph()
         engine.prepare()
         do {
             try engine.start()
@@ -377,11 +393,27 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             return false
         }
 
+        prepareSpatialGraph()
+
         let file = try AVAudioFile(forReading: url)
+        // Environment spatialization only applies to mono connections.
+        guard let monoFormat = AVAudioFormat(
+            standardFormatWithSampleRate: file.processingFormat.sampleRate,
+            channels: 1
+        ) else {
+            return false
+        }
+
         let node = AVAudioPlayerNode()
         engine.attach(node)
-        engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
+        engine.connect(node, to: environment, format: monoFormat)
         resourceByNode[ObjectIdentifier(node)] = resourceName
+
+        SpatialMixMapping.applySourceSpatialization(
+            to: node,
+            position: source.position,
+            environment: environment
+        )
 
         if source.layer == .voice {
             // Voice phrases are scheduled on a timer; attach silent-ready node.
@@ -390,7 +422,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             scheduleLoop(node: node, file: file)
             node.volume = Float(source.volume)
         }
-        node.pan = Self.pan(from: source.position)
 
         players[source.id] = node
         layers[source.id] = source.layer
@@ -465,7 +496,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             let file = try AVAudioFile(forReading: url)
             let fade = fadeMultipliers[source.id] ?? 1
             node.volume = Float(source.volume) * fade
-            node.pan = Self.pan(from: source.position)
+            SpatialMixMapping.applySourceSpatialization(
+                to: node,
+                position: source.position,
+                environment: environment
+            )
             node.stop()
             node.scheduleFile(file, at: nil, completionHandler: nil)
             node.play()
@@ -526,6 +561,10 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
         currentSources = [:]
         configuredResources = [:]
+        if engine.attachedNodes.contains(environment) {
+            engine.disconnectNodeOutput(environment)
+            engine.detach(environment)
+        }
         if !keepEngine {
             engine.reset()
         }

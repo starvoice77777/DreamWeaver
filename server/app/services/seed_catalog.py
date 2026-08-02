@@ -54,7 +54,7 @@ def _track(
 
 
 def official_scene_specs() -> list[dict]:
-    """Official catalog aligned with iOS MockDataService / DemoIDs (13 scenes)."""
+    """Official catalog aligned with iOS MockDataService / DemoIDs (14 scenes)."""
     pi = math.pi
     return [
         {
@@ -655,6 +655,79 @@ def official_scene_specs() -> list[dict]:
                     volume=0.3,
                     resource_key="rain_soft",
                     sort_order=2,
+                ),
+            ],
+        },
+        {
+            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110e"),
+            "name": "流光溢彩",
+            "subtitle": "颜色在呼吸，像一团安静的情绪。",
+            "description": (
+                "缓慢流动的情绪色彩空间。云雾、水波与暖焰轮转，"
+                "没有文字打扰，只留下疗愈般的光色。"
+            ),
+            "category": "lightMusic",
+            "tags": ["色彩", "助眠", "氛围"],
+            "palette": _palette(0x24324A, 0x4B4668, 0x163A4A, 0xE8DCC5),
+            "visual_style": "emotionalFluid",
+            "is_demo_playable": True,
+            "sort_order": 13,
+            "mock_listener_count": 426,
+            "tracks": [
+                _track(
+                    track_id=_tid(11401),
+                    name="风声",
+                    symbol="wind",
+                    angle=pi * 0.2,
+                    radius=0.72,
+                    volume=0.35,
+                    layer="ambience",
+                    resource_key="wind_realistic",
+                    sort_order=0,
+                ),
+                _track(
+                    track_id=_tid(11402),
+                    name="雨声",
+                    symbol="cloud.rain.fill",
+                    angle=pi * 0.85,
+                    radius=0.58,
+                    volume=0.4,
+                    resource_key="rain_soft",
+                    sort_order=1,
+                ),
+                _track(
+                    track_id=_tid(11403),
+                    name="潮声",
+                    symbol="water.waves",
+                    angle=pi * 1.15,
+                    radius=0.65,
+                    volume=0.45,
+                    resource_key="stream_nature",
+                    sort_order=2,
+                ),
+                _track(
+                    track_id=_tid(11404),
+                    name="钢琴",
+                    symbol="pianokeys",
+                    angle=-pi * 0.35,
+                    radius=0.5,
+                    volume=0.28,
+                    layer="ambience",
+                    resource_key=None,
+                    enabled=False,
+                    sort_order=3,
+                ),
+                _track(
+                    track_id=_tid(11405),
+                    name="人声",
+                    symbol="person.wave.2.fill",
+                    angle=pi * 1.4,
+                    radius=0.4,
+                    volume=0.35,
+                    layer="voice",
+                    resource_key="voice_phrase_mom",
+                    enabled=False,
+                    sort_order=4,
                 ),
             ],
         },
