@@ -99,7 +99,7 @@
 2. 调度器跳过 **该轨** 相关的后续自动化 action；其余轨继续执行。
 3. 显式保存时，`saved_timeline` 应携带当时的 `manual_override_track_ids` 与 cues 快照。
 
-执行调度（替换本地固定 6s / 28s Timer）属于 **阶段 6 PR2**。
+执行调度（替换本地固定 6s / 28s Timer）属于 **阶段 6 PR2**（`SceneTimelineScheduler` + `LocalPlaybackService`）。
 
 ## 4. 官方种子
 

@@ -1,7 +1,7 @@
 import Foundation
 
-/// Local stub matching server hair-care / rain-eaves fixtures (Stage 6 PR1).
-/// Playback still uses fixed 6s/28s timers until PR2 wires a scheduler.
+/// Local stub matching server hair-care / rain-eaves fixtures (Stage 6).
+/// Used by `LocalContentService.fetchTimeline` and as playback fallback when no timeline is passed.
 enum LocalTimelineFixture {
     private static let phraseMomId = UUID(uuidString: "F6666666-6666-4666-8666-666666666601")!
     private static let cueFirstId = UUID(uuidString: "F6666666-6666-4666-8666-666666666611")!

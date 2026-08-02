@@ -427,22 +427,28 @@ final class AppState: ObservableObject {
     }
 
     private func reloadPlayback(autoPlay: Bool) {
-        do {
-            try playback.load(scene: currentScene, sources: currentScene.soundSources.filter(\.isEnabled))
-            playbackProgress = playback.progress
-            if autoPlay {
-                playback.play()
-                isPlaying = playback.isPlaying
-            } else {
-                isPlaying = false
+        let scene = currentScene
+        let sources = scene.soundSources.filter(\.isEnabled)
+        let sceneId = currentSceneId
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let timeline = try? await self.contentService.fetchTimeline(sceneId: sceneId)
+            do {
+                try self.playback.load(scene: scene, sources: sources, timeline: timeline)
+                self.playbackProgress = self.playback.progress
+                if autoPlay {
+                    self.playback.play()
+                    self.isPlaying = self.playback.isPlaying
+                } else {
+                    self.isPlaying = false
+                }
+                if let message = self.playback.lastErrorMessage {
+                    self.lastServiceMessage = message
+                }
+            } catch {
+                self.isPlaying = false
+                self.lastServiceMessage = error.localizedDescription
             }
-            if let message = playback.lastErrorMessage {
-                lastServiceMessage = message
-            }
-        } catch {
-            // Keep UI in sync with a stopped engine when load/session setup fails.
-            isPlaying = false
-            lastServiceMessage = error.localizedDescription
         }
     }
 
@@ -460,6 +466,11 @@ final class AppState: ObservableObject {
             enabled: source.isEnabled
         )
         playbackProgress = playback.progress
+    }
+
+    /// Frontend/backend: user mix edit exits timeline automation for this track only.
+    private func noteManualMixOverride(trackId: UUID) {
+        playback.markManualOverride(trackId: trackId)
     }
 
     // MARK: - Controls visibility
@@ -759,6 +770,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -773,6 +785,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
         Task { try? await analyticsService.record(.mixEdited(sceneId: currentSceneId)) }
     }
@@ -791,6 +804,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -801,6 +815,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -811,6 +826,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: source.id)
         markMixInteraction()
     }
 
@@ -948,6 +964,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
     }
 
     private func mutateCurrentSources(_ body: (inout [SoundSource]) -> Void) {
