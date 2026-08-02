@@ -39,7 +39,7 @@ enum SpatialMixMapping {
         environment.listenerAngularOrientation = AVAudioMake3DAngularOrientation(0, 0, 0)
 
         let attenuation = environment.distanceAttenuationParameters
-        attenuation.distanceAttenuationModel = .inverseDistance
+        attenuation.distanceAttenuationModel = .inverse
         attenuation.referenceDistance = nearDistanceMeters
         attenuation.maximumDistance = farDistanceMeters + 1.8
         attenuation.rolloffFactor = 1.2
@@ -63,11 +63,15 @@ enum SpatialMixMapping {
     private static func preferredRenderingAlgorithm(
         in environment: AVAudioEnvironmentNode
     ) -> AVAudio3DMixingRenderingAlgorithm {
-        let available = environment.applicableRenderingAlgorithms
-        if available.contains(.hrtFHQ) { return .hrtFHQ }
-        if available.contains(.hrtF) { return .hrtF }
-        if available.contains(.sphericalHead) { return .sphericalHead }
-        return .equalPowerPanning
+        // `applicableRenderingAlgorithms` is bridged as [NSNumber].
+        let available = Set(environment.applicableRenderingAlgorithms.map(\.intValue))
+        let preferred: [AVAudio3DMixingRenderingAlgorithm] = [
+            .HRTFHQ,
+            .HRTF,
+            .sphericalHead,
+            .equalPowerPanning
+        ]
+        return preferred.first { available.contains($0.rawValue) } ?? .equalPowerPanning
     }
 
     private static func radiusNormalized(_ radius: Double) -> Double {
