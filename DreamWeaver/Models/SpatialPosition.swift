@@ -5,6 +5,7 @@ struct SpatialPosition: Hashable, Codable, Equatable {
     /// Angle in radians on the ear-height plane (0 = right, π/2 = front / screen-up, π = left).
     var angle: Double
     /// Normalized distance from listener, ``SpatialMixMapping.minRadius``...``SpatialMixMapping.maxRadius``.
+    /// Mapped to meters for `AVAudioEnvironmentNode` (see `SpatialMixMapping.worldPoint`).
     var radius: Double
 
     static let `default` = SpatialPosition(angle: 0, radius: 0.55)

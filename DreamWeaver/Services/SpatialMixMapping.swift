@@ -1,43 +1,73 @@
+import AVFoundation
 import Foundation
 
-/// Maps mix-board polar coordinates to stereo playback gains.
+/// Maps mix-board polar coordinates onto Apple's `AVAudioEnvironmentNode` world space.
 ///
-/// The board is treated as a **listener-ear-height** plane (no elevation):
+/// Board model (ear-height plane):
 /// - Angle 0 = right, π/2 = front (screen up), π = left, −π/2 = behind.
-/// - Radius is perceived distance (near center = closer / louder).
+/// - Radius is perceived distance; attenuation is handled by the environment node.
 ///
-/// We intentionally avoid hard L/R mute (`AVAudioPlayerNode.pan` at ±1).
-/// Real sources at 90° still reach the far ear; ILD is a moderate bias only.
+/// Apple listener convention: +X right, +Y up, −Z forward.
 enum SpatialMixMapping {
     /// Board radius clamp (must match `SpatialPosition.from`).
     static let minRadius = 0.22
     static let maxRadius = 0.95
 
-    /// Soft ILD for `AVAudioPlayerNode.pan` (−1…1). Opposite ear stays audible.
-    static func playbackPan(from position: SpatialPosition) -> Float {
-        // Lateral axis only: front/back (sin) stays centered — matches ear-height plane.
-        let lateral = cos(position.angle) // −1 left … +1 right
+    /// User mix gain when dropping a new source (distance is not encoded in volume).
+    static let defaultMixGain = 0.72
 
-        // Near the hole around the listener, shrink max pan so crossing the center
-        // does not flip from “only left” to “only right”.
-        let t = radiusNormalized(position.radius)
-        // Slightly softer than prior pass to reduce center-crossing jump,
-        // while keeping azimuth readable at the rim.
-        let maxPan = 0.30 + 0.30 * t // ~0.30 near … ~0.60 far
+    /// Meters for the near / far edge of the mix board.
+    static let nearDistanceMeters: Float = 0.65
+    static let farDistanceMeters: Float = 4.2
 
-        let shaped = tanh(lateral * 1.1) / tanh(1.1)
-        return Float(max(-1, min(1, shaped * maxPan)))
+    /// Soft send into the environment's factory reverb.
+    static let sourceReverbBlend: Float = 0.14
+
+    static func worldPoint(from position: SpatialPosition) -> AVAudio3DPoint {
+        let t = Float(radiusNormalized(position.radius))
+        let meters = nearDistanceMeters + (farDistanceMeters - nearDistanceMeters) * t
+        let angle = Float(position.angle)
+        return AVAudio3DPoint(
+            x: cos(angle) * meters,
+            y: 0,
+            z: -sin(angle) * meters
+        )
     }
 
-    /// Mix loudness from radius ≈ inverse-square (intensity ∝ 1/r²).
-    /// Outer rim stays in a similar ballpark to the previous curve’s mid-near level
-    /// (~radius 0.38), so the full board remains usable.
-    static func mixVolume(fromRadius radius: Double) -> Double {
-        let t = radiusNormalized(radius)
-        // Near d=1 → 1.0; far d≈1.9 → ≈0.28 (was ~outer-silent / early drop before).
-        let distance = 1.0 + 0.9 * t
-        let raw = 1.0 / (distance * distance)
-        return min(max(raw, 0.24), 1.0)
+    static func configureEnvironment(_ environment: AVAudioEnvironmentNode) {
+        environment.listenerPosition = AVAudio3DPoint(x: 0, y: 0, z: 0)
+        environment.listenerAngularOrientation = AVAudioMake3DAngularOrientation(0, 0, 0)
+
+        let attenuation = environment.distanceAttenuationParameters
+        attenuation.distanceAttenuationModel = .inverseDistance
+        attenuation.referenceDistance = nearDistanceMeters
+        attenuation.maximumDistance = farDistanceMeters + 1.8
+        attenuation.rolloffFactor = 1.2
+
+        environment.reverbParameters.enable = true
+        environment.reverbParameters.loadFactoryReverbPreset(.smallRoom)
+    }
+
+    static func applySourceSpatialization(
+        to node: AVAudioPlayerNode,
+        position: SpatialPosition,
+        environment: AVAudioEnvironmentNode
+    ) {
+        node.position = worldPoint(from: position)
+        node.pan = 0
+        node.reverbBlend = sourceReverbBlend
+        node.renderingAlgorithm = preferredRenderingAlgorithm(in: environment)
+        node.sourceMode = .spatializeIfMono
+    }
+
+    private static func preferredRenderingAlgorithm(
+        in environment: AVAudioEnvironmentNode
+    ) -> AVAudio3DMixingRenderingAlgorithm {
+        let available = environment.applicableRenderingAlgorithms
+        if available.contains(.hrtFHQ) { return .hrtFHQ }
+        if available.contains(.hrtF) { return .hrtF }
+        if available.contains(.sphericalHead) { return .sphericalHead }
+        return .equalPowerPanning
     }
 
     private static func radiusNormalized(_ radius: Double) -> Double {

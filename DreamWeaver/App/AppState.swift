@@ -456,7 +456,7 @@ final class AppState: ObservableObject {
         playback.updateSource(
             id: source.id,
             volume: source.volume,
-            pan: LocalPlaybackService.pan(from: source.position),
+            position: source.position,
             enabled: source.isEnabled
         )
         playbackProgress = playback.progress
@@ -764,11 +764,10 @@ final class AppState: ObservableObject {
 
     func updateSourcePlacement(id: UUID, position: SpatialPosition) {
         guard mixBoardSelection.isMine else { return }
-        let volume = Self.volume(fromRadius: position.radius)
+        // Distance attenuation comes from AVAudioEnvironmentNode; keep mix gain as-is.
         mutateCurrentSources { sources in
             if let i = sources.firstIndex(where: { $0.id == id }) {
                 sources[i].position = position
-                sources[i].volume = volume
                 sources[i].isEnabled = true
             }
         }
@@ -778,8 +777,9 @@ final class AppState: ObservableObject {
         Task { try? await analyticsService.record(.mixEdited(sceneId: currentSceneId)) }
     }
 
-    static func volume(fromRadius radius: Double) -> Double {
-        SpatialMixMapping.mixVolume(fromRadius: radius)
+    /// Default mix gain for newly dropped sources (distance is spatialized separately).
+    static func volume(fromRadius _: Double) -> Double {
+        SpatialMixMapping.defaultMixGain
     }
 
     func toggleSource(id: UUID) {
