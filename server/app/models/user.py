@@ -39,6 +39,9 @@ class User(Base):
     usage_summary: Mapped["UsageSummary | None"] = relationship(
         "UsageSummary", back_populates="user", uselist=False
     )
+    audit_events: Mapped[list["AuditEvent"]] = relationship(
+        "AuditEvent", back_populates="user"
+    )
 
 
 class AppleIdentity(Base):

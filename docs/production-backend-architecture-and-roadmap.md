@@ -582,12 +582,13 @@ VoiceProvider
 - 客户端 `SceneTimelineScheduler` 接入 `AVAudioEngine`，替换固定 6s/28s 人声 Timer；
 - 洗头陪伴官方时间线脚本 v4（约 620s，`play_oneshot` / 分层 cue）。
 
-### 阶段 7：陪伴记录与可观测性 — 进行中
+### 阶段 7：陪伴记录与可观测性 — 完成
 
 - 事件批量上报（PR1：`POST /v1/analytics/events`）；
 - 陪伴摘要（PR1：`GET /v1/analytics/summary`，对齐 `UsageRecord`）；
-- 结构化日志（PR2）；
-- 指标、告警和审计（PR2）。
+- 结构化 JSON 日志与 `X-Request-ID`（PR2）；
+- 进程内 `/metrics`（Prometheus 文本）与 `audit_events` 敏感操作审计（PR2）；
+- 云日志 / 告警 / 错误跟踪：阶段 8 部署时接入。
 
 ### 阶段 8：中国大陆部署
 

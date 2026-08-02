@@ -188,6 +188,19 @@ async def revoke_authorization(
             job.updated_at = utc_now()
             job.message = "授权已撤回，任务已取消"
 
+        from app.services import audit as audit_service
+
+        await audit_service.record_audit(
+            session,
+            action="seed.voice_revoke",
+            user_id=user.id,
+            resource_type="voice_authorization",
+            resource_id=authorization_id,
+            detail={
+                "cancelled_jobs": cancelled_jobs,
+                "deleted_assets": deleted_assets,
+            },
+        )
         await session.commit()
         await session.refresh(row)
 

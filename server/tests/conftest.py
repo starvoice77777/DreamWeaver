@@ -24,6 +24,7 @@ async def client() -> AsyncIterator[AsyncClient]:
 
     app = create_app()
     app.dependency_overrides[get_db_session] = override_db
+    app.state.session_factory = session_factory
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

@@ -1,5 +1,6 @@
-from app.models.content import MixPreset, OfficialAsset, Scene, SceneTimeline, SceneTrack
 from app.models.analytics import AnalyticsEvent, UsageSummary
+from app.models.audit import AuditEvent
+from app.models.content import MixPreset, OfficialAsset, Scene, SceneTimeline, SceneTrack
 from app.models.library import UploadSession, UserSoundAsset
 from app.models.seed import SeedJob, VoiceAuthorization
 from app.models.user import (
@@ -14,6 +15,7 @@ from app.models.user import (
 __all__ = [
     "AnalyticsEvent",
     "AppleIdentity",
+    "AuditEvent",
     "MixPreset",
     "OfficialAsset",
     "PrivateScene",

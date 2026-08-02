@@ -1,6 +1,6 @@
 # DreamWeaver Server
 
-DreamWeaver 生产后端。集成分支已含阶段 0–6（内容、上传、Seed、时间线调度、洗头脚本 v4）。当前：阶段 7 PR1 陪伴事件与摘要。
+DreamWeaver 生产后端。集成分支已含阶段 0–6（内容、上传、Seed、时间线调度、洗头脚本 v4）与阶段 7 PR1（陪伴事件/摘要）。当前：阶段 7 PR2 可观测性（结构化日志、metrics、审计）。
 
 ## 本机直接运行 API
 
@@ -26,7 +26,10 @@ uvicorn app.main:app --reload
 
 - 健康检查：http://127.0.0.1:8000/health
 - 就绪：http://127.0.0.1:8000/ready
+- 指标：http://127.0.0.1:8000/metrics（Prometheus 文本；进程内计数，重启清零）
 - OpenAPI：http://127.0.0.1:8000/docs
+
+每个响应带 `X-Request-ID`（可传入同名请求头以串联追踪）。访问日志为 JSON（stdout）；敏感操作写入 `audit_events`（登录 / 登出 / 删资产 / 撤回声音授权），并打 `dreamweaver.audit` 结构化日志。云告警与错误跟踪在阶段 8 接入；本地可对 `/metrics` 与 JSON 日志做抓取。
 
 ### 已提供的接口
 
