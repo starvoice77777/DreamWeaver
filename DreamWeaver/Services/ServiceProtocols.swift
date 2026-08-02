@@ -5,6 +5,8 @@ protocol ContentService: AnyObject {
     func fetchScenes() async throws -> [DreamScene]
     func fetchScene(id: UUID) async throws -> DreamScene
     func fetchMixPresets(sceneStyle: SceneVisualStyle?) async throws -> [MixPreset]
+    /// Versioned cue/phrase document for client scheduling (Stage 6).
+    func fetchTimeline(sceneId: UUID) async throws -> APIContentDTO.SceneTimeline
     func randomGreeting() -> String
     /// Local-only favorite/listen overlay. Remote may no-op until auth APIs are wired.
     func persistSceneOverlay(scenes: [DreamScene]) throws
@@ -42,11 +44,14 @@ protocol PlaybackService: AnyObject {
 
     func configureSession() throws
     func load(scene: DreamScene, sources: [SoundSource]) throws
+    func load(scene: DreamScene, sources: [SoundSource], timeline: APIContentDTO.SceneTimeline?) throws
     func play()
     func pause()
     func stop()
     func updateSource(id: UUID, volume: Double, position: SpatialPosition, enabled: Bool)
     func syncSources(_ sources: [SoundSource])
+    /// Mark a track as user-edited so timeline automation skips it.
+    func markManualOverride(trackId: UUID)
     func preview(resourceName: String?)
     func stopPreview()
     func startSleepTimer(option: TimerOption, onTick: @escaping (Double) -> Void, onFinished: @escaping () -> Void)

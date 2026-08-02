@@ -49,4 +49,18 @@ enum DemoIDs {
     static let sourceHairDryer = UUID(uuidString: "E5555555-5555-4555-8555-555555555505")!
     static let sourceAC = UUID(uuidString: "E5555555-5555-4555-8555-555555555506")!
     static let sourcePiano = UUID(uuidString: "E5555555-5555-4555-8555-555555555507")!
+
+    // Hair-care script v4 (洗头场景时间戳协同表)
+    static let sourceHairWaterCycle = UUID(uuidString: "E5555555-5555-4555-8555-555555555508")!
+    static let sourceHairWet = UUID(uuidString: "E5555555-5555-4555-8555-555555555509")!
+    static let sourceHairFoamStart = UUID(uuidString: "E5555555-5555-4555-8555-55555555550A")!
+    static let sourceHairFoamRub = UUID(uuidString: "E5555555-5555-4555-8555-55555555550B")!
+    static let sourceHairScalpFoam = UUID(uuidString: "E5555555-5555-4555-8555-55555555550C")!
+    static let sourceHairRinse = UUID(uuidString: "E5555555-5555-4555-8555-55555555550D")!
+    static let sourceHairFingerMassage = UUID(uuidString: "E5555555-5555-4555-8555-55555555550E")!
+    static let sourceHairTowel = UUID(uuidString: "E5555555-5555-4555-8555-55555555550F")!
+
+    // Rain eaves extras (must not collide with hair-care 508–50F)
+    static let sourceRainSoftFar = UUID(uuidString: "E5555555-5555-4555-8555-555555555510")!
+    static let sourceRainEavesVoice = UUID(uuidString: "E5555555-5555-4555-8555-555555555511")!
 }

@@ -33,6 +33,15 @@ class User(Base):
     settings: Mapped[UserSettings | None] = relationship(back_populates="user", uselist=False)
     scene_states: Mapped[list[UserSceneState]] = relationship(back_populates="user")
     private_scenes: Mapped[list[PrivateScene]] = relationship(back_populates="owner")
+    analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(
+        "AnalyticsEvent", back_populates="user"
+    )
+    usage_summary: Mapped["UsageSummary | None"] = relationship(
+        "UsageSummary", back_populates="user", uselist=False
+    )
+    audit_events: Mapped[list["AuditEvent"]] = relationship(
+        "AuditEvent", back_populates="user"
+    )
 
 
 class AppleIdentity(Base):
@@ -136,6 +145,8 @@ class PrivateScene(Base):
     source_scene_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     draft_sources: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
     saved_sources: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    draft_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    saved_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     saved_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

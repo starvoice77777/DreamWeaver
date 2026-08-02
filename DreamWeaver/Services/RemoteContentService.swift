@@ -57,6 +57,10 @@ final class RemoteContentService: ContentService {
         return filtered.isEmpty ? mapped : filtered
     }
 
+    func fetchTimeline(sceneId: UUID) async throws -> APIContentDTO.SceneTimeline {
+        try await client.get("/v1/scenes/\(sceneId.uuidString)/timeline", authorized: false)
+    }
+
     func randomGreeting() -> String {
         cachedGreeting
     }

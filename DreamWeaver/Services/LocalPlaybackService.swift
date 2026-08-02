@@ -26,8 +26,9 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var sleepDuration: TimeInterval = 0
     private var fadeTasks: [Task<Void, Never>] = []
     private var previewPlayer: AVAudioPlayerNode?
-    private var voicePhraseTimer: Timer?
-    private var voicePhraseTask: Task<Void, Never>?
+    private let timelineScheduler = SceneTimelineScheduler()
+    private var activeTimeline: APIContentDTO.SceneTimeline?
+    private var phraseById: [UUID: APIContentDTO.Phrase] = [:]
 
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
@@ -39,10 +40,16 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     func load(scene: DreamScene, sources: [SoundSource]) throws {
+        try load(scene: scene, sources: sources, timeline: nil)
+    }
+
+    func load(scene: DreamScene, sources: [SoundSource], timeline: APIContentDTO.SceneTimeline?) throws {
         // Rebuild the graph from a stopped state. Detaching nodes while the
         // engine is running can leave AVAudioEngine with an invalid graph.
         stopInternal(keepEngine: false)
         lastErrorMessage = nil
+        activeTimeline = timeline
+        phraseById = Dictionary(uniqueKeysWithValues: (timeline?.phrases ?? []).map { ($0.id, $0) })
 
         do {
             try configureSession()
@@ -57,11 +64,18 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         configuredResources = desiredResourceMap(for: sources)
         let attachedTrackCount = attachAvailableTracks(sources)
 
+        configureTimelineScheduler(timeline)
+
         guard attachedTrackCount > 0 else {
             isPlaying = false
             lastErrorMessage = "当前场景暂无可播放的本地音频"
             return
         }
+    }
+
+    /// User edited a track — exit official automation for that track only.
+    func markManualOverride(trackId: UUID) {
+        timelineScheduler.markManualOverride(trackId: trackId)
     }
 
     func play() {
@@ -82,7 +96,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         for (id, node) in players where layers[id] != .voice {
             if !node.isPlaying { node.play() }
         }
-        scheduleVoicePhrasesIfNeeded()
+        timelineScheduler.start()
         startProgress()
     }
 
@@ -94,10 +108,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         isPlaying = false
         progressTimer?.invalidate()
         progressTimer = nil
-        voicePhraseTimer?.invalidate()
-        voicePhraseTimer = nil
-        voicePhraseTask?.cancel()
-        voicePhraseTask = nil
+        timelineScheduler.pause()
     }
 
     func stop() {
@@ -177,13 +188,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 engine.stop()
             }
             isPlaying = false
-            refreshVoicePhraseScheduling()
             return
         }
 
         guard playbackRequested else {
             isPlaying = false
-            refreshVoicePhraseScheduling()
             return
         }
 
@@ -197,7 +206,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     node.play()
                 }
             }
-            refreshVoicePhraseScheduling()
         } catch {
             isPlaying = false
             lastErrorMessage = error.localizedDescription
@@ -363,25 +371,130 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         })
     }
 
-    private func refreshVoicePhraseScheduling() {
-        let hasPlayableVoice = currentSources.values.contains {
-            $0.layer == .voice
-                && $0.isEnabled
-                && $0.resourceName != nil
-                && players[$0.id] != nil
+    private func configureTimelineScheduler(_ timeline: APIContentDTO.SceneTimeline?) {
+        // When caller passes nil, use hair-care-compatible local fixture if a voice track is present.
+        let resolved: APIContentDTO.SceneTimeline?
+        if let timeline {
+            resolved = timeline
+        } else if currentSources.values.contains(where: { $0.layer == .voice }) {
+            resolved = LocalTimelineFixture.timeline(for: DemoIDs.hairCareScene)
+            phraseById = Dictionary(uniqueKeysWithValues: (resolved?.phrases ?? []).map { ($0.id, $0) })
+        } else {
+            resolved = nil
         }
+        activeTimeline = resolved
 
-        if playbackRequested, hasPlayableVoice {
-            if voicePhraseTimer == nil, voicePhraseTask == nil {
-                scheduleVoicePhrasesIfNeeded()
+        timelineScheduler.configure(timeline: resolved, overrides: []) { [weak self] actions in
+            self?.executeTimelineActions(actions)
+        }
+    }
+
+    private func executeTimelineActions(_ actions: [APIContentDTO.CueAction]) {
+        for action in actions {
+            switch action.type {
+            case "play_phrase":
+                playPhraseAction(action)
+            case "play_oneshot":
+                if let id = action.track_id, let source = currentSources[id] {
+                    playOneShot(source: source)
+                }
+            case "set_volume":
+                if let id = action.track_id, let volume = action.volume {
+                    applyVolume(trackId: id, volume: volume, fadeMs: action.fade_ms)
+                }
+            case "fade_out":
+                if let id = action.track_id {
+                    applyVolume(trackId: id, volume: 0, fadeMs: action.fade_ms ?? 2000)
+                }
+            case "fade_in":
+                if let id = action.track_id {
+                    let target = currentSources[id]?.volume ?? baseVolumes[id] ?? 0.7
+                    applyVolume(trackId: id, volume: target, fadeMs: action.fade_ms ?? 2000)
+                }
+            case "set_position":
+                if let id = action.track_id,
+                   let angle = action.angle,
+                   let radius = action.radius,
+                   var source = currentSources[id] {
+                    source.position = SpatialPosition(angle: angle, radius: radius)
+                    currentSources[id] = source
+                    updateSource(id: id, volume: source.volume, position: source.position, enabled: source.isEnabled)
+                }
+            case "enable":
+                if let id = action.track_id, var source = currentSources[id] {
+                    source.isEnabled = true
+                    currentSources[id] = source
+                    updateSource(id: id, volume: source.volume, position: source.position, enabled: true)
+                }
+            case "disable":
+                if let id = action.track_id, var source = currentSources[id] {
+                    source.isEnabled = false
+                    currentSources[id] = source
+                    updateSource(id: id, volume: source.volume, position: source.position, enabled: false)
+                }
+            case "play":
+                if let id = action.track_id, let node = players[id], !node.isPlaying {
+                    node.play()
+                }
+            case "pause":
+                if let id = action.track_id {
+                    players[id]?.pause()
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    private func playPhraseAction(_ action: APIContentDTO.CueAction) {
+        let trackId = action.track_id
+            ?? action.phrase_id.flatMap { phraseById[$0]?.voice_binding.track_id }
+        guard let trackId,
+              let source = currentSources[trackId],
+              source.layer == .voice,
+              source.isEnabled else { return }
+
+        var oneshot = source
+        if let phraseId = action.phrase_id,
+           let phrase = phraseById[phraseId],
+           let key = phrase.voice_binding.resource_key {
+            oneshot.resourceName = key
+        }
+        playOneShot(source: oneshot)
+    }
+
+    private func applyVolume(trackId: UUID, volume: Double, fadeMs: Int?) {
+        guard players[trackId] != nil else { return }
+        let clamped = min(max(volume, 0), 1)
+        let duration = Double(fadeMs ?? 0) / 1000.0
+        if duration <= 0.05 {
+            baseVolumes[trackId] = clamped
+            let fade = fadeMultipliers[trackId] ?? 1
+            players[trackId]?.volume = Float(clamped) * fade
+            if var source = currentSources[trackId] {
+                source.volume = clamped
+                currentSources[trackId] = source
             }
             return
         }
-
-        voicePhraseTimer?.invalidate()
-        voicePhraseTimer = nil
-        voicePhraseTask?.cancel()
-        voicePhraseTask = nil
+        fadeTasks.append(Task { @MainActor [weak self] in
+            guard let self else { return }
+            let steps = 20
+            let start = Double(self.players[trackId]?.volume ?? 0)
+            let stepTime = duration / Double(steps)
+            for step in 0...steps {
+                let t = Double(step) / Double(steps)
+                let value = start + (clamped - start) * t
+                self.players[trackId]?.volume = Float(value)
+                try? await Task.sleep(nanoseconds: UInt64(stepTime * 1_000_000_000))
+                if Task.isCancelled { return }
+            }
+            self.baseVolumes[trackId] = clamped
+            if var source = self.currentSources[trackId] {
+                source.volume = clamped
+                self.currentSources[trackId] = source
+            }
+        })
     }
 
     @discardableResult
@@ -415,8 +528,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             environment: environment
         )
 
-        if source.layer == .voice {
-            // Voice phrases are scheduled on a timer; attach silent-ready node.
+        if source.layer == .voice || source.layer == .trigger {
+            // Oneshot layers stay silent until a timeline cue fires play_phrase / play_oneshot.
             node.volume = 0
         } else {
             scheduleLoop(node: node, file: file)
@@ -451,41 +564,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     private func resourceName(for node: AVAudioPlayerNode) -> String? {
         resourceByNode[ObjectIdentifier(node)]
-    }
-
-    private func scheduleVoicePhrasesIfNeeded() {
-        voicePhraseTimer?.invalidate()
-        voicePhraseTimer = nil
-        voicePhraseTask?.cancel()
-        voicePhraseTask = nil
-
-        let hasPlayableVoice = currentSources.values.contains {
-            $0.layer == .voice
-                && $0.isEnabled
-                && $0.resourceName != nil
-                && players[$0.id] != nil
-        }
-        guard hasPlayableVoice else { return }
-
-        voicePhraseTimer = Timer.scheduledTimer(withTimeInterval: 28, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, self.isPlaying else { return }
-                self.playCurrentVoicePhrases()
-            }
-        }
-        // First phrase after a short delay so environment settles.
-        voicePhraseTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 6_000_000_000)
-            guard let self, !Task.isCancelled, self.isPlaying else { return }
-            self.playCurrentVoicePhrases()
-        }
-    }
-
-    private func playCurrentVoicePhrases() {
-        for source in currentSources.values
-            where source.layer == .voice && source.isEnabled && source.resourceName != nil {
-            playOneShot(source: source)
-        }
     }
 
     private func playOneShot(source: SoundSource) {
@@ -548,10 +626,9 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         if engine.isRunning {
             engine.stop()
         }
-        voicePhraseTimer?.invalidate()
-        voicePhraseTimer = nil
-        voicePhraseTask?.cancel()
-        voicePhraseTask = nil
+        timelineScheduler.stop()
+        activeTimeline = nil
+        phraseById = [:]
         progressTimer?.invalidate()
         progressTimer = nil
         cancelSleepTimer()

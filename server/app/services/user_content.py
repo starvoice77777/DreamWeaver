@@ -168,6 +168,8 @@ def private_to_detail(scene: PrivateScene) -> PrivateSceneDetailOut:
         recommended_duration_seconds=scene.recommended_duration_seconds,
         draft_sources=list(scene.draft_sources or []),
         saved_sources=list(scene.saved_sources) if scene.saved_sources is not None else None,
+        draft_timeline=dict(scene.draft_timeline) if scene.draft_timeline is not None else None,
+        saved_timeline=dict(scene.saved_timeline) if scene.saved_timeline is not None else None,
     )
 
 
@@ -222,6 +224,7 @@ async def create_blank_private_scene(
         palette=body.palette or DEFAULT_PALETTE,
         visual_style=body.visual_style or "custom",
         draft_sources=list(body.sources or []),
+        draft_timeline=dict(body.timeline) if body.timeline is not None else None,
     )
     session.add(scene)
     await session.commit()
@@ -242,6 +245,16 @@ async def copy_official_scene(
     if official is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
 
+    from app.services.timeline import get_timeline, timeline_document_dict
+
+    official_timeline = await get_timeline(session, scene_id)
+    draft_timeline = None
+    if official_timeline is not None:
+        doc = timeline_document_dict(official_timeline)
+        # Snapshots belong to the private scene after copy; clear overrides.
+        doc["manual_override_track_ids"] = []
+        draft_timeline = doc
+
     scene = PrivateScene(
         owner_user_id=user.id,
         name=f"{official.name}（我的）",
@@ -254,6 +267,7 @@ async def copy_official_scene(
         recommended_duration_seconds=official.recommended_duration_seconds,
         source_scene_id=official.id,
         draft_sources=_tracks_as_sources(official),
+        draft_timeline=draft_timeline,
     )
     session.add(scene)
     await session.commit()
@@ -267,10 +281,13 @@ async def update_private_draft(
     scene = await _owned_private(session, user, scene_id)
     data = body.model_dump(exclude_unset=True)
     sources = data.pop("sources", None)
+    draft_timeline = data.pop("draft_timeline", None)
     for key, value in data.items():
         setattr(scene, key, value)
     if sources is not None:
         scene.draft_sources = sources
+    if draft_timeline is not None:
+        scene.draft_timeline = draft_timeline
     await session.commit()
     await session.refresh(scene)
     return private_to_detail(scene)
@@ -286,6 +303,9 @@ async def save_private_scene(
             detail="Cannot save an empty mix; add at least one source",
         )
     scene.saved_sources = list(scene.draft_sources)
+    scene.saved_timeline = (
+        dict(scene.draft_timeline) if scene.draft_timeline is not None else None
+    )
     scene.saved_version += 1
     scene.saved_at = datetime.now(UTC)
     await session.commit()

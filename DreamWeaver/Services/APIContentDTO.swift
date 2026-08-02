@@ -57,6 +57,54 @@ enum APIContentDTO {
         let tracks: [Track]
     }
 
+    // MARK: - Scene timeline (Stage 6 PR1; scheduler wired in PR2)
+
+    struct VoiceBinding: Codable, Hashable {
+        let kind: String
+        let resource_key: String?
+        let asset_id: UUID?
+        let track_id: UUID?
+        let track_layer: String?
+    }
+
+    struct Phrase: Codable, Hashable, Identifiable {
+        let id: UUID
+        let text: String
+        let review_status: String
+        let voice_binding: VoiceBinding
+    }
+
+    struct CueAction: Codable, Hashable {
+        let type: String
+        let phrase_id: UUID?
+        let track_id: UUID?
+        let volume: Double?
+        let fade_ms: Int?
+        let angle: Double?
+        let radius: Double?
+        let resource_key: String?
+    }
+
+    struct Cue: Codable, Hashable, Identifiable {
+        let id: UUID
+        let at_seconds: Double?
+        let progress: Double?
+        let repeat_every_seconds: Double?
+        let until_seconds: Double?
+        let actions: [CueAction]
+    }
+
+    struct SceneTimeline: Codable, Hashable {
+        let scene_id: UUID
+        let version: Int
+        let automation_mode: String
+        let duration_hint_seconds: Int?
+        let override_policy: String
+        let manual_override_track_ids: [UUID]?
+        let phrases: [Phrase]
+        let cues: [Cue]
+    }
+
     struct MixPreset: Decodable {
         let id: UUID
         let name: String
@@ -100,6 +148,33 @@ enum APIContentDTO {
         var audio_quality: String?
         var notifications_enabled: Bool?
         var default_scene_id: UUID?
+    }
+
+    struct UsageSummary: Decodable {
+        let id: UUID
+        let total_minutes: Int
+        let week_minutes: Int
+        let usual_bedtime: String
+        let last_used_at: Date
+        let sleep_trend: [Int]
+    }
+
+    struct AnalyticsEventPayload: Encodable {
+        let type: String
+        let scene_id: UUID?
+        let asset_id: UUID?
+        let duration_seconds: Int?
+        let occurred_at: Date?
+        let idempotency_key: String?
+    }
+
+    struct AnalyticsEventsBatch: Encodable {
+        let events: [AnalyticsEventPayload]
+    }
+
+    struct AnalyticsEventsAccepted: Decodable {
+        let accepted: Int
+        let skipped_duplicates: Int?
     }
 
     struct Bootstrap: Decodable {
@@ -164,6 +239,8 @@ enum APIContentDTO {
         let recommended_duration_seconds: Int?
         let draft_sources: [PresetSource]?
         let saved_sources: [PresetSource]?
+        let draft_timeline: SceneTimeline?
+        let saved_timeline: SceneTimeline?
     }
 
     struct PrivateSceneCreate: Encodable {
@@ -393,6 +470,17 @@ enum APIContentMapper {
             authorType: .official,
             authorName: dto.author_name,
             sources: dto.sources.map(soundSource(from:))
+        )
+    }
+
+    static func usageRecord(from dto: APIContentDTO.UsageSummary) -> UsageRecord {
+        UsageRecord(
+            id: dto.id,
+            totalMinutes: dto.total_minutes,
+            weekMinutes: dto.week_minutes,
+            usualBedtime: dto.usual_bedtime,
+            lastUsedAt: dto.last_used_at,
+            sleepTrend: dto.sleep_trend
         )
     }
 

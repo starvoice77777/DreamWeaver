@@ -42,6 +42,40 @@ class Scene(Base):
     mix_presets: Mapped[list[MixPreset]] = relationship(
         back_populates="scene", cascade="all, delete-orphan"
     )
+    timeline: Mapped[SceneTimeline | None] = relationship(
+        back_populates="scene", cascade="all, delete-orphan", uselist=False
+    )
+
+
+class SceneTimeline(Base):
+    """Versioned cue/phrase document executed by the client playback scheduler."""
+
+    __tablename__ = "scene_timelines"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scene_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("scenes.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    automation_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="official_auto")
+    duration_hint_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    override_policy: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="per_source_manual_exit"
+    )
+    phrases: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    cues: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    scene: Mapped[Scene] = relationship(back_populates="timeline")
 
 
 class SceneTrack(Base):

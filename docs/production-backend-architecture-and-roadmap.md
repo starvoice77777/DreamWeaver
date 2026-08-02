@@ -2,7 +2,7 @@
 
 版本：v1.2  
 日期：2026-08-01  
-状态：阶段 0–4 主路径完成；阶段 5 进行中（授权与 SeedJob）  
+状态：阶段 0–6 主路径完成；当前进行：阶段 7 PR1（陪伴事件上报与摘要 API）  
 适用范围：iOS 客户端、服务器后端、音频处理、测试、部署与团队协作
 
 ## 1. 文档目的
@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-01）：阶段 **0–4** 与 **5 PR1**（SeedJob API）/ **RemoteSeed** / 官方 13 场景目录已合入 `integration/frontend-backend @ 624a392`。当前进行：**阶段 5 PR2**（授权撤回级联）。
+进度说明（2026-08-02）：阶段 **0–6** 已合入 `integration/frontend-backend`（含时间线契约、私人快照、`SceneTimelineScheduler`、洗头脚本 v4）。当前进行：**阶段 7 PR1**（`POST /v1/analytics/events`、`GET /v1/analytics/summary` 与 iOS `RemoteAnalyticsService`）。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -565,28 +565,30 @@ VoiceProvider
 - 删除影响检查与二次确认所需的影响范围数据；
 - iOS `RemoteUserLibraryService`。
 
-### 阶段 5：授权与声音处理 — 进行中
+### 阶段 5：授权与声音处理 — 基本完成
 
 - 创建者流程内授权记录；
 - SeedJob；
-- Worker；
+- Worker（骨架）；
 - Stub 供应商；
-- 候选供应商 PoC；
-- 撤回和删除闭环。
+- 撤回和删除闭环（级联取消任务 / 软删资产 / scrub 场景）；
+- 候选供应商 PoC（后续）。
 
-### 阶段 6：场景时间线与播放编排
+### 阶段 6：场景时间线与播放编排 — 完成
 
-- 时间线 / Cue / Phrase 契约；
-- 官方自动编排与用户覆盖规则；
-- 客户端调度器接入 `AVAudioEngine`；
-- 保存版本中携带时间线快照。
+- 时间线 / Cue / Phrase 契约（见 `docs/scene-timeline-contract.md`）；
+- 官方自动编排与用户覆盖规则（`override_policy=per_source_manual_exit` + `manual_override_track_ids`）；
+- 私人场景 `draft_timeline` / `saved_timeline` 快照；
+- 客户端 `SceneTimelineScheduler` 接入 `AVAudioEngine`，替换固定 6s/28s 人声 Timer；
+- 洗头陪伴官方时间线脚本 v4（约 620s，`play_oneshot` / 分层 cue）。
 
-### 阶段 7：陪伴记录与可观测性
+### 阶段 7：陪伴记录与可观测性 — 完成
 
-- 事件批量上报；
-- 陪伴摘要；
-- 结构化日志；
-- 指标、告警和审计。
+- 事件批量上报（PR1：`POST /v1/analytics/events`）；
+- 陪伴摘要（PR1：`GET /v1/analytics/summary`，对齐 `UsageRecord`）；
+- 结构化 JSON 日志与 `X-Request-ID`（PR2）；
+- 进程内 `/metrics`（Prometheus 文本）与 `audit_events` 敏感操作审计（PR2）；
+- 云日志 / 告警 / 错误跟踪：阶段 8 部署时接入。
 
 ### 阶段 8：中国大陆部署
 

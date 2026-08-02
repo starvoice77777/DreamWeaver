@@ -23,7 +23,7 @@ struct BasicMixSound: Identifiable, Hashable {
         case "stream":
             switch style {
             case .hairCare:
-                return "hair_wash"
+                return "hair_wash_water_cycle"
             case .valleyStream, .moonLake:
                 return "stream_nature"
             default:

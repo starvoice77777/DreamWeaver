@@ -362,6 +362,16 @@ async def delete_asset(
 
     asset.deleted_at = utc_now()
     asset.updated_at = utc_now()
+    from app.services import audit as audit_service
+
+    await audit_service.record_audit(
+        session,
+        action="library.asset_delete",
+        user_id=user.id,
+        resource_type="sound_asset",
+        resource_id=asset_id,
+        detail={"scrubbed_scene_ids": [str(s) for s in scrubbed]},
+    )
     await session.commit()
 
     storage_deleted = False

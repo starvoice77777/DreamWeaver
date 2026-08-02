@@ -27,6 +27,7 @@ final class RemoteSeedPipelineService: SeedPipelineService {
     ) {
         self.client = client
         self.library = library
+        // Default-arg expressions are nonisolated; construct on the main actor here.
         self.fallback = fallback ?? LocalSeedPipelineService()
     }
 

@@ -21,11 +21,13 @@ from app.schemas.content import (
     SceneStateOut,
     SceneStatePatch,
     SceneSummaryOut,
+    SceneTimelineOut,
     UserSettingsOut,
     UserSettingsUpdate,
 )
 from app.services import auth as auth_service
 from app.services import content as content_service
+from app.services import timeline as timeline_service
 from app.services import user_content as user_content_service
 
 router = APIRouter(tags=["content"])
@@ -77,6 +79,18 @@ async def list_scene_presets(scene_id: uuid.UUID, session: DbSession) -> list[Mi
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
     return await content_service.list_mix_presets(session, scene_id=scene_id)
+
+
+@router.get(
+    "/scenes/{scene_id}/timeline",
+    response_model=SceneTimelineOut,
+    summary="Versioned cue/phrase timeline for client scheduling",
+)
+async def get_scene_timeline(scene_id: uuid.UUID, session: DbSession) -> SceneTimelineOut:
+    timeline = await timeline_service.get_timeline(session, scene_id)
+    if timeline is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
+    return timeline
 
 
 @router.get("/presets", response_model=list[MixPresetOut], summary="List published mix presets")

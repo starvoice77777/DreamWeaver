@@ -50,6 +50,10 @@ final class LocalContentService: ContentService {
         }
     }
 
+    func fetchTimeline(sceneId: UUID) async throws -> APIContentDTO.SceneTimeline {
+        LocalTimelineFixture.timeline(for: sceneId)
+    }
+
     func randomGreeting() -> String {
         MockDataService.greetings.randomElement() ?? MockDataService.greetings[0]
     }

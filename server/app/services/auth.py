@@ -111,6 +111,15 @@ async def authenticate_apple(
 
     user = await _upsert_apple_user(session, apple_sub=apple_sub, nickname=nickname)
     access_token, refresh_token, _ = _issue_tokens(session, user, device_label=device_label)
+    from app.services import audit as audit_service
+
+    await audit_service.record_audit(
+        session,
+        action="auth.login",
+        user_id=user.id,
+        resource_type="session",
+        detail={"provider": "apple", "dev": dev_sub is not None},
+    )
     await session.commit()
     return tokens_out(user, access_token, refresh_token)
 
@@ -179,13 +188,25 @@ async def refresh_session(session: AsyncSession, refresh_token: str) -> AuthToke
     return tokens_out(row.user, access_token, new_refresh)
 
 
-async def logout(session: AsyncSession, access_token: str) -> None:
+async def logout(session: AsyncSession, access_token: str) -> uuid.UUID | None:
     token_hash = hash_token(access_token)
     result = await session.scalars(select(Session).where(Session.access_token_hash == token_hash))
     row = result.first()
     if row is not None and row.revoked_at is None:
+        user_id = row.user_id
         row.revoked_at = datetime.now(UTC)
+        from app.services import audit as audit_service
+
+        await audit_service.record_audit(
+            session,
+            action="auth.logout",
+            user_id=user_id,
+            resource_type="session",
+            resource_id=row.id,
+        )
         await session.commit()
+        return user_id
+    return None
 
 
 async def get_user(session: AsyncSession, user_id: uuid.UUID) -> User | None:

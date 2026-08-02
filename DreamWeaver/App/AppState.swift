@@ -62,7 +62,7 @@ final class AppState: ObservableObject {
     let libraryService: UserLibraryService
     /// Local or remote seed pipeline (`RemoteSeedPipelineService` when content backend is remote).
     let seedPipeline: SeedPipelineService
-    let analyticsService: LocalAnalyticsService
+    let analyticsService: AnalyticsService
     let playback: LocalPlaybackService
     let authService: RemoteAuthService?
     let remoteUserService: RemoteUserService?
@@ -89,6 +89,7 @@ final class AppState: ObservableObject {
         let library: UserLibraryService
         let remoteLibrary: RemoteUserLibraryService?
         let seed: SeedPipelineService
+        let analytics: AnalyticsService
         switch mode {
         case .remote:
             let client = APIClient.shared
@@ -99,6 +100,7 @@ final class AppState: ObservableObject {
             library = remoteLib
             remoteLibrary = remoteLib
             seed = RemoteSeedPipelineService(client: client, library: remoteLib)
+            analytics = RemoteAnalyticsService(client: client)
         case .local:
             content = LocalContentService()
             auth = nil
@@ -106,12 +108,13 @@ final class AppState: ObservableObject {
             library = LocalUserLibraryService()
             remoteLibrary = nil
             seed = LocalSeedPipelineService()
+            analytics = LocalAnalyticsService()
         }
         self.init(
             contentService: content,
             libraryService: library,
             seedPipeline: seed,
-            analyticsService: LocalAnalyticsService(),
+            analyticsService: analytics,
             playback: LocalPlaybackService(),
             contentBackendMode: mode,
             authService: auth,
@@ -124,7 +127,7 @@ final class AppState: ObservableObject {
         contentService: ContentService,
         libraryService: UserLibraryService,
         seedPipeline: SeedPipelineService,
-        analyticsService: LocalAnalyticsService,
+        analyticsService: AnalyticsService,
         playback: LocalPlaybackService,
         contentBackendMode: ServiceBackendMode = .local,
         authService: RemoteAuthService? = nil,
@@ -427,22 +430,28 @@ final class AppState: ObservableObject {
     }
 
     private func reloadPlayback(autoPlay: Bool) {
-        do {
-            try playback.load(scene: currentScene, sources: currentScene.soundSources.filter(\.isEnabled))
-            playbackProgress = playback.progress
-            if autoPlay {
-                playback.play()
-                isPlaying = playback.isPlaying
-            } else {
-                isPlaying = false
+        let scene = currentScene
+        let sources = scene.soundSources.filter(\.isEnabled)
+        let sceneId = currentSceneId
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let timeline = try? await self.contentService.fetchTimeline(sceneId: sceneId)
+            do {
+                try self.playback.load(scene: scene, sources: sources, timeline: timeline)
+                self.playbackProgress = self.playback.progress
+                if autoPlay {
+                    self.playback.play()
+                    self.isPlaying = self.playback.isPlaying
+                } else {
+                    self.isPlaying = false
+                }
+                if let message = self.playback.lastErrorMessage {
+                    self.lastServiceMessage = message
+                }
+            } catch {
+                self.isPlaying = false
+                self.lastServiceMessage = error.localizedDescription
             }
-            if let message = playback.lastErrorMessage {
-                lastServiceMessage = message
-            }
-        } catch {
-            // Keep UI in sync with a stopped engine when load/session setup fails.
-            isPlaying = false
-            lastServiceMessage = error.localizedDescription
         }
     }
 
@@ -460,6 +469,11 @@ final class AppState: ObservableObject {
             enabled: source.isEnabled
         )
         playbackProgress = playback.progress
+    }
+
+    /// Frontend/backend: user mix edit exits timeline automation for this track only.
+    private func noteManualMixOverride(trackId: UUID) {
+        playback.markManualOverride(trackId: trackId)
     }
 
     // MARK: - Controls visibility
@@ -759,6 +773,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -773,6 +788,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
         Task { try? await analyticsService.record(.mixEdited(sceneId: currentSceneId)) }
     }
@@ -791,6 +807,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -801,6 +818,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: id)
         markMixInteraction()
     }
 
@@ -811,6 +829,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSpatialToPlayback()
+        noteManualMixOverride(trackId: source.id)
         markMixInteraction()
     }
 
@@ -948,6 +967,7 @@ final class AppState: ObservableObject {
         }
         syncPersonalMixFromScene()
         pushSourceToPlayback(id: id)
+        noteManualMixOverride(trackId: id)
     }
 
     private func mutateCurrentSources(_ body: (inout [SoundSource]) -> Void) {
