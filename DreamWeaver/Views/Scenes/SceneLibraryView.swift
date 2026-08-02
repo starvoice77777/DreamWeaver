@@ -83,109 +83,32 @@ struct SceneLibraryView: View {
                     .padding(.horizontal, 20)
                 }
 
-                ScrollView {
-                    LazyVGrid(
-                        columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
-                        spacing: 14
-                    ) {
-                        ForEach(filtered) { scene in
-                            SceneCardView(
-                                scene: scene,
-                                isPlaying: appState.isPlaying && appState.currentSceneId == scene.id
-                            )
-                        }
+                SpiralSceneCarousel(
+                    scenes: filtered,
+                    onActivate: { scene in
+                        appState.enterDream(sceneId: scene.id)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
-                }
+                )
+                .padding(.bottom, 88)
             }
-            .background(DreamTheme.backgroundGradient.ignoresSafeArea())
+            .background(
+                ZStack {
+                    Color.black
+                    RadialGradient(
+                        colors: [
+                            DreamTheme.deepBlue.opacity(0.54),
+                            DreamTheme.midnight.opacity(0.34),
+                            Color.black
+                        ],
+                        center: .center,
+                        startRadius: 20,
+                        endRadius: 420
+                    )
+                }
+                .ignoresSafeArea()
+            )
             .navigationBarHidden(true)
         }
-    }
-}
-
-struct SceneCardView: View {
-    @EnvironmentObject private var appState: AppState
-    let scene: DreamScene
-    var isPlaying: Bool
-
-    private var isFavorite: Bool {
-        appState.scenes.first(where: { $0.id == scene.id })?.isFavorite ?? scene.isFavorite
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .topTrailing) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(scene.palette.gradient)
-                    .frame(height: 120)
-                    .overlay {
-                        SceneMiniMotif(style: scene.visualStyle)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    }
-                    .overlay(alignment: .topLeading) {
-                        if isPlaying {
-                            Image(systemName: "waveform")
-                                .font(.system(size: 11))
-                                .foregroundStyle(DreamTheme.warmApricot)
-                                .padding(10)
-                                .accessibilityLabel("正在播放")
-                        }
-                    }
-                    .overlay(alignment: .bottomTrailing) {
-                        if scene.isDemoPlayable {
-                            Text("可试听")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(DreamTheme.midnight)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(DreamTheme.moonWhite.opacity(0.9)))
-                                .padding(8)
-                        }
-                    }
-
-                Button {
-                    appState.toggleFavorite(sceneId: scene.id)
-                } label: {
-                    Image(systemName: isFavorite ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(isFavorite ? DreamTheme.warmApricot : DreamTheme.moonWhite.opacity(0.85))
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(6)
-                .accessibilityLabel(isFavorite ? "取消收藏" : "收藏")
-            }
-            .onTapGesture {
-                appState.enterDream(sceneId: scene.id)
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(scene.name)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(DreamTheme.moonWhite)
-                    .lineLimit(1)
-
-                Text(scene.subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(DreamTheme.secondaryText)
-                    .lineLimit(2)
-                    .frame(height: 30, alignment: .top)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                appState.enterDream(sceneId: scene.id)
-            }
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.05))
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(scene.name)，\(scene.subtitle)")
     }
 }
 

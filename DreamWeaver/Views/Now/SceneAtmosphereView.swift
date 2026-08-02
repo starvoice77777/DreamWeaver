@@ -1,12 +1,29 @@
 import SwiftUI
 
+/// Now-tab full-bleed atmosphere. Routes to per-scene backdrops
+/// (`RainyNightView`, Canvas motifs, future audio-reactive stacks).
 struct SceneAtmosphereView: View {
     let scene: DreamScene
     var isPlaying: Bool
     var reduceMotion: Bool
     var intensity: Double
 
-    @State private var phase: Double = 0
+    var body: some View {
+        SceneBackdropHost(
+            scene: scene,
+            isPlaying: isPlaying,
+            reduceMotion: reduceMotion,
+            intensity: intensity
+        )
+    }
+}
+
+/// Procedural Canvas motifs for scenes without a custom layered art stack.
+struct SceneAtmosphereCanvas: View {
+    let scene: DreamScene
+    var isPlaying: Bool
+    var reduceMotion: Bool
+    var intensity: Double
 
     var body: some View {
         TimelineView(.animation(minimumInterval: reduceMotion ? 1.0 / 8.0 : 1.0 / 30.0, paused: reduceMotion && !isPlaying)) { timeline in
@@ -27,6 +44,7 @@ struct SceneAtmosphereView: View {
                 case .summerInsects: drawInsects(context: &context, size: size, t: t)
                 case .fireplaceWhisper: drawFire(context: &context, size: size, t: t)
                 case .hairCare: drawWarmLamp(context: &context, size: size, t: t)
+                case .emotionalFluid: drawCloudBreath(context: &context, size: size, t: t)
                 }
             }
         }

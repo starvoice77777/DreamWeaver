@@ -45,7 +45,7 @@ protocol PlaybackService: AnyObject {
     func play()
     func pause()
     func stop()
-    func updateSource(id: UUID, volume: Double, pan: Float, enabled: Bool)
+    func updateSource(id: UUID, volume: Double, position: SpatialPosition, enabled: Bool)
     func syncSources(_ sources: [SoundSource])
     func preview(resourceName: String?)
     func stopPreview()

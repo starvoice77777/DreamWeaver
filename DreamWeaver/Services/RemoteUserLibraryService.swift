@@ -14,6 +14,7 @@ final class RemoteUserLibraryService: UserLibraryService {
         session: URLSession = .shared
     ) {
         self.client = client
+        // Default-arg expressions are nonisolated; construct on the main actor here.
         self.fallback = fallback ?? LocalUserLibraryService()
         self.session = session
     }

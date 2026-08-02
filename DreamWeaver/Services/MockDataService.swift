@@ -236,6 +236,26 @@ enum MockDataService {
                     source("钢琴", "pianokeys", angle: .pi * 0.2, radius: 0.6, volume: 0.25),
                     source("风声", "wind", angle: .pi * 1.35, radius: 0.75, volume: 0.18, enabled: false)
                 ]
+            ),
+            scene(
+                id: DemoIDs.emotionalFluidScene,
+                name: "流光溢彩",
+                subtitle: "颜色在呼吸，像一团安静的情绪。",
+                description: "缓慢流动的情绪色彩空间。云雾、水波与暖焰轮转，没有文字打扰，只留下疗愈般的光色。",
+                category: .lightMusic,
+                tags: ["色彩", "助眠", "氛围"],
+                palette: ScenePalette(top: 0x24324A, mid: 0x4B4668, bottom: 0x163A4A, accent: 0xE8DCC5),
+                style: .emotionalFluid,
+                favorite: true,
+                listens: 8,
+                listeners: 426,
+                sources: [
+                    source("风声", "wind", angle: .pi * 0.2, radius: 0.68, volume: 0.35, resourceName: "wind_realistic"),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.9, radius: 0.55, volume: 0.4, resourceName: "rain_soft"),
+                    source("潮声", "water.waves", angle: .pi * 1.25, radius: 0.72, volume: 0.3, resourceName: "stream_nature"),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.35, radius: 0.48, volume: 0.28),
+                    source("人声", "person.wave.2.fill", angle: .pi * 0.55, radius: 0.4, volume: 0.25, enabled: false, layer: .voice)
+                ]
             )
         ])
     }

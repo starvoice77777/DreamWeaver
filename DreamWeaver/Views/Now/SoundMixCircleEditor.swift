@@ -78,6 +78,8 @@ extension SceneVisualStyle {
             return ["fire", "voice", "rain", "piano"]
         case .hairCare:
             return ["stream", "wind", "voice", "fire"]
+        case .emotionalFluid:
+            return ["wind", "rain", "tide", "piano", "voice"]
         }
     }
 }
@@ -207,19 +209,25 @@ struct SoundMixCircleEditor: View {
                     .animation(.easeInOut(duration: diskFadeDuration), value: diskVisible)
                     .allowsHitTesting(false)
 
-                ForEach(activeSources) { source in
-                    sourceNode(
-                        source,
-                        circleSize: localCircleSize,
-                        circleOrigin: origin,
-                        circleCenter: center
-                    )
-                    .allowsHitTesting(canEditMix)
-                    .zIndex(2)
-                }
+                GlassEffectContainer(spacing: 18) {
+                    ZStack {
+                        ForEach(activeSources) { source in
+                            sourceNode(
+                                source,
+                                circleSize: localCircleSize,
+                                circleOrigin: origin,
+                                circleCenter: center
+                            )
+                            .allowsHitTesting(canEditMix)
+                            .zIndex(2)
+                        }
 
-                listenerAnchor(at: center)
-                    .zIndex(3)
+                        listenerAnchor(at: center)
+                            .zIndex(3)
+                    }
+                    .frame(width: size.width, height: size.height)
+                }
+                .frame(width: size.width, height: size.height)
 
                 ForEach(shatterBursts) { burst in
                     ShatterBurstView(burst: burst)
@@ -286,12 +294,12 @@ struct SoundMixCircleEditor: View {
         } label: {
             Image(systemName: "person.fill")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite.opacity(0.9))
+                .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
                 .frame(width: 44, height: 44)
-                .background {
-                    Circle()
-                        .stroke(DreamTheme.moonWhite.opacity(0.35), lineWidth: 1)
-                }
+                .dreamSpatialLiquidGlassCircle(
+                    accent: DreamTheme.warmApricot,
+                    intensity: 0.92
+                )
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -327,28 +335,30 @@ struct SoundMixCircleEditor: View {
 
     private func mixPaletteDock() -> some View {
         HStack(alignment: .center, spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 14) {
-                    paletteGroup(title: "基本") {
-                        ForEach(availableBasicSounds) { item in
-                            basicChip(item)
+            GlassEffectContainer(spacing: 12) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 14) {
+                        paletteGroup(title: "基本") {
+                            ForEach(availableBasicSounds) { item in
+                                basicChip(item)
+                            }
                         }
-                    }
 
-                    if !favoriteAssets.isEmpty {
-                        Rectangle()
-                            .fill(DreamTheme.divider)
-                            .frame(width: 1, height: 52)
-                            .padding(.top, 14)
+                        if !favoriteAssets.isEmpty {
+                            Rectangle()
+                                .fill(DreamTheme.divider)
+                                .frame(width: 1, height: 52)
+                                .padding(.top, 14)
 
-                        paletteGroup(title: "收藏") {
-                            ForEach(favoriteAssets) { asset in
-                                favoriteChip(asset)
+                            paletteGroup(title: "收藏") {
+                                ForEach(favoriteAssets) { asset in
+                                    favoriteChip(asset)
+                                }
                             }
                         }
                     }
+                    .padding(.horizontal, 10)
                 }
-                .padding(.horizontal, 10)
             }
         }
         .padding(.vertical, 10)
@@ -364,11 +374,11 @@ struct SoundMixCircleEditor: View {
         let side = min(size.width, size.height)
         return ZStack {
             Circle()
-                .stroke(DreamTheme.chromeStroke, lineWidth: 1)
+                .stroke(DreamTheme.chromeStroke, lineWidth: 2)
                 .frame(width: side * 0.92, height: side * 0.92)
 
             Circle()
-                .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                .stroke(Color.white.opacity(0.07), lineWidth: 1.5)
                 .frame(width: side * 0.58, height: side * 0.58)
         }
         .frame(width: size.width, height: size.height)
@@ -448,7 +458,7 @@ struct SoundMixCircleEditor: View {
         paletteIcon(
             symbol: item.symbolName,
             name: item.name,
-            tint: Color.white.opacity(0.1),
+            accent: appState.currentScene.palette.accentColor,
             dimmed: {
                 if case .basic(let current) = draggingPalette { return current.id == item.id }
                 return false
@@ -476,7 +486,7 @@ struct SoundMixCircleEditor: View {
         paletteIcon(
             symbol: asset.symbolName,
             name: asset.name,
-            tint: Color(hex: asset.avatarColor).opacity(0.55),
+            accent: Color(hex: asset.avatarColor),
             dimmed: {
                 if case .favorite(let current) = draggingPalette { return current.id == asset.id }
                 return false
@@ -500,12 +510,15 @@ struct SoundMixCircleEditor: View {
         .accessibilityLabel("\(asset.name)，收藏声音，拖入圆内添加")
     }
 
-    private func paletteIcon(symbol: String, name: String, tint: Color, dimmed: Bool) -> some View {
+    private func paletteIcon(symbol: String, name: String, accent: Color, dimmed: Bool) -> some View {
         VStack(spacing: 5) {
             Image(systemName: symbol)
                 .font(.system(size: 15))
                 .frame(width: 42, height: 42)
-                .background(Circle().fill(tint))
+                .dreamSpatialLiquidGlassCircle(
+                    accent: accent,
+                    intensity: 0.76
+                )
             Text(name)
                 .font(.system(size: 10))
                 .lineLimit(1)
@@ -519,7 +532,6 @@ struct SoundMixCircleEditor: View {
         let scale = 0.78 + volume * 0.5
         let iconSize: CGFloat = 14 * scale
         let side: CGFloat = 50 * scale
-        let fillOpacity = 0.10 + volume * 0.08
         let textOpacity = 0.55 + volume * 0.4
 
         return VStack(spacing: 2) {
@@ -531,15 +543,12 @@ struct SoundMixCircleEditor: View {
         }
         .foregroundStyle(DreamTheme.moonWhite.opacity(textOpacity))
         .frame(width: side, height: side)
-        .background {
-            Circle()
-                .fill(Color.white.opacity(fillOpacity))
-                .overlay {
-                    Circle().stroke(Color.white.opacity(0.12), lineWidth: 1)
-                }
-        }
+        .dreamSpatialLiquidGlassCircle(
+            accent: appState.currentScene.palette.accentColor,
+            intensity: 0.55 + volume * 0.45
+        )
         .scaleEffect(pressed ? 1.16 : 1.0)
-        .shadow(color: .black.opacity(pressed ? 0.28 : 0), radius: pressed ? 10 : 0, y: 3)
+        .shadow(color: .black.opacity(pressed ? 0.22 : 0), radius: pressed ? 10 : 0, y: 3)
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: pressed)
     }
 
