@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import math
 import subprocess
 from pathlib import Path
 
@@ -63,6 +64,26 @@ def validate(package, ffprobe):
             errors.append(f"{tid}: 时间字段必须合法且大于0")
         if start + playback > duration + 0.001:
             errors.append(f"{tid}: 轨道结束时间超过场景总时长")
+
+        keyframes = track.get("position_keyframes", [])
+        if not keyframes:
+            errors.append(f"{tid}: 缺少 position_keyframes")
+        else:
+            keyframe_times = [float(item.get("at_seconds", -1)) for item in keyframes]
+            if abs(keyframe_times[0] - start) > 0.001:
+                errors.append(f"{tid}: 第一条位置关键帧必须等于 start_seconds")
+            if keyframe_times != sorted(keyframe_times) or len(keyframe_times) != len(set(keyframe_times)):
+                errors.append(f"{tid}: 位置关键帧时间必须严格递增")
+            for item in keyframes:
+                at = float(item.get("at_seconds", -1))
+                angle = float(item.get("angle", 99))
+                radius = float(item.get("radius", -1))
+                if at < start or at > start + playback + 0.001:
+                    errors.append(f"{tid}: 位置关键帧超出本轨播放区间: {at}")
+                if not -math.pi <= angle <= math.pi:
+                    errors.append(f"{tid}: angle 超出 -π…π: {angle}")
+                if not 0 <= radius <= 1:
+                    errors.append(f"{tid}: radius 超出 0…1: {radius}")
 
         loop = track.get("loop")
         cross_required = track.get("requires_engine_crossfade")

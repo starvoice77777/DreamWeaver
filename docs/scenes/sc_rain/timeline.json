@@ -1,318 +1,251 @@
 {
-  "scene_id": "a1111111-1111-4111-8111-111111111102",
-  "version": 5,
-  "automation_mode": "official_auto",
-  "duration_hint_seconds": 620,
-  "override_policy": "per_source_manual_exit",
-  "manual_override_track_ids": [],
+  "scene_id": "sc_rain",
+  "version": 6,
+  "duration_seconds": 620,
+  "automation_mode": "system_preset",
+  "scene_type": "environment_no_text_no_voice",
+  "tracks": [
+    {
+      "code": "A01",
+      "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41",
+      "resource_key": "rain_soft",
+      "master_file": "dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 0,
+      "asset_duration_seconds": 11.595875,
+      "playback_duration_seconds": 620,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.22,
+      "position_keyframes": [
+        {"at_seconds": 0, "angle": -0.35, "radius": 0.85},
+        {"at_seconds": 480, "angle": -0.35, "radius": 0.85},
+        {"at_seconds": 560, "angle": -0.20, "radius": 0.92},
+        {"at_seconds": 620, "angle": 0.00, "radius": 0.98}
+      ]
+    },
+    {
+      "code": "A02",
+      "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348",
+      "resource_key": "rain_parasol",
+      "master_file": "dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav",
+      "layer": "ambience",
+      "start_seconds": 30,
+      "asset_duration_seconds": 6.05,
+      "playback_duration_seconds": 530,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.4,
+      "position_keyframes": [
+        {"at_seconds": 30, "angle": 0.70, "radius": 0.62},
+        {"at_seconds": 90, "angle": 0.50, "radius": 0.45},
+        {"at_seconds": 180, "angle": 0.42, "radius": 0.40},
+        {"at_seconds": 330, "angle": 0.35, "radius": 0.32},
+        {"at_seconds": 360, "angle": 0.45, "radius": 0.42},
+        {"at_seconds": 470, "angle": 0.55, "radius": 0.48},
+        {"at_seconds": 550, "angle": 0.75, "radius": 0.68},
+        {"at_seconds": 560, "angle": 0.82, "radius": 0.80}
+      ]
+    },
+    {
+      "code": "A03",
+      "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e",
+      "resource_key": "rain_bamboo_leaf",
+      "master_file": "dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav",
+      "layer": "ambience",
+      "start_seconds": 220,
+      "asset_duration_seconds": 6.05,
+      "playback_duration_seconds": 310,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 800,
+      "default_volume": 0.27,
+      "position_keyframes": [
+        {"at_seconds": 220, "angle": -1.20, "radius": 0.88},
+        {"at_seconds": 280, "angle": -0.95, "radius": 0.70},
+        {"at_seconds": 380, "angle": -0.80, "radius": 0.64},
+        {"at_seconds": 440, "angle": -1.10, "radius": 0.76},
+        {"at_seconds": 500, "angle": -1.35, "radius": 0.86},
+        {"at_seconds": 530, "angle": -1.45, "radius": 0.95}
+      ]
+    },
+    {
+      "code": "A04a",
+      "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5",
+      "resource_key": "wind_realistic",
+      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 180,
+      "asset_duration_seconds": 11.56975,
+      "playback_duration_seconds": 20,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.18,
+      "position_keyframes": [
+        {"at_seconds": 180, "angle": -2.40, "radius": 0.95},
+        {"at_seconds": 188, "angle": -2.05, "radius": 0.82},
+        {"at_seconds": 196, "angle": -1.75, "radius": 0.90},
+        {"at_seconds": 200, "angle": -1.60, "radius": 0.98}
+      ]
+    },
+    {
+      "code": "A04b",
+      "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a",
+      "resource_key": "wind_realistic",
+      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 450,
+      "asset_duration_seconds": 11.56975,
+      "playback_duration_seconds": 20,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.16,
+      "position_keyframes": [
+        {"at_seconds": 450, "angle": 2.55, "radius": 0.96},
+        {"at_seconds": 458, "angle": 2.25, "radius": 0.86},
+        {"at_seconds": 466, "angle": 2.65, "radius": 0.94},
+        {"at_seconds": 470, "angle": 2.80, "radius": 0.99}
+      ]
+    }
+  ],
   "phrases": [],
+  "voice_bindings": [],
   "cues": [
     {
-      "id": "f6666666-6666-4666-8666-666666666630",
+      "id": "a01-start",
       "at_seconds": 0,
       "actions": [
-        {
-          "type": "set_position",
-          "track_id": "e5555555-5555-4555-8555-555555555510",
-          "angle": -0.35,
-          "radius": 0.85
-        },
-        {
-          "type": "enable",
-          "track_id": "e5555555-5555-4555-8555-555555555510"
-        },
-        {
-          "type": "play",
-          "track_id": "e5555555-5555-4555-8555-555555555510"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0,
-          "fade_ms": 0
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.22,
-          "fade_ms": 30000
-        }
+        {"type": "enable", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0.22, "fade_ms": 30000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666631",
+      "id": "a02-start",
       "at_seconds": 30,
       "actions": [
-        {
-          "type": "set_position",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "angle": 0.45,
-          "radius": 0.4
-        },
-        {
-          "type": "enable",
-          "track_id": "e5555555-5555-4555-8555-555555555501"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0,
-          "fade_ms": 0
-        },
-        {
-          "type": "play",
-          "track_id": "e5555555-5555-4555-8555-555555555501"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.4,
-          "fade_ms": 8000
-        }
+        {"type": "enable", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.4, "fade_ms": 8000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666633",
+      "id": "a04a-start",
       "at_seconds": 180,
       "actions": [
-        {
-          "type": "set_position",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "angle": -2.4,
-          "radius": 0.9
-        },
-        {
-          "type": "enable",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0,
-          "fade_ms": 0
-        },
-        {
-          "type": "play",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.18,
-          "fade_ms": 8000
-        }
+        {"type": "enable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0.18, "fade_ms": 8000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-6666666666d1",
+      "id": "a04a-fade-out",
       "at_seconds": 192,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0,
-          "fade_ms": 8000
-        }
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 8000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666634",
+      "id": "a04a-stop",
       "at_seconds": 200,
       "actions": [
-        {
-          "type": "pause",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "disable",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        }
+        {"type": "pause", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "disable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666635",
+      "id": "a03-start",
       "at_seconds": 220,
       "actions": [
-        {
-          "type": "set_position",
-          "track_id": "e5555555-5555-4555-8555-555555555512",
-          "angle": -1.0,
-          "radius": 0.78
-        },
-        {
-          "type": "enable",
-          "track_id": "e5555555-5555-4555-8555-555555555512"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555512",
-          "volume": 0,
-          "fade_ms": 0
-        },
-        {
-          "type": "play",
-          "track_id": "e5555555-5555-4555-8555-555555555512"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555512",
-          "volume": 0.27,
-          "fade_ms": 10000
-        }
+        {"type": "enable", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0.27, "fade_ms": 10000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666636",
+      "id": "a02-gently-rise",
       "at_seconds": 330,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.46,
-          "fade_ms": 10000
-        }
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.46, "fade_ms": 10000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666637",
+      "id": "a02-return",
       "at_seconds": 350,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.4,
-          "fade_ms": 10000
-        }
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.4, "fade_ms": 10000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666638",
+      "id": "a04b-start",
       "at_seconds": 450,
       "actions": [
-        {
-          "type": "set_position",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "angle": 2.55,
-          "radius": 0.94
-        },
-        {
-          "type": "enable",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0,
-          "fade_ms": 0
-        },
-        {
-          "type": "play",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.16,
-          "fade_ms": 8000
-        }
+        {"type": "enable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0.16, "fade_ms": 8000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-6666666666d2",
+      "id": "a04b-fade-out",
       "at_seconds": 462,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0,
-          "fade_ms": 8000
-        }
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 8000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-666666666639",
+      "id": "a04b-stop",
       "at_seconds": 470,
       "actions": [
-        {
-          "type": "pause",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        },
-        {
-          "type": "disable",
-          "track_id": "e5555555-5555-4555-8555-555555555502"
-        }
+        {"type": "pause", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "disable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-66666666663a",
+      "id": "a03-fade-out",
       "at_seconds": 520,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555512",
-          "volume": 0,
-          "fade_ms": 10000
-        }
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0, "fade_ms": 10000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-6666666666d3",
+      "id": "a03-stop",
       "at_seconds": 530,
       "actions": [
-        {
-          "type": "pause",
-          "track_id": "e5555555-5555-4555-8555-555555555512"
-        },
-        {
-          "type": "disable",
-          "track_id": "e5555555-5555-4555-8555-555555555512"
-        }
+        {"type": "pause", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "disable", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-66666666663b",
+      "id": "a02-fade-out",
       "at_seconds": 550,
       "actions": [
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0,
-          "fade_ms": 10000
-        }
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0, "fade_ms": 10000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-66666666663c",
+      "id": "a02-stop",
       "at_seconds": 560,
       "actions": [
-        {
-          "type": "pause",
-          "track_id": "e5555555-5555-4555-8555-555555555501"
-        },
-        {
-          "type": "disable",
-          "track_id": "e5555555-5555-4555-8555-555555555501"
-        },
-        {
-          "type": "set_volume",
-          "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0,
-          "fade_ms": 60000
-        }
+        {"type": "pause", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "disable", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0, "fade_ms": 60000}
       ]
     },
     {
-      "id": "f6666666-6666-4666-8666-6666666666d4",
+      "id": "scene-stop",
       "at_seconds": 620,
       "actions": [
-        {
-          "type": "pause",
-          "track_id": "e5555555-5555-4555-8555-555555555510"
-        },
-        {
-          "type": "disable",
-          "track_id": "e5555555-5555-4555-8555-555555555510"
-        }
+        {"type": "pause", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "disable", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"}
       ]
     }
   ]

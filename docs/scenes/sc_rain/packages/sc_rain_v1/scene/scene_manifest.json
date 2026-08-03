@@ -1,8 +1,8 @@
 {
   "scene_id": "sc_rain",
   "scene_name": "檐下听雨",
-  "package_version": "1.0.0",
-  "timeline_version": 5,
+  "package_version": "1.1.0",
+  "timeline_version": 6,
   "scene_type": "environment_no_text_no_voice",
   "duration_seconds": 620,
   "output_preference": "external_speaker_first",

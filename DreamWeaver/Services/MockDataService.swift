@@ -421,7 +421,7 @@ enum MockDataService {
                 symbolName: "cloud.rain.fill",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: 0.45, radius: 0.4),
+                position: SpatialPosition(angle: 0.7, radius: 0.62),
                 resourceName: "rain_parasol",
                 layer: .ambience
             ),
@@ -431,7 +431,7 @@ enum MockDataService {
                 symbolName: "leaf.fill",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: -1.0, radius: 0.78),
+                position: SpatialPosition(angle: -1.2, radius: 0.88),
                 resourceName: "rain_bamboo_leaf",
                 layer: .ambience
             ),
@@ -441,7 +441,7 @@ enum MockDataService {
                 symbolName: "wind",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: -2.4, radius: 0.9),
+                position: SpatialPosition(angle: -2.4, radius: 0.95),
                 resourceName: "wind_realistic",
                 layer: .environment
             )

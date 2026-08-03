@@ -1,6 +1,6 @@
 code,track_id,resource_key,layer,loop,master_file,asset_status,start_seconds,playback_duration_seconds,default_volume,angle_rad,radius,asset_duration_seconds,requires_engine_crossfade,crossfade_ms,license_status
 A01,675d3d70-7f0b-49a1-b754-ed38d163ba41,rain_soft,environment,true,dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav,qc_pending,0,620,0.22,-0.35,0.85,11.595875,true,1000,approved
-A02,819f884b-81b5-4a47-8d0d-d2fc2ee55348,rain_parasol,ambience,true,dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav,qc_pending,30,530,0.40,0.45,0.40,6.050,true,1200,approved
-A03,323ebc52-41ed-43b6-a097-77f55204d09e,rain_bamboo_leaf,ambience,true,dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav,qc_pending,220,310,0.27,-1.00,0.78,6.050,true,800,approved
-A04a,2cc9eff1-4520-46e1-a9d2-826b3299b7b5,wind_realistic,environment,true,dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav,qc_pending,180,20,0.18,-2.40,0.90,11.56975,true,1000,approved
-A04b,ead3660e-83b7-4de2-b53d-ed9a1239090a,wind_realistic,environment,true,dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav,qc_pending,450,20,0.16,2.55,0.94,11.56975,true,1000,approved
+A02,819f884b-81b5-4a47-8d0d-d2fc2ee55348,rain_parasol,ambience,true,dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav,qc_pending,30,530,0.40,0.70,0.62,6.050,true,1200,approved
+A03,323ebc52-41ed-43b6-a097-77f55204d09e,rain_bamboo_leaf,ambience,true,dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav,qc_pending,220,310,0.27,-1.20,0.88,6.050,true,800,approved
+A04a,2cc9eff1-4520-46e1-a9d2-826b3299b7b5,wind_realistic,environment,true,dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav,qc_pending,180,20,0.18,-2.40,0.95,11.56975,true,1000,approved
+A04b,ead3660e-83b7-4de2-b53d-ed9a1239090a,wind_realistic,environment,true,dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav,qc_pending,450,20,0.16,2.55,0.96,11.56975,true,1000,approved

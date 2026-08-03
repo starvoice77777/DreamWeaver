@@ -2,6 +2,7 @@
 
 - 场景类型：无文本、无人声、低变化环境预设
 - 目标时长：620 秒（10:20）
+- 包版本：1.1.0；时间线版本：v6（增加多位置关键帧）
 - 输出策略：手机外放优先，耳机可获得更明确的空间层次
 - 当前状态：`demo_ready=true`，`release_ready=false`
 - 原因：四条推荐母带均已完成指标处理，但仍为 `qc_pending`，需完成实机连续循环与整场混音试听后才能升为 `master`
@@ -11,7 +12,7 @@
 1. 后端先读取 `scene/scene_manifest.json`。
 2. 使用 `scene/timeline.json` 作为执行真相源，`scene/tracks.csv` 供人工核对和导入。
 3. 时间线引用的文件只来自 `audio/master/`；`alternatives/` 仅供 A/B 试听，`demo/` 仅供复赛或长时试听。
-4. 产品与素材人员阅读 `docs/檐下听雨_场景时间戳与素材清单_v5.docx`。
+4. 产品与素材人员阅读 `docs/檐下听雨_场景时间戳与素材清单_v6.docx`；v5 仅保留为历史版本。
 5. 按 `qc/scene_acceptance.md` 完成手机外放、耳机和连续循环验收。
 
 ## 场景层次
