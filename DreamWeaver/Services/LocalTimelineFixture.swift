@@ -24,6 +24,7 @@ enum LocalTimelineFixture {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(APIContentDTO.SceneTimeline.self, from: data)
         } catch {
+            assertionFailure("rain_eaves_timeline_v5 decode failed: \(error)")
             return nil
         }
     }
@@ -40,6 +41,7 @@ enum LocalTimelineFixture {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(APIContentDTO.SceneTimeline.self, from: data)
         } catch {
+            assertionFailure("hair_care_timeline_v4 decode failed: \(error)")
             return nil
         }
     }
