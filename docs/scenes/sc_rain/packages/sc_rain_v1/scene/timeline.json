@@ -1,0 +1,231 @@
+{
+  "scene_id": "sc_rain",
+  "version": 5,
+  "duration_seconds": 620,
+  "automation_mode": "system_preset",
+  "scene_type": "environment_no_text_no_voice",
+  "tracks": [
+    {
+      "code": "A01",
+      "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41",
+      "resource_key": "rain_soft",
+      "master_file": "dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 0,
+      "asset_duration_seconds": 11.595875,
+      "playback_duration_seconds": 620,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.22,
+      "position_keyframes": [
+        {"at_seconds": 0, "angle": -0.35, "radius": 0.85}
+      ]
+    },
+    {
+      "code": "A02",
+      "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348",
+      "resource_key": "rain_parasol",
+      "master_file": "dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav",
+      "layer": "ambience",
+      "start_seconds": 30,
+      "asset_duration_seconds": 6.05,
+      "playback_duration_seconds": 530,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.4,
+      "position_keyframes": [
+        {"at_seconds": 30, "angle": 0.45, "radius": 0.4}
+      ]
+    },
+    {
+      "code": "A03",
+      "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e",
+      "resource_key": "rain_bamboo_leaf",
+      "master_file": "dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav",
+      "layer": "ambience",
+      "start_seconds": 220,
+      "asset_duration_seconds": 6.05,
+      "playback_duration_seconds": 310,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 800,
+      "default_volume": 0.27,
+      "position_keyframes": [
+        {"at_seconds": 220, "angle": -1.0, "radius": 0.78}
+      ]
+    },
+    {
+      "code": "A04a",
+      "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5",
+      "resource_key": "wind_realistic",
+      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 180,
+      "asset_duration_seconds": 11.56975,
+      "playback_duration_seconds": 20,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.18,
+      "position_keyframes": [
+        {"at_seconds": 180, "angle": -2.4, "radius": 0.9}
+      ]
+    },
+    {
+      "code": "A04b",
+      "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a",
+      "resource_key": "wind_realistic",
+      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "layer": "environment",
+      "start_seconds": 450,
+      "asset_duration_seconds": 11.56975,
+      "playback_duration_seconds": 20,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1000,
+      "default_volume": 0.16,
+      "position_keyframes": [
+        {"at_seconds": 450, "angle": 2.55, "radius": 0.94}
+      ]
+    }
+  ],
+  "phrases": [],
+  "voice_bindings": [],
+  "cues": [
+    {
+      "id": "a01-start",
+      "at_seconds": 0,
+      "actions": [
+        {"type": "enable", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0.22, "fade_ms": 30000}
+      ]
+    },
+    {
+      "id": "a02-start",
+      "at_seconds": 30,
+      "actions": [
+        {"type": "enable", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.4, "fade_ms": 8000}
+      ]
+    },
+    {
+      "id": "a04a-start",
+      "at_seconds": 180,
+      "actions": [
+        {"type": "enable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0.18, "fade_ms": 8000}
+      ]
+    },
+    {
+      "id": "a04a-fade-out",
+      "at_seconds": 192,
+      "actions": [
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 8000}
+      ]
+    },
+    {
+      "id": "a04a-stop",
+      "at_seconds": 200,
+      "actions": [
+        {"type": "pause", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "disable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"}
+      ]
+    },
+    {
+      "id": "a03-start",
+      "at_seconds": 220,
+      "actions": [
+        {"type": "enable", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0.27, "fade_ms": 10000}
+      ]
+    },
+    {
+      "id": "a02-gently-rise",
+      "at_seconds": 330,
+      "actions": [
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.46, "fade_ms": 10000}
+      ]
+    },
+    {
+      "id": "a02-return",
+      "at_seconds": 350,
+      "actions": [
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0.4, "fade_ms": 10000}
+      ]
+    },
+    {
+      "id": "a04b-start",
+      "at_seconds": 450,
+      "actions": [
+        {"type": "enable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 0},
+        {"type": "play", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0.16, "fade_ms": 8000}
+      ]
+    },
+    {
+      "id": "a04b-fade-out",
+      "at_seconds": 462,
+      "actions": [
+        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 8000}
+      ]
+    },
+    {
+      "id": "a04b-stop",
+      "at_seconds": 470,
+      "actions": [
+        {"type": "pause", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
+        {"type": "disable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"}
+      ]
+    },
+    {
+      "id": "a03-fade-out",
+      "at_seconds": 520,
+      "actions": [
+        {"type": "set_volume", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e", "volume": 0, "fade_ms": 10000}
+      ]
+    },
+    {
+      "id": "a03-stop",
+      "at_seconds": 530,
+      "actions": [
+        {"type": "pause", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"},
+        {"type": "disable", "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e"}
+      ]
+    },
+    {
+      "id": "a02-fade-out",
+      "at_seconds": 550,
+      "actions": [
+        {"type": "set_volume", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348", "volume": 0, "fade_ms": 10000}
+      ]
+    },
+    {
+      "id": "a02-stop",
+      "at_seconds": 560,
+      "actions": [
+        {"type": "pause", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "disable", "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348"},
+        {"type": "set_volume", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41", "volume": 0, "fade_ms": 60000}
+      ]
+    },
+    {
+      "id": "scene-stop",
+      "at_seconds": 620,
+      "actions": [
+        {"type": "pause", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"},
+        {"type": "disable", "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41"}
+      ]
+    }
+  ]
+}
