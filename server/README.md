@@ -50,9 +50,10 @@ uvicorn app.main:app --reload
 | POST | `/v1/scenes/{id}/copy` | Bearer | 从官方场景复制为个人草稿 |
 | GET/POST | `/v1/users/me/scenes` | Bearer | 列出 / 空白创建个人场景 |
 | GET | `/v1/users/me/scenes/{id}` | Bearer | 个人场景详情 |
-| PUT | `/v1/users/me/scenes/{id}/draft` | Bearer | 更新草稿（可含 `draft_timeline`，不发布） |
-| POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本（快照 `saved_sources` + `saved_timeline`） |
+| PUT | `/v1/users/me/scenes/{id}/draft` | Bearer | 更新草稿（可含 `draft_timeline` / `draft_composition`，不发布） |
+| POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本（快照 sources / timeline / composition） |
 | DELETE | `/v1/users/me/scenes/{id}` | Bearer | 软删除个人场景 |
+| POST | `/v1/compositions/validate` | Bearer | 校验 `scene_composition_v1`（不落库；见 `docs/scene-composition-contract.md`） |
 | POST | `/v1/uploads` | Bearer | 创建预签名上传会话（返回 `put_url`） |
 | POST | `/v1/uploads/{id}/complete` | Bearer | 确认对象已上传并创建 `SoundAsset` |
 | GET | `/v1/library/assets` | Bearer | 当前用户声音资产列表 |
@@ -61,14 +62,14 @@ uvicorn app.main:app --reload
 | GET | `/v1/library/assets/{id}/delete-impact` | Bearer | 删除前受影响个人场景（二次确认 UI） |
 | DELETE | `/v1/library/assets/{id}` | Bearer | 软删除；从个人场景草稿/正式版 scrub `assetId`；尽力删对象 |
 | GET | `/v1/library/assets/{id}/playback-url` | Bearer | 短时私有播放 URL |
-| POST | `/v1/voice-authorizations` | Bearer | 创建声音授权（`confirmed=true`） |
-| GET | `/v1/voice-authorizations` | Bearer | 授权列表（含已撤回） |
-| POST | `/v1/voice-authorizations/{id}/revoke` | Bearer | 撤回授权并级联：取消 SeedJob、软删种子资产、scrub 场景、尽力删供应商 stub |
-| POST | `/v1/seeds/analyze` | Bearer | 质检（body: `duration_seconds`） |
-| POST | `/v1/seeds/process` | Bearer | 启动 SeedJob（授权 + 已 complete 的源资产） |
-| GET | `/v1/seeds/jobs/{id}` | Bearer | 轮询；stub 进度在此推进直至 `completed` |
-| POST | `/v1/seeds/jobs/{id}/finalize` | Bearer | body: `name` + `relation` → `kind=voice` 资产 |
-| DELETE | `/v1/seeds/jobs/{id}` | Bearer | 取消未完成任务 |
+| POST | `/v1/voice-authorizations` | Bearer | **[deprecated]** 创建声音授权（`confirmed=true`） |
+| GET | `/v1/voice-authorizations` | Bearer | **[deprecated]** 授权列表（含已撤回） |
+| POST | `/v1/voice-authorizations/{id}/revoke` | Bearer | **[deprecated]** 撤回授权并级联：取消 SeedJob、软删种子资产、scrub 场景、尽力删供应商 stub |
+| POST | `/v1/seeds/analyze` | Bearer | **[deprecated]** 质检（body: `duration_seconds`） |
+| POST | `/v1/seeds/process` | Bearer | **[deprecated]** 启动 SeedJob（授权 + 已 complete 的源资产） |
+| GET | `/v1/seeds/jobs/{id}` | Bearer | **[deprecated]** 轮询；stub 进度在此推进直至 `completed` |
+| POST | `/v1/seeds/jobs/{id}/finalize` | Bearer | **[deprecated]** body: `name` + `relation` → `kind=voice` 资产 |
+| DELETE | `/v1/seeds/jobs/{id}` | Bearer | **[deprecated]** 取消未完成任务 |
 | POST | `/v1/analytics/events` | Bearer | 批量上报陪伴事件（对齐 iOS `AnalyticsEvent`） |
 | GET | `/v1/analytics/summary` | Bearer | 陪伴摘要（对齐 iOS `UsageRecord`） |
 | POST | `/v1/admin/reseed-catalog` | 否 | **非 production**：upsert 官方场景元数据 / 音轨 / 预设并刷新时间线（不删孤儿轨） |
@@ -76,6 +77,8 @@ uvicorn app.main:app --reload
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
 
 Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮询 `jobs/{id}` → `finalize`。进度对齐本地 iOS，**不依赖 Celery worker**；可选任务名 `seeds.advance_job` 仅骨架，正式异步执行留阶段 8 之后。
+
+**产品废弃（PRD v1.3）**：语音克隆 / Seed 产品路径已取消；上述 Seed 与 VoiceAuthorization 接口保留但标记 **deprecated**，仅供开发遗留与回归测试。用户「创建」请使用 `scene_composition_v1`（契约 `docs/scene-composition-contract.md`；前端隐藏 Seed 入口见 `docs/frontend-handoff-scene-composition.md`）。
 
 删除约定：先 `GET .../delete-impact` 展示受影响场景，再 `DELETE` 确认。声源 JSON 用 `assetId`（或 `asset_id`）关联资产。
 

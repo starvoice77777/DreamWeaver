@@ -241,6 +241,36 @@ enum APIContentDTO {
         let saved_sources: [PresetSource]?
         let draft_timeline: SceneTimeline?
         let saved_timeline: SceneTimeline?
+        /// User create-mode document (`scene_composition_v1`); optional until Create Tab lands.
+        let draft_composition: SceneComposition?
+        let saved_composition: SceneComposition?
+    }
+
+    /// Sparse keyframe composition for Create mode. Playback interpolator is separate.
+    struct SceneComposition: Codable {
+        let schema: String
+        let version: Int
+        let duration_seconds: Double?
+        let tracks: [CompositionTrack]
+    }
+
+    struct CompositionTrack: Codable {
+        let id: UUID
+        let asset_id: UUID?
+        let resource_key: String?
+        let layer: String?
+        let loop: Bool?
+        let start_seconds: Double
+        let end_seconds: Double
+        let source_duration_seconds: Double?
+        let keyframes: [CompositionKeyframe]
+    }
+
+    struct CompositionKeyframe: Codable {
+        let t: Double
+        let angle: Double
+        let radius: Double
+        let volume: Double
     }
 
     struct PrivateSceneCreate: Encodable {
@@ -257,6 +287,8 @@ enum APIContentDTO {
     struct PrivateSceneDraftUpdate: Encodable {
         var name: String?
         var sources: [MixSourcePayload]?
+        var draft_timeline: SceneTimeline?
+        var draft_composition: SceneComposition?
     }
 
     struct MixSourcePayload: Encodable {

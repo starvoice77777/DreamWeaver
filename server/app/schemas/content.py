@@ -217,6 +217,8 @@ class PrivateSceneDetailOut(PrivateSceneSummaryOut):
     saved_sources: list[dict] | None = None
     draft_timeline: dict | None = None
     saved_timeline: dict | None = None
+    draft_composition: dict | None = None
+    saved_composition: dict | None = None
 
 
 class PrivateSceneCreate(BaseModel):
@@ -229,6 +231,7 @@ class PrivateSceneCreate(BaseModel):
     visual_style: str = "custom"
     sources: list[dict] = Field(default_factory=list)
     timeline: dict | None = None
+    composition: dict | None = None
 
 
 class PrivateSceneDraftUpdate(BaseModel):
@@ -241,6 +244,15 @@ class PrivateSceneDraftUpdate(BaseModel):
     visual_style: str | None = None
     sources: list[dict] | None = None
     draft_timeline: dict | None = None
+    draft_composition: dict | None = None
+
+
+class CompositionValidateIn(BaseModel):
+    composition: dict
+
+
+class CompositionValidateOut(BaseModel):
+    composition: dict
 
 
 class HomeOut(BaseModel):

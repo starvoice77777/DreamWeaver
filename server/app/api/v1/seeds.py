@@ -24,7 +24,8 @@ router = APIRouter(tags=["seeds"])
 @router.post(
     "/voice-authorizations",
     response_model=VoiceAuthorizationOut,
-    summary="Create creator voice authorization record",
+    summary="[deprecated] Create creator voice authorization record",
+    deprecated=True,
 )
 async def create_authorization(
     body: VoiceAuthorizationCreate, session: DbSession, user: CurrentUser
@@ -35,7 +36,8 @@ async def create_authorization(
 @router.get(
     "/voice-authorizations",
     response_model=list[VoiceAuthorizationOut],
-    summary="List voice authorizations for current user",
+    summary="[deprecated] List voice authorizations for current user",
+    deprecated=True,
 )
 async def list_authorizations(
     session: DbSession, user: CurrentUser
@@ -46,7 +48,8 @@ async def list_authorizations(
 @router.post(
     "/voice-authorizations/{authorization_id}/revoke",
     response_model=VoiceAuthorizationRevokeOut,
-    summary="Revoke authorization and cascade-cancel jobs / seed assets",
+    summary="[deprecated] Revoke authorization and cascade-cancel jobs / seed assets",
+    deprecated=True,
 )
 async def revoke_authorization(
     authorization_id: uuid.UUID, session: DbSession, user: CurrentUser
@@ -57,7 +60,8 @@ async def revoke_authorization(
 @router.post(
     "/seeds/analyze",
     response_model=SeedQualityReportOut,
-    summary="Analyze seed sample quality (stub)",
+    summary="[deprecated] Analyze seed sample quality (stub)",
+    deprecated=True,
 )
 async def analyze_seed(
     body: SeedAnalyzeIn, user: CurrentUser
@@ -68,7 +72,8 @@ async def analyze_seed(
 @router.post(
     "/seeds/process",
     response_model=SeedJobOut,
-    summary="Start seed processing job via StubVoiceProvider",
+    summary="[deprecated] Start seed processing job via StubVoiceProvider",
+    deprecated=True,
 )
 async def process_seed(
     body: SeedProcessIn, session: DbSession, user: CurrentUser
@@ -79,7 +84,8 @@ async def process_seed(
 @router.get(
     "/seeds/jobs/{job_id}",
     response_model=SeedJobOut,
-    summary="Poll seed job (advances stub progress)",
+    summary="[deprecated] Poll seed job (advances stub progress)",
+    deprecated=True,
 )
 async def get_seed_job(
     job_id: uuid.UUID, session: DbSession, user: CurrentUser
@@ -90,7 +96,8 @@ async def get_seed_job(
 @router.post(
     "/seeds/jobs/{job_id}/finalize",
     response_model=SoundAssetOut,
-    summary="Finalize completed job into a voice SoundAsset",
+    summary="[deprecated] Finalize completed job into a voice SoundAsset",
+    deprecated=True,
 )
 async def finalize_seed_job(
     job_id: uuid.UUID,
@@ -104,7 +111,8 @@ async def finalize_seed_job(
 @router.delete(
     "/seeds/jobs/{job_id}",
     status_code=204,
-    summary="Cancel an unfinished seed job",
+    summary="[deprecated] Cancel an unfinished seed job",
+    deprecated=True,
 )
 async def delete_seed_job(
     job_id: uuid.UUID, session: DbSession, user: CurrentUser

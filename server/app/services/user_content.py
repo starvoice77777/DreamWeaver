@@ -23,7 +23,16 @@ from app.schemas.content import (
     UserSettingsUpdate,
 )
 from app.services.content import list_scenes
+from app.services.composition import CompositionValidationError, validate_composition
 from app.services.seed_catalog import DEFAULT_SCENE_ID, ensure_official_catalog
+
+
+def _validated_composition_or_http(document: dict) -> dict:
+    try:
+        return validate_composition(document)
+    except CompositionValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.as_detail()) from exc
+
 
 DEFAULT_PALETTE = {
     "top": 0x1A2740,
@@ -170,6 +179,12 @@ def private_to_detail(scene: PrivateScene) -> PrivateSceneDetailOut:
         saved_sources=list(scene.saved_sources) if scene.saved_sources is not None else None,
         draft_timeline=dict(scene.draft_timeline) if scene.draft_timeline is not None else None,
         saved_timeline=dict(scene.saved_timeline) if scene.saved_timeline is not None else None,
+        draft_composition=(
+            dict(scene.draft_composition) if scene.draft_composition is not None else None
+        ),
+        saved_composition=(
+            dict(scene.saved_composition) if scene.saved_composition is not None else None
+        ),
     )
 
 
@@ -214,6 +229,10 @@ def _tracks_as_sources(scene: Scene) -> list[dict]:
 async def create_blank_private_scene(
     session: AsyncSession, user: User, body: PrivateSceneCreate
 ) -> PrivateSceneDetailOut:
+    draft_composition = None
+    if body.composition is not None:
+        draft_composition = _validated_composition_or_http(body.composition)
+
     scene = PrivateScene(
         owner_user_id=user.id,
         name=body.name.strip() or "未命名场景",
@@ -225,6 +244,7 @@ async def create_blank_private_scene(
         visual_style=body.visual_style or "custom",
         draft_sources=list(body.sources or []),
         draft_timeline=dict(body.timeline) if body.timeline is not None else None,
+        draft_composition=draft_composition,
     )
     session.add(scene)
     await session.commit()
@@ -282,12 +302,15 @@ async def update_private_draft(
     data = body.model_dump(exclude_unset=True)
     sources = data.pop("sources", None)
     draft_timeline = data.pop("draft_timeline", None)
+    draft_composition = data.pop("draft_composition", None)
     for key, value in data.items():
         setattr(scene, key, value)
     if sources is not None:
         scene.draft_sources = sources
     if draft_timeline is not None:
         scene.draft_timeline = draft_timeline
+    if draft_composition is not None:
+        scene.draft_composition = _validated_composition_or_http(draft_composition)
     await session.commit()
     await session.refresh(scene)
     return private_to_detail(scene)
@@ -297,12 +320,19 @@ async def save_private_scene(
     session: AsyncSession, user: User, scene_id: uuid.UUID
 ) -> PrivateSceneDetailOut:
     scene = await _owned_private(session, user, scene_id)
-    if not scene.draft_sources:
+    has_sources = bool(scene.draft_sources)
+    has_composition = scene.draft_composition is not None
+    if not has_sources and not has_composition:
         raise HTTPException(
             status_code=422,
-            detail="Cannot save an empty mix; add at least one source",
+            detail="Cannot save an empty mix; add at least one source or composition track",
         )
-    scene.saved_sources = list(scene.draft_sources)
+    if has_composition:
+        scene.draft_composition = _validated_composition_or_http(scene.draft_composition)
+        scene.saved_composition = dict(scene.draft_composition)
+    else:
+        scene.saved_composition = None
+    scene.saved_sources = list(scene.draft_sources or [])
     scene.saved_timeline = (
         dict(scene.draft_timeline) if scene.draft_timeline is not None else None
     )
