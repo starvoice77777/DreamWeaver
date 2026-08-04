@@ -82,6 +82,9 @@ final class AppState: ObservableObject {
     /// Warm timelines for swipe targets so playback reload skips a network/disk round-trip.
     private var timelineCache: [UUID: APIContentDTO.SceneTimeline] = [:]
     private var swipePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
+    private var isApplyingRemoteSettings = false
+    private var remoteSettingsSyncTask: Task<Void, Never>?
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -195,6 +198,39 @@ final class AppState: ObservableObject {
         scenes.firstIndex(where: { $0.id == currentSceneId }) ?? 0
     }
 
+    /// Official / community presets that belong to the current scene (for MixPresetBrowser).
+    var mixPresetsForCurrentScene: [MixPreset] {
+        let styleKey = currentScene.visualStyle.rawValue
+        let sceneId = currentSceneId
+        return mixPresets.filter { preset in
+            if let sid = preset.sceneId { return sid == sceneId }
+            if let hint = preset.styleHint, !hint.isEmpty { return hint == styleKey }
+            if !preset.subtitle.isEmpty, preset.subtitle == styleKey { return true }
+            return legacyPresetMatchesCurrentScene(preset)
+        }
+    }
+
+    private func legacyPresetMatchesCurrentScene(_ preset: MixPreset) -> Bool {
+        switch currentScene.visualStyle {
+        case .hairCare:
+            return preset.id == DemoIDs.presetHairCare
+        case .rainEaves:
+            return preset.id == DemoIDs.presetRainFine || preset.id == DemoIDs.presetBreathOnly
+        case .fireflies:
+            return preset.id == DemoIDs.presetForestGlow
+        case .mistTide:
+            return preset.id == DemoIDs.presetMistTide
+        case .fireplaceWhisper:
+            return preset.id == DemoIDs.presetFireplace
+        case .starRiver:
+            return preset.id == DemoIDs.presetStarRiver
+        case .cloudBreath:
+            return preset.id == DemoIDs.presetBreathOnly
+        default:
+            return false
+        }
+    }
+
     // MARK: - Bootstrap
 
     func bootstrap() async {
@@ -205,9 +241,18 @@ final class AppState: ObservableObject {
 
             let loadedScenes = try await contentService.fetchScenes()
             scenes = loadedScenes
-            soundAssets = try await libraryService.fetchAssets()
-            usageRecord = try await analyticsService.summary()
-            mixPresets = try await contentService.fetchMixPresets(sceneStyle: nil)
+            // Library / analytics must not block home favorites + settings hydration.
+            if let assets = try? await libraryService.fetchAssets() {
+                soundAssets = assets
+            }
+            if let summary = try? await analyticsService.summary() {
+                usageRecord = summary
+            }
+            do {
+                mixPresets = try await contentService.fetchMixPresets(sceneStyle: nil)
+            } catch {
+                lastServiceMessage = "混音预设加载失败：\(error.localizedDescription)"
+            }
 
             if let lastIdString = defaults.string(forKey: "dw.lastSceneId"),
                let lastId = UUID(uuidString: lastIdString),
@@ -248,7 +293,9 @@ final class AppState: ObservableObject {
         isAppleSignedIn = true
         isRemoteAuthenticated = true
         defaults.set(tokens.user_id.uuidString, forKey: "dw.sessionUserId")
-        persistSettings()
+        persistSettingsLocally()
+        // Upload current device prefs first so a fresh account inherits them, then re-hydrate.
+        await pushSettingsToRemote()
         await refreshAuthenticatedRemoteState()
         if let assets = try? await libraryService.fetchAssets() {
             soundAssets = assets
@@ -342,6 +389,9 @@ final class AppState: ObservableObject {
     }
 
     private func applyRemoteSettings(_ settings: APIContentDTO.Settings) {
+        isApplyingRemoteSettings = true
+        defer { isApplyingRemoteSettings = false }
+
         if let v = settings.reduce_motion { reduceMotion = v }
         if let v = settings.auto_play_enabled { autoPlayEnabled = v }
         if let v = settings.background_play_enabled { backgroundPlayEnabled = v }
@@ -353,8 +403,9 @@ final class AppState: ObservableObject {
         if let sceneId = settings.default_scene_id,
            scenes.contains(where: { $0.id == sceneId }) {
             currentSceneId = sceneId
-            defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
         }
+        // Mirror hydrated remote prefs into UserDefaults without a remote PUT loop.
+        persistSettingsLocally()
     }
 
     /// Restores fixture data for filming. Call before each take.
@@ -752,7 +803,11 @@ final class AppState: ObservableObject {
                     scenes[i].isFavorite = state.is_favorite
                 }
             } catch {
-                lastServiceMessage = error.localizedDescription
+                if let i = scenes.firstIndex(where: { $0.id == sceneId }) {
+                    scenes[i].isFavorite = !favored
+                    try? contentService.persistSceneOverlay(scenes: scenes)
+                }
+                lastServiceMessage = "收藏同步失败：\(error.localizedDescription)"
             }
         }
     }
@@ -1072,6 +1127,12 @@ final class AppState: ObservableObject {
     // MARK: - Settings persistence
 
     func persistSettings() {
+        guard !isApplyingRemoteSettings else { return }
+        persistSettingsLocally()
+        scheduleRemoteSettingsSync()
+    }
+
+    private func persistSettingsLocally() {
         defaults.set(reduceMotion, forKey: "dw.reduceMotion")
         defaults.set(autoPlayEnabled, forKey: "dw.autoPlay")
         defaults.set(backgroundPlayEnabled, forKey: "dw.bgPlay")
@@ -1084,26 +1145,49 @@ final class AppState: ObservableObject {
         defaults.set(isAppleSignedIn, forKey: "dw.appleSignIn")
         defaults.set(isMember, forKey: "dw.member")
         defaults.set(currentSceneId.uuidString, forKey: "dw.lastSceneId")
+    }
 
-        guard contentBackendMode == .remote, isRemoteAuthenticated, let remoteUserService else { return }
-        Task {
-            do {
-                _ = try await remoteUserService.updateSettings(
-                    APIContentDTO.SettingsUpdate(
-                        reduce_motion: reduceMotion,
-                        auto_play_enabled: autoPlayEnabled,
-                        background_play_enabled: backgroundPlayEnabled,
-                        lock_screen_play_enabled: lockScreenPlayEnabled,
-                        animation_intensity: animationIntensity,
-                        dark_mode_forced: darkModeForced,
-                        audio_quality: audioQuality,
-                        notifications_enabled: notificationsEnabled,
-                        default_scene_id: currentSceneId
-                    )
+    /// Debounce slider / multi-toggle bursts so the last snapshot wins on the server.
+    private func scheduleRemoteSettingsSync() {
+        guard contentBackendMode == .remote, isRemoteAuthenticated, remoteUserService != nil else { return }
+        remoteSettingsSyncTask?.cancel()
+        remoteSettingsSyncTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard let self, !Task.isCancelled else { return }
+            await self.pushSettingsToRemote()
+        }
+    }
+
+    /// Call when leaving foreground so a pending debounced PUT is not lost on kill.
+    func flushPendingSettingsSync() async {
+        guard !isApplyingRemoteSettings else { return }
+        remoteSettingsSyncTask?.cancel()
+        remoteSettingsSyncTask = nil
+        persistSettingsLocally()
+        await pushSettingsToRemote()
+    }
+
+    private func pushSettingsToRemote() async {
+        guard contentBackendMode == .remote,
+              isRemoteAuthenticated,
+              let remoteUserService,
+              !isApplyingRemoteSettings else { return }
+        do {
+            _ = try await remoteUserService.updateSettings(
+                APIContentDTO.SettingsUpdate(
+                    reduce_motion: reduceMotion,
+                    auto_play_enabled: autoPlayEnabled,
+                    background_play_enabled: backgroundPlayEnabled,
+                    lock_screen_play_enabled: lockScreenPlayEnabled,
+                    animation_intensity: animationIntensity,
+                    dark_mode_forced: darkModeForced,
+                    audio_quality: audioQuality,
+                    notifications_enabled: notificationsEnabled,
+                    default_scene_id: currentSceneId
                 )
-            } catch {
-                lastServiceMessage = error.localizedDescription
-            }
+            )
+        } catch {
+            lastServiceMessage = "设置同步失败：\(error.localizedDescription)"
         }
     }
 }

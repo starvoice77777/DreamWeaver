@@ -501,7 +501,9 @@ enum APIContentMapper {
             subtitle: dto.style_hint ?? "",
             authorType: .official,
             authorName: dto.author_name,
-            sources: dto.sources.map(soundSource(from:))
+            sources: dto.sources.map(soundSource(from:)),
+            sceneId: dto.scene_id,
+            styleHint: dto.style_hint
         )
     }
 

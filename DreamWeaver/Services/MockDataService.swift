@@ -594,7 +594,7 @@ enum MockDataService {
         [
             MixPreset(
                 id: DemoIDs.presetHairCare,
-                title: "温水近处",
+                title: "洗头轻声",
                 subtitle: "水循环与泡沫贴近，人声在身侧",
                 authorType: .official,
                 authorName: "织梦",
@@ -603,11 +603,13 @@ enum MockDataService {
                     source("泡沫揉洗", "hand.raised.fill", angle: .pi * 0.9, radius: 0.48, volume: 0.3, resourceName: "hair_wash_foam_rub", layer: .ambience),
                     source("底噪", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, volume: 0.18, resourceName: "ac_hum", layer: .ambience),
                     source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, volume: 0.48, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
-                ]
+                ],
+                sceneId: DemoIDs.hairCareScene,
+                styleHint: SceneVisualStyle.hairCare.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetRainFine,
-                title: "檐下细雨",
+                title: "细雨慢听",
                 subtitle: "远雨垫底，檐雨近听，竹叶轻扫",
                 authorType: .official,
                 authorName: "织梦",
@@ -615,7 +617,9 @@ enum MockDataService {
                     source("远雨", "cloud.drizzle.fill", angle: 0.52, radius: 0.85, volume: 0.28, resourceName: "rain_soft", layer: .ambience),
                     source("檐下雨", "cloud.rain.fill", angle: 2.83, radius: 0.38, volume: 0.42, resourceName: "rain_parasol"),
                     source("竹叶雨", "leaf.fill", angle: -0.70, radius: 0.62, volume: 0.22, resourceName: "rain_bamboo_leaf", layer: .ambience)
-                ]
+                ],
+                sceneId: DemoIDs.rainEavesScene,
+                styleHint: SceneVisualStyle.rainEaves.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetForestGlow,
@@ -628,7 +632,9 @@ enum MockDataService {
                     source("风声", "wind", angle: .pi * 0.15, radius: 0.72, volume: 0.32),
                     source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.36, volume: 0.42, layer: .voice),
                     source("钢琴", "pianokeys", angle: .pi * 1.2, radius: 0.68, volume: 0.2)
-                ]
+                ],
+                sceneId: DemoIDs.firefliesScene,
+                styleHint: SceneVisualStyle.fireflies.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetMistTide,
@@ -641,7 +647,9 @@ enum MockDataService {
                     source("潮声", "water.waves", angle: -.pi * 0.2, radius: 0.82, volume: 0.3),
                     source("风声", "wind", angle: .pi * 0.3, radius: 0.7, volume: 0.35),
                     source("人声", "person.wave.2.fill", angle: .pi * 1.4, radius: 0.42, volume: 0.38, layer: .voice)
-                ]
+                ],
+                sceneId: DemoIDs.mistTideScene,
+                styleHint: SceneVisualStyle.mistTide.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetFireplace,
@@ -654,7 +662,9 @@ enum MockDataService {
                     source("人声", "person.wave.2.fill", angle: -.pi * 0.2, radius: 0.36, volume: 0.55, layer: .voice),
                     source("雨声", "cloud.rain.fill", angle: .pi * 1.0, radius: 0.76, volume: 0.34),
                     source("钢琴", "pianokeys", angle: .pi * 0.15, radius: 0.58, volume: 0.26)
-                ]
+                ],
+                sceneId: DemoIDs.fireplaceScene,
+                styleHint: SceneVisualStyle.fireplaceWhisper.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetStarRiver,
@@ -667,7 +677,9 @@ enum MockDataService {
                     source("风声", "wind", angle: .pi * 0.4, radius: 0.74, volume: 0.28),
                     source("人声", "person.wave.2.fill", angle: .pi * 1.15, radius: 0.5, volume: 0.32, layer: .voice),
                     source("虫鸣", "leaf.fill", angle: .pi * 0.75, radius: 0.8, volume: 0.18)
-                ]
+                ],
+                sceneId: DemoIDs.starRiverScene,
+                styleHint: SceneVisualStyle.starRiver.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetBreathOnly,
@@ -678,7 +690,9 @@ enum MockDataService {
                 sources: [
                     source("风声", "wind", angle: .pi * 0.25, radius: 0.55, volume: 0.45),
                     source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.4, volume: 0.5, layer: .voice)
-                ]
+                ],
+                sceneId: DemoIDs.cloudBreathScene,
+                styleHint: SceneVisualStyle.cloudBreath.rawValue
             )
         ]
     }

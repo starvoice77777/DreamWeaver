@@ -243,6 +243,16 @@ struct SoundMixCircleEditor: View {
                     .position(dockCenter)
                     .zIndex(4)
 
+                MixPresetBrowser()
+                    .frame(width: min(size.width - 24, dockWidth + 8))
+                    .position(
+                        x: size.width / 2,
+                        y: dockCenter.y - dockHeight / 2 - 34
+                    )
+                    .opacity(showPalette ? 0 : 1)
+                    .allowsHitTesting(!showPalette)
+                    .zIndex(5)
+
                 if let drag = draggingPalette {
                     floatingChrome(for: drag)
                         .position(finger)
@@ -697,6 +707,89 @@ struct SoundMixCircleEditor: View {
         }
         let scale = limit / distance
         return CGPoint(x: center.x + dx * scale, y: center.y + dy * scale)
+    }
+}
+
+// MARK: - Mix presets
+
+/// 「我的」+ 当前场景官方/社区预设；选预设仅试听，不可改盘。
+private struct MixPresetBrowser: View {
+    @EnvironmentObject private var appState: AppState
+
+    private var scenePresets: [MixPreset] {
+        appState.mixPresetsForCurrentScene
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    selectionChip(
+                        title: "我的",
+                        selected: appState.mixBoardSelection.isMine
+                    ) {
+                        appState.selectMineMixBoard()
+                    }
+
+                    ForEach(scenePresets) { preset in
+                        selectionChip(
+                            title: preset.title,
+                            selected: {
+                                if case .preset(let id) = appState.mixBoardSelection {
+                                    return id == preset.id
+                                }
+                                return false
+                            }()
+                        ) {
+                            appState.selectMixPreset(preset)
+                        }
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+
+            Text(
+                appState.mixBoardSelection.isMine
+                    ? (scenePresets.isEmpty
+                       ? "可自由调整圆内声源"
+                       : "可自由调整。切换预设不会清空「我的」布局")
+                    : "当前为预设试听，不可编辑。返回「我的」可继续调整"
+            )
+            .font(.system(size: 11))
+            .foregroundStyle(DreamTheme.tertiaryText)
+            .padding(.horizontal, 4)
+            .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.black.opacity(0.22))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(DreamTheme.chromeStroke.opacity(0.55), lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("声音布局预设")
+    }
+
+    private func selectionChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? DreamTheme.midnight : DreamTheme.moonWhite)
+                .lineLimit(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(selected ? DreamTheme.moonWhite.opacity(0.92) : Color.white.opacity(0.10))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

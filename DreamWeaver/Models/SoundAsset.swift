@@ -174,4 +174,8 @@ struct MixPreset: Identifiable, Hashable, Codable {
     var authorType: MixPresetAuthor
     var authorName: String
     var sources: [SoundSource]
+    /// Official catalog scene this preset belongs to (remote `scene_id`).
+    var sceneId: UUID? = nil
+    /// Matches `SceneVisualStyle.rawValue` when present (remote `style_hint`).
+    var styleHint: String? = nil
 }
