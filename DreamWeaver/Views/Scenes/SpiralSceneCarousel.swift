@@ -20,8 +20,8 @@ struct SpiralSceneCarousel: View {
     @State private var lastFrameDate: Date?
 
     private let replicaCount = 3
-    private let maximumVisibleCardsPerSide = 10
-    private let angleStep: CGFloat = 28
+    private let maximumVisibleCardsPerSide = 7
+    private let angleStep: CGFloat = 36
     private let dragSensitivity: CGFloat = 0.38
     private let autoSpinDegreesPerFrame: CGFloat = 0.12
     private let frictionPerFrame: CGFloat = 0.95
@@ -69,10 +69,10 @@ struct SpiralSceneCarousel: View {
         let range = CGFloat(virtualCount) * angleStep
         // Wider main card: neighbors live above/below, so horizontal space can
         // be dedicated to the focused scene artwork.
-        let cardWidth = size.width * 0.72
-        let cardHeight = cardWidth * 0.62
-        // Radius scales with viewport height so the vertical arc stays readable.
-        let radius = max(size.height * 0.52, cardHeight * 1.8)
+        let cardWidth = size.width * 0.68
+        let cardHeight = cardWidth * 0.58
+        // A wider radius and angle step leave breathing room between neighbors.
+        let radius = max(size.height * 0.60, cardHeight * 2.05)
         let placements = visiblePlacements(
             virtualCount: virtualCount,
             range: range
@@ -108,10 +108,21 @@ struct SpiralSceneCarousel: View {
         let yPosition = sin(radians) * radius
 
         let perspectiveScale = 0.52 + 0.78 * depthRatio
+        // Concentrate visual weight at the center instead of giving the nearest
+        // neighbors almost the same size and brightness.
+        let focusProgress = max(
+            0,
+            1 - abs(normalizedAngle) / (angleStep * 1.4)
+        )
+        let emphasisScale = 0.88 + 0.12 * focusProgress
+        let displayScale = perspectiveScale * emphasisScale
+        let focusOpacity = 0.56 + 0.44 * Double(focusProgress)
+        let saturation = 0.50 + 0.50 * focusProgress
+        let brightness = -0.08 + 0.08 * focusProgress
         let positionScale = perspectiveScale / 1.30
         let projectedY = yPosition * positionScale
-        let projectedHalfWidth = cardWidth * perspectiveScale / 2
-        let projectedHalfHeight = cardHeight * perspectiveScale / 2
+        let projectedHalfWidth = cardWidth * displayScale / 2
+        let projectedHalfHeight = cardHeight * displayScale / 2
         let horizontalExit = max(
             projectedHalfWidth - containerSize.width / 2,
             0
@@ -132,6 +143,7 @@ struct SpiralSceneCarousel: View {
         SpiralSceneCard(
             scene: scene,
             isFocused: isFocused,
+            focusProgress: focusProgress,
             isPlaying: appState.isPlaying && appState.currentSceneId == scene.id,
             darkness: isBackCard ? 0 : darkness,
             showsArt: showsArt,
@@ -146,8 +158,10 @@ struct SpiralSceneCarousel: View {
             }
         )
         .frame(width: cardWidth, height: cardHeight)
-        .scaleEffect(perspectiveScale)
-        .opacity(opacity * Double(edgeFade))
+        .scaleEffect(displayScale)
+        .saturation(saturation)
+        .brightness(brightness)
+        .opacity(opacity * focusOpacity * Double(edgeFade))
         .rotation3DEffect(
             .degrees(Double(-normalizedAngle)),
             axis: (x: 1, y: 0, z: 0),
@@ -286,6 +300,7 @@ private struct WheelPlacement: Identifiable {
 private struct SpiralSceneCard: View {
     let scene: DreamScene
     let isFocused: Bool
+    let focusProgress: CGFloat
     let isPlaying: Bool
     let darkness: Double
     let showsArt: Bool
@@ -359,10 +374,20 @@ private struct SpiralSceneCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
-                    Color.white.opacity(showsArt ? (0.08 + (isFocused ? 0.10 : 0)) : 0.05),
-                    lineWidth: 1
+                    showsArt
+                        ? scene.palette.accentColor.opacity(
+                            0.08 + 0.70 * Double(focusProgress)
+                        )
+                        : Color.white.opacity(0.05),
+                    lineWidth: 1 + 0.6 * focusProgress
                 )
         }
+        .shadow(
+            color: scene.palette.accentColor.opacity(
+                0.34 * Double(focusProgress)
+            ),
+            radius: 22 * focusProgress
+        )
         .shadow(
             color: .black.opacity(isFocused ? 0.60 : 0),
             radius: isFocused ? 15 : 0,
