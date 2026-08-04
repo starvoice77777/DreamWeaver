@@ -1,0 +1,50 @@
+{
+  "package": "D:\\文档\\DreamWeaver\\outputs\\scene_packages\\sc_rain_v1",
+  "scene_id": "sc_rain",
+  "passed": true,
+  "errors": [],
+  "warnings": [],
+  "checked_tracks": 5,
+  "checked_audio": [
+    {
+      "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41",
+      "file": "dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 11.595979
+    },
+    {
+      "track_id": "819f884b-81b5-4a47-8d0d-d2fc2ee55348",
+      "file": "dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 6.05
+    },
+    {
+      "track_id": "323ebc52-41ed-43b6-a097-77f55204d09e",
+      "file": "dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 6.05
+    },
+    {
+      "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5",
+      "file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 11.56975
+    },
+    {
+      "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a",
+      "file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 11.56975
+    }
+  ]
+}

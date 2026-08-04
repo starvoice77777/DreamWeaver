@@ -431,7 +431,10 @@ final class AppState: ObservableObject {
 
     private func reloadPlayback(autoPlay: Bool) {
         let scene = currentScene
-        let sources = scene.soundSources.filter(\.isEnabled)
+        // Pass every resource-backed track (including disabled). Official timelines
+        // enable/fade layers over time; filtering to isEnabled left rain eaves with
+        // only 远雨 and made all later cues no-ops.
+        let sources = scene.soundSources.filter { $0.resourceName != nil }
         let sceneId = currentSceneId
         Task { @MainActor [weak self] in
             guard let self else { return }

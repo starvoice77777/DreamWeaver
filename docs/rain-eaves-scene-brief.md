@@ -1,26 +1,22 @@
-# 檐下听雨场景（协同表 v4 → timeline v2）
-
-> 来源：微信素材包 `ziran/processed` + 《自然场景_无文本时间线与素材清单_v4》+ `scene-creation-spec-v1.1`  
-> 工程：`rain_eaves_timeline_v2.json`（iOS Mock + `server/app/fixtures/`）、`MockDataService.rainEavesScene`、`seed_catalog`
-
-## 已实现
-
-| 项 | 说明 |
-|----|------|
-| 总时长 | `duration_hint_seconds = 620`（约 10:20） |
-| 轨 | A01 `rain_soft`、A02 `rain_parasol`、A03 `rain_bamboo_leaf`、A04 `wind_realistic` |
-| 时间线 | version **2**；`phrases: []`；分层 `enable` / `play` / `set_volume` / `disable` |
-| 模板 | 规范 §6-B 无文本环境型（无人声） |
-| 素材状态 | 全部 **`qc_pending`**，可本地演示；正式 Bundle 上架前须 QC + 许可证 |
-
-## 已知缺口
-
-- `room_wood_tone` 未收集
-- A01–A03 标注 `requires_engine_crossfade=true`
-- 旧 DB 若仍是 3 轨旧时间线，需 `version < 2` 自动升级（仅 timeline；轨表需重 seed 或清库）
-
-## 共享文件
-
-- `DemoIDs`（新增竹叶轨 UUID）
-- `MockDataService` / `seed_catalog`（对齐轨与短键）
-- 未改 `AppState` / `NowView` / 圆盘手势逻辑（仅 palette 短键映射）
+# 檐下听雨场景（sc_rain_v1 → timeline v6）
+
+> 来源：素材包 `sc_rain_v1`（归档于 `docs/scenes/sc_rain/packages/sc_rain_v1/`）+ 《檐下听雨_场景时间戳与素材清单_v6》  
+> 工程：`rain_eaves_timeline_v6.json`（iOS Mock + `server/app/fixtures/`）、`MockDataService.rainEavesScene`、`seed_catalog`  
+> 映射说明：`packages/sc_rain_v1/INGEST.md`
+
+## 已实现
+
+| 项 | 说明 |
+|----|------|
+| 总时长 | `duration_hint_seconds = 620`（约 10:20） |
+| 轨 | A01 `rain_soft`、A02 `rain_parasol`、A03 `rain_bamboo_leaf`、A04 `wind_realistic` |
+| 时间线 | version **6**；`phrases: []`；音量 cue 同 v5；`position_keyframes` 展开为离散 `set_position` |
+| 母带 | Bundle WAV = 包内 `audio/master` v02（v6 相对 v5 **未改音频**） |
+| 模板 | 规范 §6-B 无文本环境型（无人声） |
+| 素材状态 | 母带仍 **`qc_pending`** / `demo_ready`；`release_ready=false` |
+
+## 已知缺口
+
+- `room_wood_tone` 未收集
+- 母带正式 QC / 凭证归档前不可标 `release_ready`
+- 引擎对 `set_position` 为阶跃（无关键帧插值）

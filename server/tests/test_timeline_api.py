@@ -67,6 +67,7 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
     assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
+    assert body["version"] == 6
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
     assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
@@ -82,6 +83,27 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     )
     assert any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
+    assert any(a["type"] == "set_position" for c in body["cues"] for a in c["actions"])
+    # Package sc_rain_v1 v6: soft fade-in 0.22; parasol enters farther (0.7 / 0.62)
+    soft_vols = [
+        a["volume"]
+        for c in body["cues"]
+        for a in c.get("actions", [])
+        if a.get("type") == "set_volume" and a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
+    ]
+    assert 0.22 in soft_vols
+    parasol_enter = next(
+        a
+        for c in body["cues"]
+        if c["at_seconds"] == 30
+        for a in c["actions"]
+        if a.get("type") == "set_position"
+        and a.get("track_id") == "e5555555-5555-4555-8555-555555555501"
+    )
+    assert parasol_enter["angle"] == 0.7
+    assert parasol_enter["radius"] == 0.62
+    # Spatial keyframes expanded from package position_keyframes
+    assert len([c for c in body["cues"] if any(a["type"] == "set_position" for a in c["actions"])]) >= 10
 
 
 async def test_scene_timeline_missing_scene(client) -> None:

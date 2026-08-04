@@ -1,0 +1,26 @@
+{
+  "scene_id": "sc_rain",
+  "scene_name": "檐下听雨",
+  "package_version": "1.1.0",
+  "timeline_version": 6,
+  "scene_type": "environment_no_text_no_voice",
+  "duration_seconds": 620,
+  "output_preference": "external_speaker_first",
+  "headphones_supported": true,
+  "phrases": [],
+  "voice_bindings": [],
+  "demo_ready": true,
+  "release_ready": false,
+  "release_blockers": [
+    "四条母带仍为 qc_pending",
+    "尚需手机外放整场试听",
+    "尚需耳机空间层次试听",
+    "尚需每条短循环连续至少2分钟接缝验收"
+  ],
+  "truth_sources": {
+    "timeline": "scene/timeline.json",
+    "tracks": "scene/tracks.csv",
+    "qc": "qc/asset_qc.csv",
+    "licenses": "licenses/license_manifest.csv"
+  }
+}

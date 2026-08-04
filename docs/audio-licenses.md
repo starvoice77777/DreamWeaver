@@ -8,10 +8,10 @@
 | `hair_wash.m4a` | `384924__beeproductive__washing-hair.wav` | beeproductive | Freesound | 采用前复核页面许可证 | 洗头陪伴 · 水流 | 按许可证署名 |
 | `hair_dryer.mp3` | `150303__orginaljun__hair-dryer.mp3` | orginaljun | Freesound | 采用前复核 | 洗头陪伴 · 吹风机 | 按许可证署名 |
 | `ac_hum.m4a` | `573034__jptalty__air-conditioner-with-rattle.wav` | jptalty | Freesound | 采用前复核 | 洗头陪伴 · 底噪 | 按许可证署名 |
-| `rain_parasol.wav` | `dw_official_env_rain_parasol_loop_sc_rain_near_v01_t01.wav` | 素材交付（原 Close-up_gentle_rain） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A02 近雨 | 正式上架前补许可证 |
-| `rain_soft.wav` | `dw_official_amb_rain_soft_loop_sc_rain_far_v01_t01.wav` | 素材交付（原 Indoor_perspective） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A01 远雨 | 正式上架前补许可证 |
-| `rain_bamboo_leaf.wav` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v01_t01.wav` | 素材交付（原 Soft_rainy_bamboo） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A03 竹叶雨 | 正式上架前补许可证 |
-| `wind_realistic.wav` | `dw_official_env_wind_realistic_loop_sc_rain_far_v01_t01.wav` | 素材交付（原 audiomass-output） | 微信包 `ziran/processed` | **qc_pending** | 檐下听雨 · A04 远风 | 正式上架前补许可证 |
+| `rain_parasol.wav` | `dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav` | 素材交付 sc_rain_v1 | `docs/scenes/sc_rain/packages/sc_rain_v1` | **qc_pending**（演示 license `approved`） | 檐下听雨 · A02 近雨 | 正式上架前补凭证归档 |
+| `rain_soft.wav` | `dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A01 远雨 | 正式上架前补凭证归档 |
+| `rain_bamboo_leaf.wav` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A03 竹叶雨 | 正式上架前补凭证归档 |
+| `wind_realistic.wav` | `dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A04 远风 | 正式上架前补凭证归档 |
 | `rain_parasol.m4a`（旧） | Freesound 531947 | straget | Freesound | CC BY 4.0 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
 | `rain_soft.mp3`（旧） | Freesound 34070 | arctura | Freesound | 采用前复核 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
 | `wind_realistic.m4a`（旧） | Freesound 405561 | InspectorJ | Freesound | 需署名 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |

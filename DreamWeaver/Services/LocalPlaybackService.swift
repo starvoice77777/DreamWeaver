@@ -148,8 +148,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             desiredResources[$0] != previousResources[$0]
         }
         let addedOrReplacedSources = sources.filter { source in
-            guard source.isEnabled, let resourceName = source.resourceName else { return false }
-            return previousResources[source.id] != resourceName
+            guard source.resourceName != nil else { return false }
+            return previousResources[source.id] != source.resourceName
         }
         let engineWasRunning = engine.isRunning
         var newlyAttachedIds: [UUID] = []
@@ -346,11 +346,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         var attachedCount = 0
         var failures: [String] = []
 
-        for source in sources where source.isEnabled {
+        // Attach disabled tracks too (muted). Timeline cues enable / fade them in.
+        for source in sources where source.resourceName != nil {
             do {
                 if try attach(source: source) {
                     attachedCount += 1
-                } else if source.resourceName != nil {
+                } else {
                     failures.append(source.name)
                 }
             } catch {
@@ -366,7 +367,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     private func desiredResourceMap(for sources: [SoundSource]) -> [UUID: String] {
         Dictionary(uniqueKeysWithValues: sources.compactMap { source in
-            guard source.isEnabled, let resourceName = source.resourceName else { return nil }
+            guard let resourceName = source.resourceName else { return nil }
             return (source.id, resourceName)
         })
     }
@@ -424,7 +425,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 if let id = action.track_id, var source = currentSources[id] {
                     source.isEnabled = true
                     currentSources[id] = source
+                    ensureTrackAttached(source)
                     updateSource(id: id, volume: source.volume, position: source.position, enabled: true)
+                    if playbackRequested, let node = players[id], !node.isPlaying, layers[id] != .voice {
+                        node.play()
+                    }
                 }
             case "disable":
                 if let id = action.track_id, var source = currentSources[id] {
@@ -433,8 +438,13 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     updateSource(id: id, volume: source.volume, position: source.position, enabled: false)
                 }
             case "play":
-                if let id = action.track_id, let node = players[id], !node.isPlaying {
-                    node.play()
+                if let id = action.track_id {
+                    if players[id] == nil, let source = currentSources[id] {
+                        ensureTrackAttached(source)
+                    }
+                    if let node = players[id], !node.isPlaying {
+                        node.play()
+                    }
                 }
             case "pause":
                 if let id = action.track_id {
@@ -533,7 +543,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             node.volume = 0
         } else {
             scheduleLoop(node: node, file: file)
-            node.volume = Float(source.volume)
+            // Keep disabled beds attached but silent until timeline / user enables them.
+            node.volume = source.isEnabled ? Float(source.volume) : 0
         }
 
         players[source.id] = node
@@ -541,6 +552,17 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         baseVolumes[source.id] = source.volume
         fadeMultipliers[source.id] = 1
         return true
+    }
+
+    /// Lazily attach a timeline track that was missing from the initial graph.
+    private func ensureTrackAttached(_ source: SoundSource) {
+        guard players[source.id] == nil, source.resourceName != nil else { return }
+        do {
+            _ = try attach(source: source)
+            configuredResources[source.id] = source.resourceName
+        } catch {
+            lastErrorMessage = "\(source.name)：\(error.localizedDescription)"
+        }
     }
 
     private func scheduleLoop(node: AVAudioPlayerNode, file: AVAudioFile) {

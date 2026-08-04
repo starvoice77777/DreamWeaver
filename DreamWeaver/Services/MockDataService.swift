@@ -410,10 +410,10 @@ enum MockDataService {
                 name: "远雨",
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
-                volume: 0.08,
-                position: SpatialPosition(angle: 0.52, radius: 0.85),
+                volume: 0.22,
+                position: SpatialPosition(angle: -0.35, radius: 0.85),
                 resourceName: "rain_soft",
-                layer: .ambience
+                layer: .environment
             ),
             SoundSource(
                 id: DemoIDs.sourceRain,
@@ -421,9 +421,9 @@ enum MockDataService {
                 symbolName: "cloud.rain.fill",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: 2.83, radius: 0.38),
+                position: SpatialPosition(angle: 0.7, radius: 0.62),
                 resourceName: "rain_parasol",
-                layer: .environment
+                layer: .ambience
             ),
             SoundSource(
                 id: DemoIDs.sourceRainBambooLeaf,
@@ -431,7 +431,7 @@ enum MockDataService {
                 symbolName: "leaf.fill",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: -0.70, radius: 0.62),
+                position: SpatialPosition(angle: -1.2, radius: 0.88),
                 resourceName: "rain_bamboo_leaf",
                 layer: .ambience
             ),
@@ -441,9 +441,9 @@ enum MockDataService {
                 symbolName: "wind",
                 isEnabled: false,
                 volume: 0.0,
-                position: SpatialPosition(angle: 2.62, radius: 0.88),
+                position: SpatialPosition(angle: -2.4, radius: 0.95),
                 resourceName: "wind_realistic",
-                layer: .ambience
+                layer: .environment
             )
         ]
         let manifest = SceneAudioManifest(
