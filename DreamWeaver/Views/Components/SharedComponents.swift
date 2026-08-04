@@ -217,6 +217,70 @@ struct RefractiveLiquidGlassCapsule: ViewModifier {
     }
 }
 
+/// Rounded-rect refractive glass for library cards / wider chrome buttons.
+/// Edge-weighted chromatic fringe follows Shu Ding's liquid-glass rim emphasis.
+struct RefractiveLiquidGlassRounded: ViewModifier {
+    var cornerRadius: CGFloat
+    var accent: Color
+    var intensity: Double
+    var interactive: Bool
+
+    func body(content: Content) -> some View {
+        let strength = max(0, min(1, intensity))
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        Group {
+            if interactive {
+                content
+                    .background {
+                        shape.fill(accent.opacity(0.025 + strength * 0.035))
+                    }
+                    .glassEffect(.clear.interactive(), in: shape)
+            } else {
+                content
+                    .background {
+                        shape.fill(accent.opacity(0.025 + strength * 0.035))
+                    }
+                    .glassEffect(.clear, in: shape)
+            }
+        }
+        .overlay {
+            shape
+                .strokeBorder(
+                    AngularGradient(
+                        colors: [
+                            Color.cyan.opacity(0.12 + strength * 0.07),
+                            Color.white.opacity(0.55),
+                            Color.pink.opacity(0.10 + strength * 0.06),
+                            Color.white.opacity(0.18),
+                            Color.cyan.opacity(0.12 + strength * 0.07)
+                        ],
+                        center: .center
+                    ),
+                    lineWidth: 0.9
+                )
+                .blendMode(.screen)
+                .allowsHitTesting(false)
+        }
+        .overlay {
+            shape
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.16 + strength * 0.08),
+                            Color.clear
+                        ],
+                        center: UnitPoint(x: 0.22, y: 0.12),
+                        startRadius: 0,
+                        endRadius: max(cornerRadius * 2.4, 72)
+                    )
+                )
+                .blendMode(.screen)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
 extension View {
     func dreamGlass(cornerRadius: CGFloat = 20) -> some View {
         modifier(GlassPanel(cornerRadius: cornerRadius))
@@ -264,6 +328,22 @@ extension View {
             )
         )
     }
+
+    func dreamRefractiveLiquidGlassRounded(
+        cornerRadius: CGFloat = 22,
+        accent: Color = DreamTheme.mistBlue,
+        intensity: Double = 0.75,
+        interactive: Bool = false
+    ) -> some View {
+        modifier(
+            RefractiveLiquidGlassRounded(
+                cornerRadius: cornerRadius,
+                accent: accent,
+                intensity: intensity,
+                interactive: interactive
+            )
+        )
+    }
 }
 
 struct SectionHeader: View {
@@ -304,10 +384,14 @@ struct EmptyStateView: View {
             Button(action: action) {
                 Text(actionTitle)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(DreamTheme.midnight)
+                    .foregroundStyle(DreamTheme.moonWhite)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
-                    .background(Capsule().fill(DreamTheme.moonWhite.opacity(0.92)))
+                    .dreamRefractiveLiquidGlassCapsule(
+                        accent: DreamTheme.warmApricot,
+                        intensity: 0.88,
+                        interactive: true
+                    )
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
@@ -320,23 +404,60 @@ struct EmptyStateView: View {
 struct CapsuleChip: View {
     let title: String
     var selected: Bool
+    var usesLiquidGlass: Bool = false
+    /// When set, chip stretches to this width (equal-width tag rows).
+    var fixedWidth: CGFloat? = nil
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 13, weight: selected ? .medium : .regular))
-                .foregroundStyle(selected ? DreamTheme.midnight : DreamTheme.moonWhite.opacity(0.8))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .font(.system(size: fixedWidth == nil ? 13 : 15, weight: selected ? .semibold : .regular))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .frame(maxWidth: fixedWidth == nil ? nil : .infinity)
+                .padding(.horizontal, fixedWidth == nil ? 14 : 8)
+                .padding(.vertical, fixedWidth == nil ? 8 : 11)
                 .background {
-                    Capsule()
-                        .fill(selected ? DreamTheme.moonWhite.opacity(0.92) : Color.white.opacity(0.08))
+                    if !usesLiquidGlass {
+                        Capsule()
+                            .fill(selected ? DreamTheme.moonWhite.opacity(0.92) : Color.white.opacity(0.08))
+                    }
                 }
+                .modifier(LiquidGlassChipBackground(enabled: usesLiquidGlass, selected: selected))
+                .frame(width: fixedWidth)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var foreground: Color {
+        if usesLiquidGlass {
+            return selected ? DreamTheme.moonWhite : DreamTheme.moonWhite.opacity(0.72)
+        }
+        return selected ? DreamTheme.midnight : DreamTheme.moonWhite.opacity(0.8)
+    }
+}
+
+private struct LiquidGlassChipBackground: ViewModifier {
+    var enabled: Bool
+    var selected: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .scaleEffect(selected ? 1.05 : 1)
+                .animation(.spring(response: 0.28, dampingFraction: 0.78), value: selected)
+                .dreamRefractiveLiquidGlassCapsule(
+                    accent: selected ? DreamTheme.warmApricot : DreamTheme.mistBlue,
+                    intensity: selected ? 0.95 : 0.62,
+                    interactive: true
+                )
+        } else {
+            content
+        }
     }
 }
 

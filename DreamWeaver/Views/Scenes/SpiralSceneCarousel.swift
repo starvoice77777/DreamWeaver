@@ -23,7 +23,7 @@ struct SpiralSceneCarousel: View {
     private let maximumVisibleCardsPerSide = 13
     private let angleStep: CGFloat = 24
     private let dragSensitivity: CGFloat = 0.4
-    private let autoSpinDegreesPerFrame: CGFloat = 0.05
+    private let autoSpinDegreesPerFrame: CGFloat = 0.14
     private let frictionPerFrame: CGFloat = 0.95
     private let interpolationPerFrame: CGFloat = 0.15
 
@@ -148,16 +148,18 @@ struct SpiralSceneCarousel: View {
         let opacity = 0.28 + 0.72 * Double(depthRatio)
         let darkness = 0.44 * (1 - Double(depthRatio))
         let isFocused = abs(normalizedAngle) < angleStep * 0.52
-        // The visible window is capped at 19 cards, so every foreground and
-        // background card can keep its complete artwork and labels.
-        let showsMotif = true
-        let showsDetails = true
+        // Back hemisphere: skip cover/motif/text — flat low-sat gray only.
+        let isBackCard = depthRatio < 0.52
+        let showsArt = !isBackCard
+        let showsMotif = showsArt
+        let showsDetails = showsArt
 
         SpiralSceneCard(
             scene: scene,
             isFocused: isFocused,
             isPlaying: appState.isPlaying && appState.currentSceneId == scene.id,
-            darkness: darkness,
+            darkness: isBackCard ? 0 : darkness,
+            showsArt: showsArt,
             showsMotif: showsMotif,
             showsDetails: showsDetails,
             onTap: {
@@ -317,6 +319,7 @@ private struct SpiralSceneCard: View {
     let isFocused: Bool
     let isPlaying: Bool
     let darkness: Double
+    let showsArt: Bool
     let showsMotif: Bool
     let showsDetails: Bool
     var onTap: () -> Void
@@ -324,21 +327,33 @@ private struct SpiralSceneCard: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(scene.palette.gradient)
+                .fill(cardFill)
                 .overlay {
-                    if showsMotif {
-                        SceneMiniMotif(style: scene.visualStyle)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    if showsArt {
+                        GeometryReader { geo in
+                            if let cover = SceneCoverArt.image(for: scene.visualStyle) {
+                                Image(uiImage: cover)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                                    .clipped()
+                            } else if showsMotif {
+                                SceneMiniMotif(style: scene.visualStyle)
+                                    .frame(width: geo.size.width, height: geo.size.height)
+                            }
+                        }
                     }
                 }
                 .overlay {
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.58)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    if showsArt {
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.58)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             if showsDetails {
                 VStack(alignment: .leading, spacing: 3) {
@@ -370,10 +385,14 @@ private struct SpiralSceneCard: View {
                 .allowsHitTesting(false)
         }
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .onTapGesture(perform: onTap)
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08 + (isFocused ? 0.10 : 0)), lineWidth: 1)
+                .strokeBorder(
+                    Color.white.opacity(showsArt ? (0.08 + (isFocused ? 0.10 : 0)) : 0.05),
+                    lineWidth: 1
+                )
         }
         .shadow(
             color: .black.opacity(isFocused ? 0.60 : 0),
@@ -384,6 +403,22 @@ private struct SpiralSceneCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(scene.name)，\(scene.subtitle)")
         .accessibilityHint(isFocused ? "轻点进入场景" : "轻点转到此场景")
+    }
+
+    private var cardFill: LinearGradient {
+        if showsArt {
+            return scene.palette.gradient
+        }
+        // Unified low-saturation gray for back-facing secondary cards.
+        return LinearGradient(
+            colors: [
+                Color(red: 0.20, green: 0.21, blue: 0.23),
+                Color(red: 0.14, green: 0.15, blue: 0.17),
+                Color(red: 0.10, green: 0.10, blue: 0.12)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
 

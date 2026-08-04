@@ -16,6 +16,8 @@ struct RootTabView: View {
                     NowView()
                 case .scenes:
                     SceneLibraryView()
+                case .create:
+                    CreateHubView()
                 case .sounds:
                     SoundLibraryView()
                 case .profile:
@@ -28,6 +30,11 @@ struct RootTabView: View {
 
             DreamTabBar(selected: $appState.selectedTab)
                 .padding(.bottom, 6)
+                .opacity(tabBarChromeVisible ? 1 : 0)
+                .scaleEffect(tabBarChromeVisible ? 1 : 0.98)
+                .allowsHitTesting(tabBarChromeVisible)
+                .accessibilityHidden(!tabBarChromeVisible)
+                .animation(DreamTheme.chromeVisibilityAnimation, value: tabBarChromeVisible)
                 .environmentObject(appState)
 
             // Soft curtain so tab / scene changes never flash harshly.
@@ -41,18 +48,17 @@ struct RootTabView: View {
         .preferredColorScheme(.dark)
         .onChange(of: appState.selectedTab) { _, tab in
             if tab == .now {
-                appState.cancelReturnToNow()
-            } else {
-                appState.scheduleReturnToNowIfNeeded()
+                // Returning to「此刻」always brings chrome / tab bar back out.
+                withAnimation(DreamTheme.chromeVisibilityAnimation) {
+                    appState.revealControls()
+                }
             }
         }
-        // Drag only — a root TapGesture steals Menu/Picker presentation in Settings.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 12)
-                .onChanged { _ in
-                    appState.noteUserActivity()
-                }
-        )
+    }
+
+    /// Match Now chrome: hide with the mix disk on「此刻」; stay available on other tabs.
+    private var tabBarChromeVisible: Bool {
+        appState.selectedTab != .now || appState.controlsVisible
     }
 }
 
@@ -61,79 +67,103 @@ struct DreamTabBar: View {
     @Binding var selected: AppTab
     @State private var draggedTab: AppTab?
     @State private var dragProgress: CGFloat?
+    @State private var isTrackingDrag = false
     @State private var barWidth: CGFloat = 0
+
+    private let barHeight: CGFloat = 56
 
     private var displayedSelection: AppTab {
         draggedTab ?? selected
     }
 
+    private var tabs: [AppTab] { AppTab.allCases }
+
+    private var createIndex: CGFloat {
+        CGFloat(tabs.firstIndex(of: .create) ?? 2)
+    }
+
+    /// Continuous 0…n-1 progress used by the lens and icon fills while dragging.
+    private var selectionProgress: CGFloat {
+        if let dragProgress {
+            return dragProgress
+        }
+        return CGFloat(tabs.firstIndex(of: selected) ?? 0)
+    }
+
+    /// 0…1 proximity to the create slot — drives plus grow during continuous drag.
+    private var createGrow: CGFloat {
+        let distance = abs(selectionProgress - createIndex)
+        return max(0, 1 - distance)
+    }
+
     var body: some View {
         ZStack {
             GeometryReader { geometry in
-                let count = CGFloat(AppTab.allCases.count)
-                let spacing: CGFloat = 4
-                let segmentWidth = (
-                    geometry.size.width - spacing * max(count - 1, 0)
-                ) / max(count, 1)
-                let stride = segmentWidth + spacing
+                let width = geometry.size.width
+                Color.clear
+                    .onAppear { barWidth = width }
+                    .onChange(of: width) { _, newWidth in
+                        barWidth = newWidth
+                    }
 
-                selectionLens
-                    .frame(width: segmentWidth - 2, height: geometry.size.height - 2)
-                    .position(
-                        x: segmentWidth / 2 + selectionProgress * stride,
-                        y: geometry.size.height / 2
-                    )
-                    .animation(
-                        .spring(response: 0.36, dampingFraction: 0.78),
-                        value: selected
-                    )
-                    .allowsHitTesting(false)
+                selectionLens(in: geometry.size)
             }
 
-            HStack(spacing: 4) {
-                ForEach(Array(AppTab.allCases.enumerated()), id: \.element.id) { index, tab in
+            HStack(spacing: 0) {
+                ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
                     tabButton(tab, index: index)
                 }
             }
         }
-        .frame(maxWidth: 352)
-        .frame(height: 52)
-        .padding(4)
-        .frame(maxWidth: 360)
+        .frame(maxWidth: 380)
+        .frame(height: barHeight)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .dreamRefractiveLiquidGlassCapsule(
-            accent: appState.currentScene.palette.accentColor,
-            intensity: 0.88,
+            accent: createGrow > 0.55
+                ? DreamTheme.warmApricot
+                : appState.currentScene.palette.accentColor,
+            intensity: 0.84 + 0.10 * createGrow,
             interactive: true
         )
-        .background {
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear { barWidth = geometry.size.width }
-                    .onChange(of: geometry.size.width) { _, width in
-                        barWidth = width
-                    }
-            }
-        }
         .highPriorityGesture(tabDragGesture)
         .sensoryFeedback(.selection, trigger: displayedSelection.rawValue)
         .shadow(color: .black.opacity(0.18), radius: 16, y: 7)
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.top, 4)
         .padding(.bottom, 2)
     }
 
-    private var selectionLens: some View {
-        Capsule(style: .continuous)
-            .fill(DreamTheme.moonWhite.opacity(0.09))
+    private func selectionLens(in size: CGSize) -> some View {
+        let count = CGFloat(max(tabs.count, 1))
+        let segmentWidth = size.width / count
+        let lensX = segmentWidth * (selectionProgress + 0.5)
+        let lensWidth = max(segmentWidth - 8 + 4 * createGrow, 36)
+        let fillOpacity = createGrow > 0.55
+            ? 0.10 + 0.08 * createGrow
+            : 0.09
+        let fillColor = createGrow > 0.55
+            ? DreamTheme.warmApricot.opacity(fillOpacity)
+            : DreamTheme.moonWhite.opacity(fillOpacity)
+        let strokeColors: [Color] = createGrow > 0.55
+            ? [
+                Color.white.opacity(0.62),
+                DreamTheme.warmApricot.opacity(0.35),
+                Color.white.opacity(0.22)
+            ]
+            : [
+                Color.white.opacity(0.58),
+                Color.cyan.opacity(0.15),
+                Color.pink.opacity(0.11)
+            ]
+
+        return Capsule(style: .continuous)
+            .fill(fillColor)
             .overlay {
                 Capsule(style: .continuous)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.58),
-                                Color.cyan.opacity(0.15),
-                                Color.pink.opacity(0.11)
-                            ],
+                            colors: strokeColors,
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -141,86 +171,120 @@ struct DreamTabBar: View {
                     )
                     .blendMode(.screen)
             }
+            .frame(width: lensWidth, height: size.height - 4)
+            .position(x: lensX, y: size.height / 2)
+            .animation(lensAnimation, value: selectionProgress)
+            .allowsHitTesting(false)
     }
 
+    private var lensAnimation: Animation? {
+        isTrackingDrag ? nil : .spring(response: 0.36, dampingFraction: 0.78)
+    }
+
+    @ViewBuilder
     private func tabButton(_ tab: AppTab, index: Int) -> some View {
         let isCommittedSelection = selected == tab
+        let isCreate = tab.isElevatedCenter
         let fill = iconFillMetrics(for: index)
 
-        return Button {
-            select(tab)
-        } label: {
-            ZStack {
-                Image(systemName: tab.systemImageOutline)
-                    .foregroundStyle(DreamTheme.mistBlue.opacity(0.38))
-
-                Image(systemName: tab.systemImageFill)
-                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.96))
-                    .mask {
-                        Rectangle()
-                            .frame(width: fill.width, height: 32)
-                            .offset(x: fill.offset)
-                    }
+        if isCreate {
+            Button {
+                guard !isTrackingDrag else { return }
+                select(tab)
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(
+                        DreamTheme.moonWhite.opacity(0.68 + 0.32 * createGrow)
+                    )
+                    .scaleEffect(1.0 + 0.22 * createGrow)
+                    .animation(
+                        isTrackingDrag
+                            ? .interactiveSpring(response: 0.2, dampingFraction: 0.86)
+                            : .spring(response: 0.34, dampingFraction: 0.70),
+                        value: createGrow
+                    )
+                    .frame(width: 36, height: 36)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: barHeight)
+                    .contentShape(Rectangle())
             }
-            .font(.system(size: 22, weight: .medium))
-            .frame(width: 32, height: 32)
-            .scaleEffect(0.94 + fill.fraction * 0.18)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .contentShape(Rectangle())
+            .buttonStyle(CreatePlusGrowButtonStyle(baseGrow: createGrow))
+            .allowsHitTesting(!isTrackingDrag)
+            .accessibilityLabel(tab.title)
+            .accessibilityHint("创建或保存个人场景")
+            .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
+        } else {
+            Button {
+                guard !isTrackingDrag else { return }
+                select(tab)
+            } label: {
+                ZStack {
+                    Image(systemName: tab.systemImageOutline)
+                        .foregroundStyle(DreamTheme.mistBlue.opacity(0.38))
+
+                    Image(systemName: tab.systemImageFill)
+                        .foregroundStyle(DreamTheme.moonWhite.opacity(0.96))
+                        .mask {
+                            Rectangle()
+                                .frame(width: fill.width, height: 32)
+                                .offset(x: fill.offset)
+                        }
+                }
+                .font(.system(size: 22, weight: .medium))
+                .scaleEffect(0.94 + fill.fraction * 0.18)
+                .frame(width: 36, height: 36)
+                .frame(maxWidth: .infinity)
+                .frame(height: barHeight)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .allowsHitTesting(!isTrackingDrag)
+            .accessibilityLabel(tab.title)
+            .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(tab.title)
-        .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
     }
 
     private var tabDragGesture: some Gesture {
-        DragGesture(minimumDistance: 4, coordinateSpace: .local)
+        DragGesture(minimumDistance: 6, coordinateSpace: .local)
             .onChanged { value in
-                guard abs(value.translation.width) >= abs(value.translation.height) else { return }
+                if !isTrackingDrag {
+                    // Lock into horizontal tracking once the drag clearly prefers X.
+                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                    isTrackingDrag = true
+                }
+
                 let progress = progress(at: value.location.x)
                 dragProgress = progress
-
                 let tab = tab(at: progress)
                 if draggedTab != tab {
                     draggedTab = tab
                 }
             }
             .onEnded { value in
-                guard abs(value.translation.width) >= abs(value.translation.height) else {
+                defer {
+                    isTrackingDrag = false
+                }
+
+                guard isTrackingDrag || abs(value.translation.width) >= abs(value.translation.height) else {
                     draggedTab = nil
                     dragProgress = nil
                     return
                 }
-                select(tab(at: dragProgress ?? progress(at: value.location.x)))
+
+                let finalProgress = dragProgress ?? progress(at: value.location.x)
+                select(tab(at: finalProgress))
             }
     }
 
-    private var selectionProgress: CGFloat {
-        if let dragProgress {
-            return dragProgress
-        }
-        return CGFloat(AppTab.allCases.firstIndex(of: selected) ?? 0)
-    }
-
     private func progress(at x: CGFloat) -> CGFloat {
-        let tabs = AppTab.allCases
         guard barWidth > 0, !tabs.isEmpty else { return selectionProgress }
-
-        let outerInset: CGFloat = 4
-        let spacing: CGFloat = 4
-        let innerWidth = max(barWidth - outerInset * 2, 1)
-        let segmentWidth = max(
-            (innerWidth - spacing * CGFloat(tabs.count - 1)) / CGFloat(tabs.count),
-            1
-        )
-        let stride = segmentWidth + spacing
-        let rawProgress = (x - outerInset - segmentWidth / 2) / stride
+        let segmentWidth = barWidth / CGFloat(tabs.count)
+        let rawProgress = (x / segmentWidth) - 0.5
         return min(max(rawProgress, 0), CGFloat(tabs.count - 1))
     }
 
     private func tab(at progress: CGFloat) -> AppTab {
-        let tabs = AppTab.allCases
         guard !tabs.isEmpty else { return selected }
         let index = min(
             max(Int(progress.rounded()), 0),
@@ -234,7 +298,6 @@ struct DreamTabBar: View {
         offset: CGFloat,
         fraction: CGFloat
     ) {
-        let tabs = AppTab.allCases
         let iconWidth: CGFloat = 32
         guard barWidth > 0, !tabs.isEmpty else {
             let selectedIndex = tabs.firstIndex(of: selected) ?? 0
@@ -243,17 +306,15 @@ struct DreamTabBar: View {
                 : (0, 0, 0)
         }
 
-        let outerInset: CGFloat = 4
-        let spacing: CGFloat = 4
-        let innerWidth = max(barWidth - outerInset * 2, 1)
-        let segmentWidth = max(
-            (innerWidth - spacing * CGFloat(tabs.count - 1)) / CGFloat(tabs.count),
-            1
-        )
-        let stride = segmentWidth + spacing
-        let lensHalfWidth = max((segmentWidth - 2) / 2, 0)
+        // Create uses proximity grow, not partial fill.
+        if tabs[index].isElevatedCenter {
+            return (0, 0, 0)
+        }
+
+        let segmentWidth = barWidth / CGFloat(tabs.count)
+        let lensHalfWidth = max((segmentWidth - 8) / 2, 0)
         let iconHalfWidth = iconWidth / 2
-        let lensCenter = (selectionProgress - CGFloat(index)) * stride
+        let lensCenter = (selectionProgress - CGFloat(index)) * segmentWidth
         let leftEdge = max(-iconHalfWidth, lensCenter - lensHalfWidth)
         let rightEdge = min(iconHalfWidth, lensCenter + lensHalfWidth)
         let coveredWidth = max(rightEdge - leftEdge, 0)
@@ -272,11 +333,20 @@ struct DreamTabBar: View {
             dragProgress = nil
             selected = tab
         }
-        if tab == .now {
-            appState.cancelReturnToNow()
-        } else {
-            appState.scheduleReturnToNowIfNeeded()
-        }
+    }
+}
+
+/// Extra press pop on top of continuous drag proximity grow.
+private struct CreatePlusGrowButtonStyle: ButtonStyle {
+    var baseGrow: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 1.12 : 1.0)
+            .animation(
+                .spring(response: 0.26, dampingFraction: 0.58),
+                value: configuration.isPressed
+            )
     }
 }
 

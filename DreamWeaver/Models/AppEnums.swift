@@ -3,6 +3,8 @@ import Foundation
 enum AppTab: String, CaseIterable, Identifiable {
     case now
     case scenes
+    /// Elevated center entry — create / save personal scenes (闲鱼「发闲置」位).
+    case create
     case sounds
     case profile
 
@@ -12,16 +14,21 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .now: return "此刻"
         case .scenes: return "全部"
+        case .create: return "创建"
         case .sounds: return "声音库"
         case .profile: return "我的"
         }
     }
 
+    /// Whether this tab is the raised center CTA (not an equal-weight peer).
+    var isElevatedCenter: Bool { self == .create }
+
     /// Filled glyph — selected (正).
     var systemImageFill: String {
         switch self {
-        case .now: return "moon.stars.fill"
-        case .scenes: return "square.stack.3d.up.fill"
+        case .now: return "headphones"
+        case .scenes: return "square.grid.2x2.fill"
+        case .create: return "plus"
         case .sounds: return "waveform.circle.fill"
         case .profile: return "person.crop.circle.fill"
         }
@@ -30,8 +37,9 @@ enum AppTab: String, CaseIterable, Identifiable {
     /// Outline glyph — unselected (反).
     var systemImageOutline: String {
         switch self {
-        case .now: return "moon.stars"
-        case .scenes: return "square.stack.3d.up"
+        case .now: return "headphones"
+        case .scenes: return "square.grid.2x2"
+        case .create: return "plus"
         case .sounds: return "waveform.circle"
         case .profile: return "person.crop.circle"
         }

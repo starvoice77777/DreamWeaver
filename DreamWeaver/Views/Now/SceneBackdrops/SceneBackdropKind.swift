@@ -9,7 +9,23 @@ enum SceneBackdropKind: Equatable {
     case rainyNight(RainyNightConfiguration)
     /// Immersive emotional fluid color space.
     case emotionalFluid
-    /// Procedural Canvas motifs (fireflies, snow, tide, …).
+    /// Painted coastal mist backdrop for「雾岸听潮」.
+    case mistTide
+    /// Painted deep-forest backdrop for「深林萤火」.
+    case fireflies
+    /// Painted night-sky bedroom backdrop for「星河远眠」.
+    case starRiver
+    /// Painted golden-field backdrop for「风过麦田」.
+    case wheatWind
+    /// Painted moonlit lake backdrop for「月夜静湖」.
+    case moonLake
+    /// Painted cozy-window backdrop for「暖灯陪伴」.
+    case warmLamp
+    /// Painted fireside backdrop for「炉边低语」.
+    case fireplaceWhisper
+    /// Painted porch-garden backdrop for「夏夜虫鸣」.
+    case summerInsects
+    /// Procedural Canvas motifs (snow, tide, …).
     case canvasMotif
 }
 
@@ -21,6 +37,22 @@ extension SceneVisualStyle {
             return .rainyNight(.rainEaves)
         case .emotionalFluid:
             return .emotionalFluid
+        case .mistTide:
+            return .mistTide
+        case .fireflies:
+            return .fireflies
+        case .starRiver:
+            return .starRiver
+        case .wheatWind:
+            return .wheatWind
+        case .moonLake:
+            return .moonLake
+        case .warmLamp:
+            return .warmLamp
+        case .fireplaceWhisper:
+            return .fireplaceWhisper
+        case .summerInsects:
+            return .summerInsects
         default:
             return .canvasMotif
         }

@@ -15,11 +15,19 @@ struct LaunchDreamView: View {
 
     var body: some View {
         ZStack {
-            AnimatedLaunchBackground(shift: gradientShift, reduceMotion: reduceMotion)
+            AnimatedLaunchBackground(
+                palette: appState.currentScene.palette,
+                shift: gradientShift,
+                reduceMotion: reduceMotion
+            )
 
             Text(greeting.isEmpty ? " " : greeting)
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
+                .shadow(
+                    color: appState.currentScene.palette.accentColor.opacity(0.22),
+                    radius: 12
+                )
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
                 .opacity(greetingOpacity)
@@ -38,9 +46,10 @@ struct LaunchDreamView: View {
         }
 
         let fadeIn: Double = reduceMotion ? 0.15 : 0.9
-        let hold: Double = reduceMotion ? 0.4 : 1.1
-        let fadeOut: Double = reduceMotion ? 0.15 : 0.7
-        let exit: Double = reduceMotion ? 0.2 : 0.5
+        let hold: Double = reduceMotion ? 0.35 : 1.0
+        let fadeOutGreeting: Double = reduceMotion ? 0.12 : 0.55
+        // Soft dissolve over the already-visible Now scene (crossfade, not black cut).
+        let dissolve: Double = reduceMotion ? 0.2 : 1.05
 
         withAnimation(.easeInOut(duration: fadeIn)) {
             greetingOpacity = 1
@@ -48,49 +57,60 @@ struct LaunchDreamView: View {
 
         Task {
             try? await Task.sleep(nanoseconds: UInt64((fadeIn + hold) * 1_000_000_000))
-            withAnimation(.easeInOut(duration: fadeOut)) {
+            withAnimation(.easeInOut(duration: fadeOutGreeting)) {
                 greetingOpacity = 0
             }
-            try? await Task.sleep(nanoseconds: UInt64((fadeOut + 0.15) * 1_000_000_000))
-            withAnimation(.easeInOut(duration: exit)) {
+            try? await Task.sleep(nanoseconds: UInt64((fadeOutGreeting + 0.08) * 1_000_000_000))
+            withAnimation(.easeInOut(duration: dissolve)) {
                 overallOpacity = 0
             }
-            try? await Task.sleep(nanoseconds: UInt64(exit * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64(dissolve * 1_000_000_000))
             appState.finishLaunch()
         }
     }
 }
 
 private struct AnimatedLaunchBackground: View {
+    var palette: ScenePalette
     var shift: Bool
     var reduceMotion: Bool
 
     var body: some View {
         ZStack {
-            DreamTheme.midnight
+            palette.bottomColor
+
             LinearGradient(
                 colors: [
-                    Color(hex: 0x11182A),
-                    Color(hex: 0x1A2740),
-                    Color(hex: 0x2A1E28),
-                    Color(hex: 0x080B16)
+                    palette.topColor,
+                    palette.midColor,
+                    palette.bottomColor
                 ],
                 startPoint: shift ? .topLeading : .bottomLeading,
                 endPoint: shift ? .bottomTrailing : .topTrailing
             )
-            .opacity(0.95)
+            .opacity(0.98)
 
             Circle()
-                .fill(DreamTheme.warmApricot.opacity(0.12))
+                .fill(palette.accentColor.opacity(0.16))
                 .frame(width: 280, height: 280)
                 .blur(radius: reduceMotion ? 20 : 50)
                 .offset(x: shift ? 60 : -40, y: shift ? -120 : -80)
 
             Circle()
-                .fill(DreamTheme.mistBlue.opacity(0.14))
+                .fill(palette.midColor.opacity(0.28))
                 .frame(width: 320, height: 320)
                 .blur(radius: reduceMotion ? 24 : 60)
                 .offset(x: shift ? -80 : 50, y: shift ? 160 : 120)
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.04),
+                    Color.clear,
+                    palette.bottomColor.opacity(0.18)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
         .ignoresSafeArea()
     }

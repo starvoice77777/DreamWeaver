@@ -2,9 +2,25 @@ import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum SeedLaunchSource: Identifiable, Equatable {
+    case record
+    case file
+    case existing(SoundAsset)
+
+    var id: String {
+        switch self {
+        case .record: return "record"
+        case .file: return "file"
+        case .existing(let asset): return "existing-\(asset.id.uuidString)"
+        }
+    }
+}
+
 struct SeedCreationFlow: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+
+    var launchSource: SeedLaunchSource = .record
 
     @State private var step = 0
     @State private var isRecording = false
@@ -25,6 +41,7 @@ struct SeedCreationFlow: View {
     @State private var showLoginHint = false
     @State private var selectedSourceURL: URL?
     @State private var usedLocalPick = false
+    @State private var didApplyLaunchSource = false
 
     private var needsRemoteLogin: Bool {
         appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated
@@ -93,6 +110,7 @@ struct SeedCreationFlow: View {
             }
         }
         .interactiveDismissDisabled(step >= 2 && step <= 5)
+        .onAppear(perform: applyLaunchSourceIfNeeded)
         .onDisappear {
             stopRecording()
             appState.playback.stopPreview()
@@ -100,6 +118,34 @@ struct SeedCreationFlow: View {
             if step < 5 {
                 remoteSeedPipeline?.clearPendingSource()
             }
+        }
+    }
+
+    private func applyLaunchSourceIfNeeded() {
+        guard !didApplyLaunchSource else { return }
+        didApplyLaunchSource = true
+
+        switch launchSource {
+        case .record:
+            step = 0
+        case .file:
+            guard ensureRemoteReady() else { return }
+            usedLocalPick = true
+            showFileImporter = true
+        case .existing(let asset):
+            guard ensureRemoteReady() else { return }
+            usedLocalPick = true
+            recordSeconds = max(asset.durationSeconds, 3)
+            if seedName.isEmpty {
+                seedName = asset.name
+            }
+            remoteSeedPipeline?.pendingSourceAssetId = asset.id
+            remoteSeedPipeline?.pendingSourceFileURL = nil
+            remoteSeedPipeline?.pendingSourceFilename = nil
+            remoteSeedPipeline?.pendingSourceContentType = nil
+            qualityReport = nil
+            errorMessage = nil
+            step = 3
         }
     }
 

@@ -4,62 +4,93 @@ struct NowView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @State private var showTimerPicker = false
+    @State private var swipeOffset: CGFloat = 0
+    @State private var isSwipeSwitching = false
+    @State private var stageWidth: CGFloat = 390
+    /// Pre-picked neighbors so swipe commit never waits on random + I/O.
+    @State private var leftNeighbor: DreamScene?
+    @State private var rightNeighbor: DreamScene?
 
     private var reduceMotion: Bool {
         appState.reduceMotion || systemReduceMotion
     }
 
     var body: some View {
-        ZStack {
-            SceneAtmosphereView(
-                scene: appState.currentScene,
-                isPlaying: appState.isPlaying,
-                reduceMotion: reduceMotion,
-                intensity: appState.animationIntensity
-            )
-            .opacity(appState.isTransitioningScene ? 0.15 : 1)
-            .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.8), value: appState.isTransitioningScene)
-            .animation(.easeInOut(duration: 0.8), value: appState.currentSceneId)
+        GeometryReader { proxy in
+            let width = proxy.size.width
 
-            LinearGradient(
-                colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-
-            // Tap blank area: dismiss overlays first, otherwise toggle controls.
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    dismissOverlayOrToggleControls()
+            ZStack {
+                // Incoming scene peek (preloaded cover / palette) — short-video style.
+                if swipeOffset < -1, let peek = rightNeighbor {
+                    SceneSwipePeekBackdrop(scene: peek)
+                        .offset(x: width + swipeOffset)
+                        .allowsHitTesting(false)
+                } else if swipeOffset > 1, let peek = leftNeighbor {
+                    SceneSwipePeekBackdrop(scene: peek)
+                        .offset(x: -width + swipeOffset)
+                        .allowsHitTesting(false)
                 }
-                .accessibilityHint("点按空白处返回或显示隐藏控件")
 
-            // Same opacity/scale fade as the tab bar (not insert/remove transition).
-            SoundMixCircleEditor(showTimerPicker: $showTimerPicker)
-                .opacity(appState.controlsVisible ? 1 : 0)
-                .scaleEffect(appState.controlsVisible ? 1 : 0.98)
-                .allowsHitTesting(appState.controlsVisible)
-                .accessibilityHidden(!appState.controlsVisible)
-                .zIndex(1)
-
-            VStack {
-                SceneTitleOverlay(
-                    name: appState.currentScene.name,
-                    subtitle: appState.currentScene.subtitle,
-                    visible: appState.sceneTitleVisible
+                SceneAtmosphereView(
+                    scene: appState.currentScene,
+                    isPlaying: appState.isPlaying,
+                    reduceMotion: reduceMotion,
+                    intensity: appState.animationIntensity
                 )
-                .padding(.top, appState.controlsVisible ? 16 : 72)
+                .offset(x: swipeOffset)
+                .opacity(appState.isTransitioningScene ? 0.15 : 1)
+                .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.8), value: appState.isTransitioningScene)
+
+                LinearGradient(
+                    colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                .offset(x: swipeOffset * 0.55)
                 .allowsHitTesting(false)
 
-                Spacer(minLength: 0)
+                // Tap blank area: dismiss overlays first, otherwise toggle controls.
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        dismissOverlayOrToggleControls()
+                    }
+                    .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动切换随机场景")
+
+                // Same opacity/scale fade as the tab bar (not insert/remove transition).
+                SoundMixCircleEditor(showTimerPicker: $showTimerPicker)
+                    .opacity(appState.controlsVisible ? 1 : 0)
+                    .scaleEffect(appState.controlsVisible ? 1 : 0.98)
+                    .allowsHitTesting(appState.controlsVisible)
+                    .accessibilityHidden(!appState.controlsVisible)
+                    .zIndex(1)
+
+                VStack {
+                    SceneTitleOverlay(
+                        name: appState.currentScene.name,
+                        subtitle: appState.currentScene.subtitle,
+                        visible: appState.sceneTitleVisible
+                    )
+                    .padding(.top, appState.controlsVisible ? 16 : 72)
                     .allowsHitTesting(false)
+
+                    Spacer(minLength: 0)
+                        .allowsHitTesting(false)
+                }
+                .allowsHitTesting(false)
             }
-            .allowsHitTesting(false)
+            .frame(width: width, height: proxy.size.height)
+            .onAppear { stageWidth = width }
+            .onChange(of: width) { _, newWidth in
+                stageWidth = newWidth
+            }
         }
+        .simultaneousGesture(sceneSwipeGesture)
         .animation(DreamTheme.chromeVisibilityAnimation, value: appState.controlsVisible)
+        .onAppear {
+            refillSwipeNeighbors()
+        }
         .onChange(of: appState.controlsVisible) { _, visible in
             if !visible {
                 showTimerPicker = false
@@ -69,6 +100,111 @@ struct NowView: View {
             if showing {
                 showTimerPicker = false
             }
+        }
+        .onChange(of: appState.isTransitioningScene) { _, transitioning in
+            if !transitioning {
+                swipeOffset = 0
+                isSwipeSwitching = false
+                refillSwipeNeighbors()
+            }
+        }
+        .onChange(of: appState.currentSceneId) { _, _ in
+            if !appState.isTransitioningScene, !isSwipeSwitching {
+                refillSwipeNeighbors()
+            }
+        }
+    }
+
+    /// Short-video style: horizontal flick → seamless handoff into prefetched neighbor.
+    private var sceneSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .local)
+            .onChanged { value in
+                guard canBeginSceneSwipe(value) else { return }
+                swipeOffset = value.translation.width * (reduceMotion ? 0.22 : 0.42)
+            }
+            .onEnded { value in
+                guard canBeginSceneSwipe(value) else {
+                    settleSwipeOffset()
+                    return
+                }
+
+                let dx = value.translation.width
+                let predicted = value.predictedEndTranslation.width
+                let horizontalEnough = abs(dx) > abs(value.translation.height) * 1.15
+                let flicked = abs(dx) > 96 || abs(predicted) > 360
+
+                if horizontalEnough && flicked {
+                    commitPrefetchedSceneSwipe(direction: dx < 0 ? -1 : 1)
+                } else {
+                    settleSwipeOffset()
+                }
+            }
+    }
+
+    private func canBeginSceneSwipe(_ value: DragGesture.Value) -> Bool {
+        guard !isSwipeSwitching else { return false }
+        guard !appState.isTransitioningScene else { return false }
+        guard !showTimerPicker, !appState.showMixPalette else { return false }
+        return abs(value.translation.width) >= abs(value.translation.height) * 0.85
+    }
+
+    private func settleSwipeOffset() {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+            swipeOffset = 0
+        }
+    }
+
+    private func commitPrefetchedSceneSwipe(direction: CGFloat) {
+        let next: DreamScene?
+        if direction < 0 {
+            next = rightNeighbor
+        } else {
+            next = leftNeighbor
+        }
+        guard let next else {
+            settleSwipeOffset()
+            return
+        }
+
+        isSwipeSwitching = true
+        let travel = stageWidth * direction
+        let settle = reduceMotion ? 0.12 : 0.20
+
+        withAnimation(.easeOut(duration: settle)) {
+            // Align peek to full-bleed, then cut to live atmosphere without curtain.
+            swipeOffset = travel
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(settle * 1_000_000_000))
+            var cut = Transaction()
+            cut.disablesAnimations = true
+            withTransaction(cut) {
+                appState.swipeIntoDream(sceneId: next.id)
+                swipeOffset = 0
+                isSwipeSwitching = false
+            }
+            refillSwipeNeighbors()
+        }
+    }
+
+    private func refillSwipeNeighbors() {
+        let others = appState.scenes.filter { $0.id != appState.currentSceneId }
+        guard !others.isEmpty else {
+            leftNeighbor = nil
+            rightNeighbor = nil
+            return
+        }
+
+        var pool = others.shuffled()
+        let left = pool.removeFirst()
+        let right = pool.first ?? left
+        leftNeighbor = left
+        rightNeighbor = right
+
+        appState.prefetchSwipeScene(left.id)
+        if right.id != left.id {
+            appState.prefetchSwipeScene(right.id)
         }
     }
 
@@ -80,6 +216,29 @@ struct NowView: View {
         } else {
             appState.toggleControlsVisibility()
         }
+    }
+}
+
+/// Lightweight peek used during swipe — avoids spinning up a second full atmosphere stack.
+private struct SceneSwipePeekBackdrop: View {
+    let scene: DreamScene
+
+    var body: some View {
+        ZStack {
+            scene.palette.gradient
+            if let cover = SceneCoverArt.image(for: scene.visualStyle) {
+                Image(uiImage: cover)
+                    .resizable()
+                    .scaledToFill()
+            }
+            LinearGradient(
+                colors: [.black.opacity(0.22), .clear, .black.opacity(0.40)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .clipped()
+        .ignoresSafeArea()
     }
 }
 

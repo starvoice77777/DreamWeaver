@@ -2,9 +2,41 @@ import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum LibraryHubSection: String, CaseIterable, Identifiable {
+    case existing = "已有"
+    case custom = "自定义"
+
+    var id: String { rawValue }
+}
+
+private enum ExistingLibraryGroup: String, Identifiable {
+    case materials = "素材"
+    case seeds = "人声种子"
+
+    var id: String { rawValue }
+}
+
+private let existingPreviewLimit = 3
+
+private enum AudioUploadChoice: String, CaseIterable, Identifiable {
+    case record = "现场录音"
+    case file = "上传文件"
+
+    var id: String { rawValue }
+}
+
+private enum SeedSourceChoice: String, CaseIterable, Identifiable {
+    case existing = "已有素材"
+    case file = "上传文件"
+    case record = "现场录音"
+
+    var id: String { rawValue }
+}
+
 struct SoundLibraryView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var segment: SoundLibrarySegment = .mine
+
+    @State private var section: LibraryHubSection = .existing
     @State private var showSearch = false
     @State private var searchText = ""
     @State private var soundPendingDelete: SoundAsset?
@@ -13,12 +45,19 @@ struct SoundLibraryView: View {
     @State private var renameTarget: SoundAsset?
     @State private var renameText = ""
     @State private var detailTarget: SoundAsset?
+
+    @State private var showUploadChooser = false
+    @State private var showSeedChooser = false
+    @State private var showExistingSeedPicker = false
+    @State private var seedLaunch: SeedLaunchSource?
+
     @State private var showUploadMock = false
     @State private var showRecordMock = false
     @State private var showFileImporter = false
     @State private var isUploading = false
     @State private var libraryNotice: String?
     @State private var showLoginHint = false
+    @State private var expandedLibraryGroup: ExistingLibraryGroup?
 
     private var canRemoteUpload: Bool {
         appState.contentBackendMode == .remote
@@ -26,20 +65,20 @@ struct SoundLibraryView: View {
             && appState.remoteLibraryService != nil
     }
 
-    private var recordings: [SoundAsset] {
-        filterList(appState.soundAssets.filter { $0.kind == .recording })
+    /// Uploaded recordings + official/community materials shown as one “素材” group.
+    private var materialAssets: [SoundAsset] {
+        filterList(
+            appState.soundAssets.filter { $0.kind == .recording || $0.kind == .community }
+        )
     }
 
-    private var seeds: [SoundAsset] {
+    private var seedAssets: [SoundAsset] {
         filterList(appState.soundAssets.filter { $0.kind == .seed })
     }
 
-    private var community: [SoundAsset] {
-        filterList(appState.soundAssets.filter { $0.kind == .community })
-    }
-
-    private var favorites: [SoundAsset] {
-        filterList(appState.soundAssets.filter(\.isFavorite))
+    /// Materials that can become a seed source.
+    private var seedableAssets: [SoundAsset] {
+        materialAssets
     }
 
     private func filterList(_ list: [SoundAsset]) -> [SoundAsset] {
@@ -54,18 +93,29 @@ struct SoundLibraryView: View {
                     header
                     if showSearch {
                         TextField("搜索声音", text: $searchText)
+                            .textFieldStyle(.plain)
                             .padding(12)
-                            .dreamGlass(cornerRadius: 14)
+                            .dreamRefractiveLiquidGlassCapsule(
+                                accent: DreamTheme.mistBlue,
+                                intensity: 0.72,
+                                interactive: true
+                            )
                             .padding(.horizontal, 20)
                             .foregroundStyle(DreamTheme.moonWhite)
                     }
 
-                    primaryActions
+                    sectionSwitcher
                         .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
 
-                    segmentChips
-
-                    content
+                    Group {
+                        switch section {
+                        case .existing:
+                            existingContent
+                        case .custom:
+                            customContent
+                        }
+                    }
                 }
                 .background(DreamTheme.backgroundGradient.ignoresSafeArea())
 
@@ -79,6 +129,43 @@ struct SoundLibraryView: View {
                 }
             }
             .navigationBarHidden(true)
+            .confirmationDialog("音频上传", isPresented: $showUploadChooser, titleVisibility: .visible) {
+                Button("现场录音") { beginRecordUpload() }
+                Button("上传文件") { beginFileUpload() }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("选择录音或直接上传本地音频文件。")
+            }
+            .confirmationDialog("声音种子创建", isPresented: $showSeedChooser, titleVisibility: .visible) {
+                Button("已有素材") { showExistingSeedPicker = true }
+                Button("上传文件") { openSeedFlow(.file) }
+                Button("现场录音") { openSeedFlow(.record) }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("选择已有素材、上传文件或现场录音作为种子来源。")
+            }
+            .sheet(isPresented: $showExistingSeedPicker) {
+                ExistingSeedSourcePicker(
+                    assets: seedableAssets,
+                    onSelect: { asset in
+                        showExistingSeedPicker = false
+                        openSeedFlow(.existing(asset))
+                    },
+                    onCancel: { showExistingSeedPicker = false }
+                )
+                .presentationDetents([.medium, .large])
+            }
+            .sheet(item: $expandedLibraryGroup) { group in
+                ExistingLibraryFullList(
+                    title: group.rawValue,
+                    items: group == .materials ? materialAssets : seedAssets,
+                    row: { asset in
+                        soundRow(asset)
+                    },
+                    onClose: { expandedLibraryGroup = nil }
+                )
+                .presentationDetents([.medium, .large])
+            }
             .alert("删除声音", isPresented: Binding(
                 get: { soundPendingDelete != nil },
                 set: { if !$0 { clearDeletePending() } }
@@ -111,9 +198,16 @@ struct SoundLibraryView: View {
                     .environmentObject(appState)
                     .presentationDetents([.medium])
             }
-            .fullScreenCover(isPresented: $appState.showSeedFlow) {
-                SeedCreationFlow()
+            .fullScreenCover(item: $seedLaunch) { launch in
+                SeedCreationFlow(launchSource: launch)
                     .environmentObject(appState)
+            }
+            .onChange(of: appState.showSeedFlow) { _, showing in
+                // Keep legacy AppState flag workable without owning the new launch source.
+                if showing {
+                    appState.showSeedFlow = false
+                    openSeedFlow(.record)
+                }
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -127,7 +221,7 @@ struct SoundLibraryView: View {
                     appState.addSoundAsset(
                         SoundAsset(
                             id: UUID(),
-                            name: "本地录音 \(recordings.count + 1)",
+                            name: "本地录音 \(materialAssets.filter { $0.kind == .recording }.count + 1)",
                             kind: .recording,
                             durationSeconds: 96,
                             symbolName: "doc.fill",
@@ -138,7 +232,7 @@ struct SoundLibraryView: View {
                             lastUsedAt: Date()
                         )
                     )
-                    segment = .mine
+                    section = .existing
                 }
                 Button("取消", role: .cancel) {}
             } message: {
@@ -149,7 +243,7 @@ struct SoundLibraryView: View {
                     appState.addSoundAsset(
                         SoundAsset(
                             id: UUID(),
-                            name: "新录音 \(recordings.count + 1)",
+                            name: "新录音 \(materialAssets.filter { $0.kind == .recording }.count + 1)",
                             kind: .recording,
                             durationSeconds: 72,
                             symbolName: "mic.fill",
@@ -160,7 +254,7 @@ struct SoundLibraryView: View {
                             lastUsedAt: Date()
                         )
                     )
-                    segment = .mine
+                    section = .existing
                 }
                 Button("取消", role: .cancel) {}
             } message: {
@@ -202,31 +296,261 @@ struct SoundLibraryView: View {
         return types
     }()
 
+    // MARK: - Header & Switcher
+
     private var header: some View {
         HStack {
             SectionHeader(title: "声音库")
-            Button {
-                showSearch.toggle()
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(DreamTheme.moonWhite)
-                    .frame(width: 44, height: 44)
+            GlassEffectContainer(spacing: 10) {
+                Button {
+                    withAnimation { showSearch.toggle() }
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(DreamTheme.moonWhite)
+                        .frame(width: 44, height: 44)
+                        .dreamSpatialLiquidGlassCircle(
+                            accent: DreamTheme.mistBlue,
+                            intensity: showSearch ? 0.95 : 0.78
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("搜索")
             }
-            .accessibilityLabel("搜索")
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
     }
 
-    private var primaryActions: some View {
-        HStack(spacing: 10) {
-            actionChip(title: "录制声音", symbol: "mic.fill") { showRecordMock = true }
-            actionChip(title: "上传本地文件", symbol: "square.and.arrow.up", action: beginUpload)
-            actionChip(title: "创建声音种子", symbol: "leaf.fill") { appState.showSeedFlow = true }
+    private var sectionSwitcher: some View {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 8) {
+                ForEach(LibraryHubSection.allCases) { item in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            section = item
+                        }
+                    } label: {
+                        Text(item.rawValue)
+                            .font(.system(size: 15, weight: section == item ? .semibold : .regular))
+                            .foregroundStyle(
+                                section == item
+                                    ? DreamTheme.moonWhite
+                                    : DreamTheme.moonWhite.opacity(0.72)
+                            )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .scaleEffect(section == item ? 1.03 : 1)
+                            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: section)
+                            .dreamRefractiveLiquidGlassCapsule(
+                                accent: section == item ? DreamTheme.warmApricot : DreamTheme.mistBlue,
+                                intensity: section == item ? 0.95 : 0.62,
+                                interactive: true
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(item.rawValue)
+                    .accessibilityAddTraits(section == item ? .isSelected : [])
+                }
+            }
         }
     }
 
-    private func beginUpload() {
+    // MARK: - Existing
+
+    private var existingContent: some View {
+        Group {
+            if materialAssets.isEmpty && seedAssets.isEmpty {
+                EmptyStateView(
+                    symbol: "waveform",
+                    message: "还没有素材或人声种子。去「自定义」上传音频或创建种子。",
+                    actionTitle: "去自定义"
+                ) {
+                    section = .custom
+                }
+                .padding(.top, 24)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 22) {
+                        existingSection(
+                            title: "素材",
+                            group: .materials,
+                            items: materialAssets,
+                            emptyHint: "还没有上传或官方素材"
+                        )
+                        existingSection(
+                            title: "人声种子",
+                            group: .seeds,
+                            items: seedAssets,
+                            emptyHint: "还没有人声种子"
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 120)
+                }
+            }
+        }
+    }
+
+    private func existingSection(
+        title: String,
+        group: ExistingLibraryGroup,
+        items: [SoundAsset],
+        emptyHint: String
+    ) -> some View {
+        let previewItems = Array(items.prefix(existingPreviewLimit))
+        let hasMore = items.count > existingPreviewLimit
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(DreamTheme.secondaryText)
+
+            if items.isEmpty {
+                Text(emptyHint)
+                    .font(.system(size: 13))
+                    .foregroundStyle(DreamTheme.tertiaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
+            } else {
+                ForEach(previewItems) { asset in
+                    soundRow(asset)
+                }
+
+                if hasMore {
+                    Button {
+                        expandedLibraryGroup = group
+                    } label: {
+                        HStack {
+                            Text("更多")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("共 \(items.count) 项")
+                                .font(.system(size: 12))
+                                .foregroundStyle(DreamTheme.tertiaryText)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .dreamRefractiveLiquidGlassRounded(
+                            cornerRadius: 14,
+                            accent: DreamTheme.mistBlue,
+                            intensity: 0.7,
+                            interactive: true
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("查看全部\(title)")
+                }
+            }
+        }
+    }
+
+    // MARK: - Custom
+
+    private var customContent: some View {
+        ScrollView {
+            GlassEffectContainer(spacing: 16) {
+                VStack(spacing: 14) {
+                    customEntryCard(
+                        title: "音频上传",
+                        subtitle: "点击后可选择现场录音，或直接上传本地文件",
+                        symbol: "square.and.arrow.up.on.square.fill",
+                        accents: AudioUploadChoice.allCases.map(\.rawValue)
+                    ) {
+                        showUploadChooser = true
+                    }
+
+                    customEntryCard(
+                        title: "声音种子创建",
+                        subtitle: "点击后可选择已有素材、上传文件，或现场录音",
+                        symbol: "leaf.fill",
+                        accents: SeedSourceChoice.allCases.map(\.rawValue)
+                    ) {
+                        showSeedChooser = true
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 120)
+        }
+    }
+
+    private func customEntryCard(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        accents: [String],
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .center, spacing: 14) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(DreamTheme.moonWhite)
+                        .frame(width: 52, height: 52)
+                        .background {
+                            Circle().fill(Color.white.opacity(0.12))
+                        }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(DreamTheme.moonWhite)
+                        Text(subtitle)
+                            .font(.system(size: 13))
+                            .foregroundStyle(DreamTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(DreamTheme.tertiaryText)
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(accents, id: \.self) { label in
+                        Text(label)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color.white.opacity(0.10)))
+                    }
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .dreamRefractiveLiquidGlassRounded(
+                cornerRadius: 22,
+                accent: DreamTheme.mistBlue,
+                intensity: 0.78,
+                interactive: true
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityHint(subtitle)
+    }
+
+    // MARK: - Actions
+
+    private func beginRecordUpload() {
+        if appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated {
+            showLoginHint = true
+            return
+        }
+        showRecordMock = true
+    }
+
+    private func beginFileUpload() {
         if canRemoteUpload {
             showFileImporter = true
         } else if appState.contentBackendMode == .remote {
@@ -234,6 +558,14 @@ struct SoundLibraryView: View {
         } else {
             showUploadMock = true
         }
+    }
+
+    private func openSeedFlow(_ source: SeedLaunchSource) {
+        if appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated {
+            showLoginHint = true
+            return
+        }
+        seedLaunch = source
     }
 
     private func beginDelete(_ asset: SoundAsset) {
@@ -290,7 +622,7 @@ struct SoundLibraryView: View {
                 durationSeconds: duration
             )
             appState.addSoundAsset(asset)
-            segment = .mine
+            section = .existing
             libraryNotice = "已上传「\(asset.name)」"
         } catch {
             libraryNotice = error.localizedDescription
@@ -315,151 +647,6 @@ struct SoundLibraryView: View {
         }
     }
 
-    private func actionChip(title: String, symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: symbol)
-                    .font(.system(size: 16))
-                Text(title)
-                    .font(.system(size: 11))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-            }
-            .foregroundStyle(DreamTheme.moonWhite.opacity(0.9))
-            .frame(maxWidth: .infinity)
-            .frame(height: 64)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(0.08))
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .disabled(isUploading || isPreparingDelete)
-    }
-
-    private var segmentChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(SoundLibrarySegment.allCases) { item in
-                    CapsuleChip(title: item.rawValue, selected: segment == item) {
-                        segment = item
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch segment {
-        case .mine:
-            mineContent
-        case .community:
-            listOrEmpty(
-                community,
-                emptySymbol: "person.3",
-                emptyMessage: "社区还没有声音。稍后再来看看吧。",
-                actionTitle: "去收藏页看看",
-                action: { segment = .favorites }
-            )
-        case .favorites:
-            listOrEmpty(
-                favorites,
-                emptySymbol: "heart",
-                emptyMessage: "还没有收藏的声音。收藏后可与基本声音一起在声源添加中使用。",
-                actionTitle: "浏览社区",
-                action: { segment = .community }
-            )
-        }
-    }
-
-    private var mineContent: some View {
-        Group {
-            if recordings.isEmpty && seeds.isEmpty {
-                EmptyStateView(
-                    symbol: "waveform",
-                    message: "还没有个人声音。可以录制、上传，或创建声音种子。",
-                    actionTitle: "创建声音种子"
-                ) {
-                    appState.showSeedFlow = true
-                }
-                .padding(.top, 24)
-                Spacer()
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 22) {
-                        mineSection(title: "我的录音", items: recordings, emptyHint: "还没有录音") {
-                            beginUpload()
-                        }
-                        mineSection(title: "我的声音种子", items: seeds, emptyHint: "还没有声音种子") {
-                            appState.showSeedFlow = true
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
-                }
-            }
-        }
-    }
-
-    private func mineSection(
-        title: String,
-        items: [SoundAsset],
-        emptyHint: String,
-        emptyAction: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(DreamTheme.secondaryText)
-
-            if items.isEmpty {
-                Button(action: emptyAction) {
-                    Text(emptyHint + "，点此添加")
-                        .font(.system(size: 13))
-                        .foregroundStyle(DreamTheme.mistBlue)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
-                }
-                .buttonStyle(.plain)
-            } else {
-                ForEach(items) { asset in
-                    soundRow(asset)
-                }
-            }
-        }
-    }
-
-    private func listOrEmpty(
-        _ items: [SoundAsset],
-        emptySymbol: String,
-        emptyMessage: String,
-        actionTitle: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Group {
-            if items.isEmpty {
-                EmptyStateView(symbol: emptySymbol, message: emptyMessage, actionTitle: actionTitle, action: action)
-                    .padding(.top, 24)
-                Spacer()
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(items) { asset in
-                            soundRow(asset)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
-                }
-            }
-        }
-    }
-
     private func soundRow(_ asset: SoundAsset) -> some View {
         SoundAssetRow(
             asset: asset,
@@ -478,7 +665,8 @@ struct SoundLibraryView: View {
                     SoundSource(
                         name: asset.name,
                         symbolName: asset.symbolName,
-                        assetId: asset.id
+                        assetId: asset.id,
+                        layer: asset.kind == .seed ? .voice : .environment
                     )
                 )
                 appState.selectedTab = .now
@@ -488,6 +676,90 @@ struct SoundLibraryView: View {
         )
     }
 }
+
+// MARK: - Seed source picker
+
+private struct ExistingLibraryFullList<Row: View>: View {
+    let title: String
+    let items: [SoundAsset]
+    @ViewBuilder var row: (SoundAsset) -> Row
+    var onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(items) { asset in
+                        row(asset)
+                    }
+                }
+                .padding(20)
+                .padding(.bottom, 40)
+            }
+            .background(DreamTheme.deepBlue.ignoresSafeArea())
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭", action: onClose)
+                }
+            }
+        }
+    }
+}
+
+private struct ExistingSeedSourcePicker: View {
+    let assets: [SoundAsset]
+    var onSelect: (SoundAsset) -> Void
+    var onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if assets.isEmpty {
+                    ContentUnavailableView(
+                        "暂无可选素材",
+                        systemImage: "tray",
+                        description: Text("请先在「自定义」上传音频，或等待官方素材同步。")
+                    )
+                } else {
+                    List(assets) { asset in
+                        Button {
+                            onSelect(asset)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: asset.symbolName)
+                                    .foregroundStyle(DreamTheme.moonWhite)
+                                    .frame(width: 36, height: 36)
+                                    .background(Circle().fill(Color(hex: asset.avatarColor).opacity(0.85)))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(asset.name)
+                                        .foregroundStyle(DreamTheme.moonWhite)
+                                    Text("\(asset.kind.rawValue) · \(asset.durationText)")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(DreamTheme.secondaryText)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .listRowBackground(Color.white.opacity(0.04))
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .background(DreamTheme.deepBlue.ignoresSafeArea())
+            .navigationTitle("选择已有素材")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消", action: onCancel)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Shared rows
 
 struct SoundAssetRow: View {
     let asset: SoundAsset
@@ -522,41 +794,69 @@ struct SoundAssetRow: View {
 
             Spacer()
 
-            Button(action: onPreview) {
-                Image(systemName: isPreviewing ? "pause.fill" : "play.fill")
-                    .foregroundStyle(DreamTheme.moonWhite)
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel(isPreviewing ? "暂停试听" : "试听")
-
-            Button(action: onFavorite) {
-                Image(systemName: asset.isFavorite ? "heart.fill" : "heart")
-                    .foregroundStyle(asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.tertiaryText)
-                    .frame(width: 36, height: 44)
-            }
-            .accessibilityLabel(asset.isFavorite ? "取消收藏" : "收藏")
-
-            Menu {
-                Button("重命名", action: onRename)
-                Button("查看详情", action: onDetail)
-                if canAddToScene {
-                    Button("添加到场景", action: onAddToScene)
-                } else {
-                    Button("收藏后可添加到场景") {
-                        if !asset.isFavorite { onFavorite() }
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 6) {
+                    Button(action: onPreview) {
+                        Image(systemName: isPreviewing ? "pause.fill" : "play.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(DreamTheme.moonWhite)
+                            .frame(width: 44, height: 44)
+                            .dreamSpatialLiquidGlassCircle(
+                                accent: DreamTheme.mistBlue,
+                                intensity: isPreviewing ? 0.95 : 0.78
+                            )
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isPreviewing ? "暂停试听" : "试听")
+
+                    Button(action: onFavorite) {
+                        Image(systemName: asset.isFavorite ? "heart.fill" : "heart")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(
+                                asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.moonWhite.opacity(0.85)
+                            )
+                            .frame(width: 40, height: 40)
+                            .dreamSpatialLiquidGlassCircle(
+                                accent: asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.mistBlue,
+                                intensity: asset.isFavorite ? 0.92 : 0.68
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(asset.isFavorite ? "取消收藏" : "收藏")
+
+                    Menu {
+                        Button("重命名", action: onRename)
+                        Button("查看详情", action: onDetail)
+                        if canAddToScene {
+                            Button("添加到场景", action: onAddToScene)
+                        } else {
+                            Button("收藏后可添加到场景") {
+                                if !asset.isFavorite { onFavorite() }
+                            }
+                        }
+                        Button("导出") {}
+                        Button("删除", role: .destructive, action: onDelete)
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(DreamTheme.moonWhite.opacity(0.85))
+                            .frame(width: 40, height: 40)
+                            .dreamSpatialLiquidGlassCircle(
+                                accent: DreamTheme.mistBlue,
+                                intensity: 0.66
+                            )
+                    }
+                    .accessibilityLabel("更多操作")
                 }
-                Button("导出") {}
-                Button("删除", role: .destructive, action: onDelete)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(DreamTheme.secondaryText)
-                    .frame(width: 36, height: 44)
             }
-            .accessibilityLabel("更多操作")
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color.white.opacity(0.06)))
+        .dreamRefractiveLiquidGlassRounded(
+            cornerRadius: 18,
+            accent: DreamTheme.mistBlue,
+            intensity: 0.58,
+            interactive: false
+        )
     }
 }
 

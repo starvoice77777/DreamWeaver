@@ -5,16 +5,17 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
+            // Keep「此刻」fully painted underneath so launch can crossfade into it
+            // instead of dipping through black.
             RootTabView()
-                .opacity(appState.showLaunch ? 0 : 1)
 
             if appState.showLaunch {
                 LaunchDreamView()
-                    .transition(.opacity)
                     .zIndex(1)
+                    .transition(.identity)
+                    .allowsHitTesting(true)
             }
         }
-        .animation(.easeInOut(duration: 0.8), value: appState.showLaunch)
     }
 }
 
