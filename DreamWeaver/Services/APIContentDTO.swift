@@ -282,6 +282,8 @@ enum APIContentDTO {
         let palette: [String: UInt32]?
         let visual_style: String
         let sources: [MixSourcePayload]
+        /// Optional create-mode document (`scene_composition_v1`).
+        var composition: SceneComposition? = nil
     }
 
     struct PrivateSceneDraftUpdate: Encodable {

@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct SpatialEditorView: View {
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: SpatialTimelineViewModel
+    @State private var isSaving = false
 
     init(seed: SpatialEditorSeed? = nil) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
@@ -106,19 +108,73 @@ struct SpatialEditorView: View {
             Spacer()
 
             Button {
-                viewModel.saveDemoDraft()
+                Task { await saveDraft() }
             } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DreamTheme.warmApricot)
-                    .frame(width: 38, height: 38)
-                    .dreamSpatialLiquidGlassCircle(
-                        accent: DreamTheme.warmApricot,
-                        intensity: 0.62
-                    )
+                Group {
+                    if isSaving {
+                        ProgressView()
+                            .tint(DreamTheme.warmApricot)
+                    } else {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(DreamTheme.warmApricot)
+                    }
+                }
+                .frame(width: 38, height: 38)
+                .dreamSpatialLiquidGlassCircle(
+                    accent: DreamTheme.warmApricot,
+                    intensity: 0.62
+                )
             }
             .buttonStyle(.plain)
+            .disabled(isSaving)
             .accessibilityLabel("确认保存场景")
+        }
+    }
+
+    @MainActor
+    private func saveDraft() async {
+        viewModel.pause()
+        if viewModel.trimmedSceneName.isEmpty {
+            viewModel.showToast("请先填写场景名称")
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        var draft = viewModel.makeLocalDraft()
+        do {
+            try CreateDraftStore.shared.upsert(draft)
+        } catch {
+            viewModel.showToast("本地保存失败：\(error.localizedDescription)")
+            return
+        }
+
+        let canSyncRemote = appState.contentBackendMode == .remote && appState.isRemoteAuthenticated
+        if canSyncRemote {
+            guard !viewModel.soundSources.isEmpty else {
+                viewModel.showToast("「\(draft.name)」已保存在本机；加入声音后可同步云端")
+                return
+            }
+            do {
+                let detail = try await appState.saveCreateCompositionDraft(
+                    privateSceneId: viewModel.privateSceneID,
+                    name: draft.name,
+                    subtitle: viewModel.sourceSceneSubtitle ?? "",
+                    sourceSceneId: draft.sourceSceneId,
+                    composition: viewModel.makeCompositionDocument()
+                )
+                viewModel.bindPrivateSceneID(detail.id)
+                draft.privateSceneId = detail.id
+                draft.updatedAt = Date()
+                try? CreateDraftStore.shared.upsert(draft)
+                viewModel.showToast("「\(draft.name)」草稿已保存，可在创建页继续编辑")
+            } catch {
+                viewModel.showToast("本机已保存；云端同步失败：\(error.localizedDescription)")
+            }
+        } else {
+            viewModel.showToast("「\(draft.name)」草稿已保存，可在创建页继续编辑")
         }
     }
 
@@ -629,4 +685,5 @@ struct PlaybackControlView: View {
 
 #Preview {
     SpatialEditorView()
+        .environmentObject(AppState())
 }

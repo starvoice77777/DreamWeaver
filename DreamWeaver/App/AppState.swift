@@ -1049,6 +1049,48 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Create Tab: upsert composition as remote **draft** (not published saved version).
+    @discardableResult
+    func saveCreateCompositionDraft(
+        privateSceneId: UUID?,
+        name: String,
+        subtitle: String,
+        sourceSceneId: UUID?,
+        composition: APIContentDTO.SceneComposition
+    ) async throws -> APIContentDTO.PrivateSceneDetail {
+        guard let remoteUserService, isRemoteAuthenticated else {
+            throw ServiceError.unauthorized
+        }
+        let detail = try await remoteUserService.upsertCompositionDraft(
+            privateSceneId: privateSceneId,
+            name: name,
+            subtitle: subtitle,
+            sourceSceneId: sourceSceneId,
+            composition: composition
+        )
+        if let listed = try? await remoteUserService.listPrivateScenes() {
+            privateSceneSummaries = listed
+        }
+        if let source = sourceSceneId {
+            privateSceneIdBySource[source] = detail.id
+        }
+        return detail
+    }
+
+    func refreshPrivateSceneSummaries() async {
+        guard let remoteUserService, isRemoteAuthenticated else { return }
+        if let listed = try? await remoteUserService.listPrivateScenes() {
+            privateSceneSummaries = listed
+        }
+    }
+
+    func fetchPrivateSceneDetail(id: UUID) async throws -> APIContentDTO.PrivateSceneDetail {
+        guard let remoteUserService, isRemoteAuthenticated else {
+            throw ServiceError.unauthorized
+        }
+        return try await remoteUserService.fetchPrivateScene(id: id)
+    }
+
     func updateSourcePosition(id: UUID, position: SpatialPosition) {
         guard mixBoardSelection.isMine else { return }
         mutateCurrentSources { sources in

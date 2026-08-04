@@ -37,6 +37,10 @@ final class RemoteUserService {
         try await client.get("/v1/users/me/scenes", authorized: true)
     }
 
+    func fetchPrivateScene(id: UUID) async throws -> APIContentDTO.PrivateSceneDetail {
+        try await client.get("/v1/users/me/scenes/\(id.uuidString)", authorized: true)
+    }
+
     func copyOfficialScene(sceneId: UUID) async throws -> APIContentDTO.PrivateSceneDetail {
         try await client.postEmpty(
             "/v1/scenes/\(sceneId.uuidString)/copy",
@@ -56,6 +60,40 @@ final class RemoteUserService {
             "/v1/users/me/scenes/\(sceneId.uuidString)/draft",
             body: body,
             authorized: true
+        )
+    }
+
+    /// Persist Create-tab composition as a private-scene **draft** (does not publish saved version).
+    func upsertCompositionDraft(
+        privateSceneId: UUID?,
+        name: String,
+        subtitle: String,
+        sourceSceneId: UUID?,
+        composition: APIContentDTO.SceneComposition
+    ) async throws -> APIContentDTO.PrivateSceneDetail {
+        if let privateSceneId {
+            return try await updatePrivateDraft(
+                sceneId: privateSceneId,
+                body: APIContentDTO.PrivateSceneDraftUpdate(
+                    name: name,
+                    sources: nil,
+                    draft_timeline: nil,
+                    draft_composition: composition
+                )
+            )
+        }
+        return try await createPrivateScene(
+            APIContentDTO.PrivateSceneCreate(
+                name: name,
+                subtitle: subtitle,
+                description: "",
+                category: "personal",
+                tags: [],
+                palette: nil,
+                visual_style: "custom",
+                sources: [],
+                composition: composition
+            )
         )
     }
 

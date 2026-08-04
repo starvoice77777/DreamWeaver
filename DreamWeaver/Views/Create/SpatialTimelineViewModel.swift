@@ -22,6 +22,10 @@ final class SpatialTimelineViewModel: ObservableObject {
     @Published var showsFirstUseHint = true
     @Published var toastMessage: String?
     @Published private(set) var sourceSceneSubtitle: String?
+    /// Stable local draft id (created on first open / first save).
+    @Published private(set) var draftID: UUID
+    /// Remote private scene id when cloud draft sync succeeded.
+    @Published private(set) var privateSceneID: UUID?
 
     private let seedSourceSceneID: UUID?
     private var playbackTask: Task<Void, Never>?
@@ -31,12 +35,36 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     init(seed providedSeed: SpatialEditorSeed? = nil) {
         let seed = providedSeed ?? .blank
+        self.draftID = seed.draftID ?? UUID()
+        self.privateSceneID = seed.privateSceneID
         self.sceneName = seed.sceneName
         self.soundSources = seed.soundSources
+        self.textCues = seed.textCues
         self.selectedSourceID = seed.soundSources.first?.id
         self.sourceSceneSubtitle = seed.sourceSceneSubtitle
         self.seedSourceSceneID = seed.sourceSceneID
         self.showsFirstUseHint = seed.soundSources.isEmpty
+    }
+
+    func bindPrivateSceneID(_ id: UUID?) {
+        privateSceneID = id
+    }
+
+    func makeLocalDraft() -> CreateSceneDraft {
+        CreateSceneDraft(
+            id: draftID,
+            privateSceneId: privateSceneID,
+            name: displaySceneName,
+            sourceSceneId: seedSourceSceneID,
+            sourceSceneSubtitle: sourceSceneSubtitle,
+            soundSources: soundSources,
+            textCues: textCues,
+            updatedAt: Date()
+        )
+    }
+
+    func makeCompositionDocument() -> APIContentDTO.SceneComposition {
+        SceneCompositionMapper.composition(from: soundSources, duration: duration)
     }
 
     var trimmedSceneName: String {
@@ -403,15 +431,6 @@ final class SpatialTimelineViewModel: ObservableObject {
         textCues = []
         showsFirstUseHint = true
         showToast("已清空场景内容")
-    }
-
-    func saveDemoDraft() {
-        pause()
-        if trimmedSceneName.isEmpty {
-            showToast("请先填写场景名称")
-            return
-        }
-        showToast("「\(displaySceneName)」草稿已保存")
     }
 
     var availableMaterials: [SpatialEditorMaterial] {

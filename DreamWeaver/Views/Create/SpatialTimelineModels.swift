@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A user-authored「定位点」in「空间轨迹」.
-struct SpatialKeyPoint: Identifiable, Equatable {
+struct SpatialKeyPoint: Identifiable, Equatable, Codable {
     let id: UUID
     var time: Double
     var position: CGPoint
@@ -21,7 +21,7 @@ struct SpatialKeyPoint: Identifiable, Equatable {
 }
 
 /// A short user-authored line scheduled on the scene timeline.
-struct SpatialTextCue: Identifiable, Equatable {
+struct SpatialTextCue: Identifiable, Equatable, Codable {
     let id: UUID
     var time: Double
     var text: String
@@ -33,7 +33,7 @@ struct SpatialTextCue: Identifiable, Equatable {
     }
 }
 
-enum SpatialSourceTheme: Equatable {
+enum SpatialSourceTheme: String, Equatable, Codable {
     case narration
     case texture
     case water
@@ -179,7 +179,7 @@ enum SpatialTimelineEditMode: String, CaseIterable, Identifiable {
 
 /// Editor-local source model. It deliberately stays under Views/Create so the
 /// composition demo does not mutate the existing playback `SoundSource` model.
-struct SpatialEditorSource: Identifiable, Equatable {
+struct SpatialEditorSource: Identifiable, Equatable, Codable {
     let id: UUID
     var materialID: String?
     var name: String

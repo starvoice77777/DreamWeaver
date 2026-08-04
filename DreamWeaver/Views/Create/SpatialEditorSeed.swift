@@ -1,16 +1,22 @@
 import CoreGraphics
 import Foundation
 
-/// Draft payload for opening the spatial editor blank or from an existing scene.
+/// Draft payload for opening the spatial editor blank, from a scene, or from a saved draft.
 struct SpatialEditorSeed: Equatable {
+    var draftID: UUID?
+    var privateSceneID: UUID?
     var sceneName: String
     var soundSources: [SpatialEditorSource]
+    var textCues: [SpatialTextCue]
     var sourceSceneID: UUID?
     var sourceSceneSubtitle: String?
 
     static let blank = SpatialEditorSeed(
+        draftID: nil,
+        privateSceneID: nil,
         sceneName: "",
         soundSources: [],
+        textCues: [],
         sourceSceneID: nil,
         sourceSceneSubtitle: nil
     )
@@ -44,10 +50,44 @@ struct SpatialEditorSeed: Equatable {
         }
 
         return SpatialEditorSeed(
+            draftID: nil,
+            privateSceneID: nil,
             sceneName: scene.name,
             soundSources: sources,
+            textCues: [],
             sourceSceneID: scene.id,
             sourceSceneSubtitle: scene.subtitle
+        )
+    }
+
+    static func from(draft: CreateSceneDraft) -> SpatialEditorSeed {
+        SpatialEditorSeed(
+            draftID: draft.id,
+            privateSceneID: draft.privateSceneId,
+            sceneName: draft.name,
+            soundSources: draft.soundSources,
+            textCues: draft.textCues,
+            sourceSceneID: draft.sourceSceneId,
+            sourceSceneSubtitle: draft.sourceSceneSubtitle
+        )
+    }
+
+    static func from(privateDetail detail: APIContentDTO.PrivateSceneDetail) -> SpatialEditorSeed {
+        let composition = detail.draft_composition ?? detail.saved_composition
+        let sources: [SpatialEditorSource]
+        if let composition, !composition.tracks.isEmpty {
+            sources = SceneCompositionMapper.editorSources(from: composition)
+        } else {
+            sources = []
+        }
+        return SpatialEditorSeed(
+            draftID: nil,
+            privateSceneID: detail.id,
+            sceneName: detail.name,
+            soundSources: sources,
+            textCues: [],
+            sourceSceneID: detail.source_scene_id,
+            sourceSceneSubtitle: detail.subtitle
         )
     }
 
