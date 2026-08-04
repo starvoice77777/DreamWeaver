@@ -1,8 +1,8 @@
 # DreamWeaver 生产后端技术方案与实施路线
 
-版本：v1.3  
-日期：2026-08-02  
-状态：阶段 0–7 完成；本地后端收口完成（catalog reseed、`/ready` 探活、部署清单）；下一阶段：阶段 8 中国大陆部署  
+版本：v1.4  
+日期：2026-08-03  
+状态：阶段 0–7 + 本地收口完成；进行中：PRD v1.3 场景创作 composition（`feat/scene-composition-v1`）；下一阶段仍含阶段 8 上云  
 适用范围：iOS 客户端、服务器后端、音频处理、测试、部署与团队协作
 
 ## 1. 文档目的
@@ -523,7 +523,7 @@ VoiceProvider
 
 ## 16. 实施阶段
 
-进度说明（2026-08-02）：阶段 **0–7** 已合入 `integration/frontend-backend`。本地收口已完成：雨檐官方素材与 timeline v2、`POST /v1/admin/reseed-catalog` / `DW_FORCE_RESEED_CATALOG`、`/ready` Postgres+Redis 探活、`docs/deploy-china-checklist.md`。**下一阶段：阶段 8**（需企业主体与云账号）。
+进度说明（2026-08-03）：阶段 **0–7** 与本地收口已合入。对照 PRD v1.3：进行中 **场景创作 composition**（音频轨 + 位置关键帧契约、校验 API、冻结 Seed）；官方 cue/phrase 保留。详见 `docs/scene-composition-contract.md`。**阶段 8** 仍待云账号。
 
 ### 阶段 0：代码保护与前端整合 — 完成
 
@@ -609,6 +609,14 @@ VoiceProvider
 - `/ready` 探测数据库与 Redis（对象存储不纳入）；
 - Celery `system.ping` 本地验证说明（Seed 主路径仍不依赖 Worker）；
 - GitHub Actions 跑 `server` pytest。
+
+### PRD v1.3 场景创作 composition — 进行中
+
+- 契约：`docs/scene-composition-contract.md`（双格式：官方 cue + 用户 composition）；
+- 私人场景 `draft_composition` / `saved_composition` + 结构校验 / validate API；
+- 客户端关键帧插值规格；创建 Tab + 多帧点选 UX 约定；
+- Seed / 语音克隆产品路径冻结（API deprecated）；
+- 前端交接：`docs/frontend-handoff-scene-composition.md`。
 
 ## 17. 当前阶段完成定义
 
