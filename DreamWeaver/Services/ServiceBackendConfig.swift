@@ -17,8 +17,17 @@ enum ServiceBackendMode: String, CaseIterable, Identifiable {
 
 enum ServiceBackendConfig {
     static let defaultsKey = "dw.contentBackend"
-    /// Simulator default for remote mode.
-    static let defaultRemoteBaseURL = URL(string: "http://127.0.0.1:8000")!
+    static let apiBaseURLKey = "dw.apiBaseURL"
+
+    /// Simulator talks to the Mac loopback; device uses the LAN IP of the API host.
+    static var defaultRemoteBaseURL: URL {
+        #if targetEnvironment(simulator)
+        URL(string: "http://127.0.0.1:8000")!
+        #else
+        // Current联调 LAN; override anytime via Settings → dw.apiBaseURL.
+        URL(string: "http://192.168.120.62:8000")!
+        #endif
+    }
 
     static var mode: ServiceBackendMode {
         get {
@@ -35,9 +44,24 @@ enum ServiceBackendConfig {
 
     static var usesRemoteAPI: Bool { mode == .remote }
 
+    /// Persisted override for `dw.apiBaseURL`. Empty means use `defaultRemoteBaseURL`.
+    static var apiBaseURLString: String {
+        get {
+            UserDefaults.standard.string(forKey: apiBaseURLKey) ?? ""
+        }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                UserDefaults.standard.removeObject(forKey: apiBaseURLKey)
+            } else {
+                UserDefaults.standard.set(trimmed, forKey: apiBaseURLKey)
+            }
+        }
+    }
+
     static var remoteBaseURL: URL {
-        if let override = UserDefaults.standard.string(forKey: "dw.apiBaseURL"),
-           let url = URL(string: override), !override.isEmpty {
+        let override = apiBaseURLString
+        if !override.isEmpty, let url = URL(string: override) {
             return url
         }
         return defaultRemoteBaseURL

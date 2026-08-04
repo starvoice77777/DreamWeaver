@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var apiBaseURLDraft = ServiceBackendConfig.apiBaseURLString.isEmpty
+        ? ServiceBackendConfig.remoteBaseURL.absoluteString
+        : ServiceBackendConfig.apiBaseURLString
 
     var body: some View {
         List {
@@ -20,7 +23,21 @@ struct SettingsView: View {
                     .accessibilityLabel("内容数据源")
                 }
                 .listRowBackground(Color.white.opacity(0.05))
-                Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换后请完全退出 App 再打开。")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("远程 API 基址（dw.apiBaseURL）")
+                        .foregroundStyle(DreamTheme.moonWhite)
+                    TextField("http://192.168.x.x:8000", text: $apiBaseURLDraft)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .foregroundStyle(DreamTheme.moonWhite)
+                    Button("保存基址") {
+                        applyAPIBaseURL()
+                    }
+                    .foregroundStyle(DreamTheme.warmApricot)
+                }
+                .listRowBackground(Color.white.opacity(0.05))
+                Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换数据源后请完全退出 App 再打开。")
                     .font(.footnote)
                     .foregroundStyle(DreamTheme.tertiaryText)
                 if appState.contentBackendMode == .remote {
@@ -162,6 +179,20 @@ struct SettingsView: View {
                 appState.lastServiceMessage = "已切换到\(mode.title)，请完全退出 App 后重开生效"
             }
         }
+    }
+
+    private func applyAPIBaseURL() {
+        let trimmed = apiBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), !trimmed.isEmpty, url.scheme != nil, url.host != nil else {
+            appState.lastServiceMessage = "基址无效，请使用类似 http://192.168.120.62:8000"
+            return
+        }
+        ServiceBackendConfig.apiBaseURLString = trimmed
+        apiBaseURLDraft = trimmed
+        Task {
+            await APIClient.shared.setBaseURL(url)
+        }
+        appState.lastServiceMessage = "已保存远程基址 \(trimmed)。若刚切换远程模式，请完全退出 App 后重开。"
     }
 }
 
