@@ -19,6 +19,8 @@ final class RemoteSeedPipelineService: SeedPipelineService {
     var pendingSourceFileURL: URL?
     var pendingSourceFilename: String?
     var pendingSourceContentType: String?
+    /// Already-uploaded library asset used as seed source (skips re-upload).
+    var pendingSourceAssetId: UUID?
 
     init(
         client: APIClient = .shared,
@@ -35,6 +37,7 @@ final class RemoteSeedPipelineService: SeedPipelineService {
         pendingSourceFileURL = nil
         pendingSourceFilename = nil
         pendingSourceContentType = nil
+        pendingSourceAssetId = nil
     }
 
     func analyze(durationSeconds: Int) async throws -> SeedQualityReport {
@@ -72,12 +75,18 @@ final class RemoteSeedPipelineService: SeedPipelineService {
         guard let authorizationId else {
             throw ServiceError.invalidState("请先完成声音授权")
         }
-        let source = try await uploadDemoSource(durationSeconds: durationSeconds)
+        let sourceAssetId: UUID
+        if let pendingSourceAssetId {
+            sourceAssetId = pendingSourceAssetId
+            clearPendingSource()
+        } else {
+            sourceAssetId = try await uploadDemoSource(durationSeconds: durationSeconds).id
+        }
         let dto: APIContentDTO.SeedJob = try await client.post(
             "/v1/seeds/process",
             body: APIContentDTO.SeedProcessIn(
                 authorization_id: authorizationId,
-                source_asset_id: source.id
+                source_asset_id: sourceAssetId
             ),
             authorized: true
         )

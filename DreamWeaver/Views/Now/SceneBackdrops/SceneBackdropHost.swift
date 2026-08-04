@@ -25,6 +25,22 @@ struct SceneBackdropHost: View {
                     isPlaying: isPlaying,
                     reduceMotion: reduceMotion
                 )
+            case .mistTide:
+                MistTideBackdrop(intensity: intensity)
+            case .fireflies:
+                FirefliesBackdrop(intensity: intensity)
+            case .starRiver:
+                StarRiverBackdrop(intensity: intensity)
+            case .wheatWind:
+                WheatWindBackdrop(intensity: intensity)
+            case .moonLake:
+                MoonLakeBackdrop(intensity: intensity)
+            case .warmLamp:
+                WarmLampBackdrop(intensity: intensity)
+            case .fireplaceWhisper:
+                FireplaceWhisperBackdrop(intensity: intensity)
+            case .summerInsects:
+                SummerInsectsBackdrop(intensity: intensity)
             case .canvasMotif:
                 SceneAtmosphereCanvas(
                     scene: scene,
@@ -35,6 +51,6 @@ struct SceneBackdropHost: View {
             }
         }
         .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.35), value: scene.id)
+        // Avoid crossfade “refresh” when identity swaps mid-swipe; curtain path hides the cut.
     }
 }

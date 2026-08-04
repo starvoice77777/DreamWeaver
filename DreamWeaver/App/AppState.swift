@@ -76,10 +76,12 @@ final class AppState: ObservableObject {
     private var hideControlsTask: Task<Void, Never>?
     private var hideTitleTask: Task<Void, Never>?
     private var hideMixPaletteTask: Task<Void, Never>?
-    private var idleReturnToNowTask: Task<Void, Never>?
     private var sessionStartedAt: Date?
     /// Maps official scene id → private scene id when home/save links them.
     private var privateSceneIdBySource: [UUID: UUID] = [:]
+    /// Warm timelines for swipe targets so playback reload skips a network/disk round-trip.
+    private var timelineCache: [UUID: APIContentDTO.SceneTimeline] = [:]
+    private var swipePrefetchTasks: [UUID: Task<Void, Never>] = [:]
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -383,7 +385,10 @@ final class AppState: ObservableObject {
     // MARK: - Launch
 
     func finishLaunch() {
-        withAnimation(.easeInOut(duration: reduceMotion ? 0.2 : 1.0)) {
+        // Overlay is already fully transparent; drop it without a second fade of「此刻」.
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
             showLaunch = false
         }
         showSceneTitleTemporarily()
@@ -435,7 +440,15 @@ final class AppState: ObservableObject {
         let sceneId = currentSceneId
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let timeline = try? await self.contentService.fetchTimeline(sceneId: sceneId)
+            let timeline: APIContentDTO.SceneTimeline?
+            if let cached = self.timelineCache[sceneId] {
+                timeline = cached
+            } else if let fetched = try? await self.contentService.fetchTimeline(sceneId: sceneId) {
+                self.timelineCache[sceneId] = fetched
+                timeline = fetched
+            } else {
+                timeline = nil
+            }
             do {
                 try self.playback.load(scene: scene, sources: sources, timeline: timeline)
                 self.playbackProgress = self.playback.progress
@@ -517,7 +530,6 @@ final class AppState: ObservableObject {
 
     func bumpInteraction() {
         userIsInteracting = true
-        noteUserActivity()
         revealControls()
         Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
@@ -527,35 +539,6 @@ final class AppState: ObservableObject {
             } else {
                 scheduleHideControls()
             }
-        }
-    }
-
-    // MARK: - Idle return to「此刻」
-
-    /// Call on any user activity while away from the Now tab.
-    func noteUserActivity() {
-        guard selectedTab != .now else {
-            idleReturnToNowTask?.cancel()
-            return
-        }
-        scheduleReturnToNowIfNeeded()
-    }
-
-    func cancelReturnToNow() {
-        idleReturnToNowTask?.cancel()
-        idleReturnToNowTask = nil
-    }
-
-    func scheduleReturnToNowIfNeeded() {
-        idleReturnToNowTask?.cancel()
-        guard selectedTab != .now else { return }
-        idleReturnToNowTask = Task {
-            try? await Task.sleep(nanoseconds: 30_000_000_000)
-            guard !Task.isCancelled, selectedTab != .now else { return }
-            withAnimation(.easeInOut(duration: DreamTheme.chromeVisibilityDuration)) {
-                selectedTab = .now
-            }
-            revealControls()
         }
     }
 
@@ -655,6 +638,24 @@ final class AppState: ObservableObject {
 
     // MARK: - Scene switching
 
+    /// Prefetch cover + timeline for a likely swipe target (short-video style).
+    func prefetchSwipeScene(_ sceneId: UUID) {
+        guard scenes.contains(where: { $0.id == sceneId }) else { return }
+        if let scene = scenes.first(where: { $0.id == sceneId }) {
+            SceneCoverArt.preload(for: scene.visualStyle)
+        }
+        guard timelineCache[sceneId] == nil else { return }
+        swipePrefetchTasks[sceneId]?.cancel()
+        swipePrefetchTasks[sceneId] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.swipePrefetchTasks[sceneId] = nil }
+            if let timeline = try? await self.contentService.fetchTimeline(sceneId: sceneId) {
+                guard !Task.isCancelled else { return }
+                self.timelineCache[sceneId] = timeline
+            }
+        }
+    }
+
     func enterDream(sceneId: UUID) {
         recordListening(sceneId: sceneId)
 
@@ -672,24 +673,7 @@ final class AppState: ObservableObject {
         Task {
             try? await Task.sleep(nanoseconds: UInt64(fadeOut * 1_000_000_000))
 
-            currentSceneId = sceneId
-            defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
-            playbackProgress = 0.08
-            mixBoardSelection = .mine
-            if let personal = personalMixByScene[sceneId] {
-                mutateCurrentSources { $0 = personal }
-            } else {
-                personalMixByScene[sceneId] = currentScene.soundSources
-            }
-
-            withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.45)) {
-                selectedTab = .now
-            }
-            cancelReturnToNow()
-
-            // `isPlaying` is set only after load/play succeeds inside reloadPlayback.
-            reloadPlayback(autoPlay: true)
-            sessionStartedAt = Date()
+            applySceneSwitch(sceneId: sceneId, ensureNowTab: true)
 
             try? await Task.sleep(nanoseconds: UInt64(hold * 1_000_000_000))
 
@@ -701,6 +685,51 @@ final class AppState: ObservableObject {
             showSceneTitleTemporarily()
             revealControls()
         }
+    }
+
+    /// Short-video swipe: no curtain / opacity refresh — only title re-announces.
+    func swipeIntoDream(sceneId: UUID) {
+        guard sceneId != currentSceneId else { return }
+        recordListening(sceneId: sceneId)
+        showMixPalette = false
+        // Don't replay disk intro / chrome bloom on swipe handoff.
+        skipNextSceneChromeIntro = true
+        applySceneSwitch(sceneId: sceneId, ensureNowTab: false)
+        withAnimation(.easeOut(duration: 0.12)) {
+            sceneTitleVisible = false
+        }
+        showSceneTitleTemporarily()
+        scheduleHideControls()
+    }
+
+    /// Consumed by Now mix chrome when scene id changes mid-swipe.
+    private(set) var skipNextSceneChromeIntro = false
+
+    @discardableResult
+    func consumeSkipSceneChromeIntro() -> Bool {
+        guard skipNextSceneChromeIntro else { return false }
+        skipNextSceneChromeIntro = false
+        return true
+    }
+
+    private func applySceneSwitch(sceneId: UUID, ensureNowTab: Bool) {
+        currentSceneId = sceneId
+        defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
+        playbackProgress = 0.08
+        mixBoardSelection = .mine
+        if let personal = personalMixByScene[sceneId] {
+            mutateCurrentSources { $0 = personal }
+        } else {
+            personalMixByScene[sceneId] = currentScene.soundSources
+        }
+
+        if ensureNowTab {
+            withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.45)) {
+                selectedTab = .now
+            }
+        }
+        reloadPlayback(autoPlay: true)
+        sessionStartedAt = Date()
     }
 
     func toggleFavorite(sceneId: UUID) {
@@ -825,6 +854,10 @@ final class AppState: ObservableObject {
     func addSource(_ source: SoundSource) {
         guard mixBoardSelection.isMine else { return }
         mutateCurrentSources { sources in
+            // Product rule: one voice track per scene; natural layers may stack.
+            if source.layer == .voice {
+                sources.removeAll { $0.layer == .voice }
+            }
             sources.append(source)
         }
         syncPersonalMixFromScene()

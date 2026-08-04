@@ -150,8 +150,8 @@ struct SoundMixCircleEditor: View {
     private let diskIdleHideDelay: TimeInterval = 0.2
     /// Boot / enter-scene intro hold (not the drag idle delay).
     private let sceneIntroHold: TimeInterval = 2.0
-    /// Let ContentView fade-in finish before counting the scene intro.
-    private let launchRevealDelay: TimeInterval = 0.45
+    /// Let the launch overlay finish dissolving before counting the scene intro.
+    private let launchRevealDelay: TimeInterval = 0.18
 
     private var activeSources: [SoundSource] {
         appState.currentScene.soundSources.filter(\.isEnabled)
@@ -258,6 +258,7 @@ struct SoundMixCircleEditor: View {
             }
             .onChange(of: size) { _, newSize in stageSize = newSize }
             .onChange(of: appState.currentSceneId) { _, _ in
+                if appState.consumeSkipSceneChromeIntro() { return }
                 requestSceneIntroDisk(afterLaunch: false)
             }
             .onChange(of: appState.showLaunch) { _, launching in

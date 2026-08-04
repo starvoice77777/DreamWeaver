@@ -39,20 +39,16 @@ struct SceneLibraryView: View {
                         withAnimation { showSearch.toggle() }
                     } label: {
                         Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(DreamTheme.moonWhite)
                             .frame(width: 44, height: 44)
+                            .dreamSpatialLiquidGlassCircle(
+                                accent: DreamTheme.mistBlue,
+                                intensity: showSearch ? 0.95 : 0.78
+                            )
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("搜索")
-
-                    Button {
-                        // TODO: 用户自行创建场景入口（交互待实现）
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(DreamTheme.moonWhite)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("创建场景")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -61,27 +57,57 @@ struct SceneLibraryView: View {
                     TextField("搜索场景", text: $searchText)
                         .textFieldStyle(.plain)
                         .padding(12)
-                        .dreamGlass(cornerRadius: 14)
+                        .dreamRefractiveLiquidGlassCapsule(
+                            accent: DreamTheme.mistBlue,
+                            intensity: 0.72,
+                            interactive: true
+                        )
                         .padding(.horizontal, 20)
                         .foregroundStyle(DreamTheme.moonWhite)
                 }
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        CapsuleChip(title: "全部", selected: selectedCategory == nil) {
-                            selectedCategory = nil
-                        }
-                        ForEach(SceneCategory.allCases) { category in
-                            CapsuleChip(
-                                title: category.rawValue,
-                                selected: selectedCategory == category
-                            ) {
-                                selectedCategory = category
+                GeometryReader { geo in
+                    let sidePad: CGFloat = 20
+                    let spacing: CGFloat = 10
+                    let visibleCount: CGFloat = 4
+                    // Scale tags so roughly four fit in one viewport row.
+                    let tagWidth = max(
+                        (geo.size.width - sidePad * 2 - spacing * (visibleCount - 1)) / visibleCount,
+                        64
+                    )
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        GlassEffectContainer(spacing: spacing) {
+                            HStack(spacing: spacing) {
+                                CapsuleChip(
+                                    title: "全部",
+                                    selected: selectedCategory == nil,
+                                    usesLiquidGlass: true,
+                                    fixedWidth: tagWidth
+                                ) {
+                                    selectedCategory = nil
+                                }
+                                ForEach(SceneCategory.allCases) { category in
+                                    CapsuleChip(
+                                        title: category.rawValue,
+                                        selected: selectedCategory == category,
+                                        usesLiquidGlass: true,
+                                        fixedWidth: tagWidth
+                                    ) {
+                                        selectedCategory = category
+                                    }
+                                }
                             }
                         }
+                        // Leave room for interactive glass scale / highlight bloom.
+                        .padding(.horizontal, sidePad)
+                        .padding(.vertical, 12)
                     }
-                    .padding(.horizontal, 20)
+                    .scrollClipDisabled()
                 }
+                .frame(height: 64)
+                // Keep neighboring sections from colliding with the tag bloom.
+                .padding(.vertical, -4)
 
                 SpiralSceneCarousel(
                     scenes: filtered,
