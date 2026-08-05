@@ -1,6 +1,6 @@
 {
   "scene_id": "sc_rain",
-  "version": 6,
+  "version": 8,
   "duration_seconds": 620,
   "automation_mode": "system_preset",
   "scene_type": "environment_no_text_no_voice",
@@ -72,43 +72,31 @@
       ]
     },
     {
-      "code": "A04a",
+      "code": "A04",
       "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5",
-      "resource_key": "wind_realistic",
-      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
-      "layer": "environment",
-      "start_seconds": 180,
-      "asset_duration_seconds": 11.56975,
-      "playback_duration_seconds": 20,
-      "loop": true,
-      "requires_engine_crossfade": true,
-      "crossfade_ms": 1000,
-      "default_volume": 0.18,
+      "resource_key": "wind_gust",
+      "master_file": "dw_official_trg_wind_gust_oneshot_sc_rain_far_v03_t01.wav",
+      "layer": "trigger",
+      "start_seconds": 188,
+      "asset_duration_seconds": 3.709375,
+      "playback_duration_seconds": 3.709375,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.20,
+      "playback_events": [
+        {"event_id": "a04-first", "start_seconds": 188, "playback_duration_seconds": 3.709375, "volume": 0.22},
+        {"event_id": "a04-second", "start_seconds": 458, "playback_duration_seconds": 3.709375, "volume": 0.18}
+      ],
       "position_keyframes": [
-        {"at_seconds": 180, "angle": -2.40, "radius": 0.95},
-        {"at_seconds": 188, "angle": -2.05, "radius": 0.82},
-        {"at_seconds": 196, "angle": -1.75, "radius": 0.90},
-        {"at_seconds": 200, "angle": -1.60, "radius": 0.98}
-      ]
-    },
-    {
-      "code": "A04b",
-      "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a",
-      "resource_key": "wind_realistic",
-      "master_file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
-      "layer": "environment",
-      "start_seconds": 450,
-      "asset_duration_seconds": 11.56975,
-      "playback_duration_seconds": 20,
-      "loop": true,
-      "requires_engine_crossfade": true,
-      "crossfade_ms": 1000,
-      "default_volume": 0.16,
-      "position_keyframes": [
-        {"at_seconds": 450, "angle": 2.55, "radius": 0.96},
-        {"at_seconds": 458, "angle": 2.25, "radius": 0.86},
-        {"at_seconds": 466, "angle": 2.65, "radius": 0.94},
-        {"at_seconds": 470, "angle": 2.80, "radius": 0.99}
+        {"at_seconds": 188, "angle": -2.40, "radius": 0.95},
+        {"at_seconds": 189.20, "angle": -2.05, "radius": 0.84},
+        {"at_seconds": 190.40, "angle": -1.75, "radius": 0.90},
+        {"at_seconds": 191.709375, "angle": -1.60, "radius": 0.98},
+        {"at_seconds": 458, "angle": 2.55, "radius": 0.96},
+        {"at_seconds": 459.20, "angle": 2.25, "radius": 0.86},
+        {"at_seconds": 460.40, "angle": 2.65, "radius": 0.94},
+        {"at_seconds": 461.709375, "angle": 2.80, "radius": 0.99}
       ]
     }
   ],
@@ -136,28 +124,12 @@
       ]
     },
     {
-      "id": "a04a-start",
-      "at_seconds": 180,
+      "id": "a04-first",
+      "at_seconds": 188,
       "actions": [
         {"type": "enable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
-        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 0},
-        {"type": "play", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
-        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0.18, "fade_ms": 8000}
-      ]
-    },
-    {
-      "id": "a04a-fade-out",
-      "at_seconds": 192,
-      "actions": [
-        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0, "fade_ms": 8000}
-      ]
-    },
-    {
-      "id": "a04a-stop",
-      "at_seconds": 200,
-      "actions": [
-        {"type": "pause", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
-        {"type": "disable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"}
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0.22, "fade_ms": 0},
+        {"type": "play_oneshot", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"}
       ]
     },
     {
@@ -185,28 +157,12 @@
       ]
     },
     {
-      "id": "a04b-start",
-      "at_seconds": 450,
+      "id": "a04-second",
+      "at_seconds": 458,
       "actions": [
-        {"type": "enable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
-        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 0},
-        {"type": "play", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
-        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0.16, "fade_ms": 8000}
-      ]
-    },
-    {
-      "id": "a04b-fade-out",
-      "at_seconds": 462,
-      "actions": [
-        {"type": "set_volume", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a", "volume": 0, "fade_ms": 8000}
-      ]
-    },
-    {
-      "id": "a04b-stop",
-      "at_seconds": 470,
-      "actions": [
-        {"type": "pause", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"},
-        {"type": "disable", "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a"}
+        {"type": "enable", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"},
+        {"type": "set_volume", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5", "volume": 0.18, "fade_ms": 0},
+        {"type": "play_oneshot", "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"}
       ]
     },
     {

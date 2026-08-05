@@ -2,4 +2,4 @@ code,resource_key,file,duration_seconds,sample_rate_hz,channels,integrated_lufs,
 A01,rain_soft,dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav,11.595875,48000,2,-25.00,-6.70,120,1000,qc_pending,手机外放层次；耳机空间；循环接缝
 A02,rain_parasol,dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav,6.050,48000,2,-25.18,-3.07,120,1200,qc_pending,与t02比较瞬态；主雨声不刺耳；循环接缝
 A03,rain_bamboo_leaf,dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav,6.050,48000,2,-23.52,-6.19,120,800,qc_pending,与t02比较高频；不得盖过A02；循环接缝
-A04,wind_realistic,dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav,11.56975,48000,2,-26.01,-8.17,120,1000,qc_pending,阵风与低频；两次淡入淡出；循环接缝
+A04,wind_gust,dw_official_trg_wind_gust_oneshot_sc_rain_far_v03_t01.wav,3.709375,48000,2,-26.02,-14.77,0,0,qc_pending,确认无语音或音乐；手机外放不突兀；两次单次触发与空间移动；授权待核验

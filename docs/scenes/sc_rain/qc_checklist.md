@@ -1,31 +1,21 @@
-# 檐下听雨 QC 清单（工程接入 sc_rain_v1 / timeline v6）
-
-包内验收原文：`packages/sc_rain_v1/qc/scene_acceptance.md`  
-工程映射：`packages/sc_rain_v1/INGEST.md`
-
-## 机器门禁
-
-- [x] 内容包 `package_validation.json` passed（交付方）
-- [x] 工程 fixture `rain_eaves_timeline_v6.json` 通过 `timeline-contract-v1`（UUID cue / DemoIDs）
-- [x] `phrases: []`（无文本环境型）
-- [x] v6：`position_keyframes` 已展开为 `set_position`（本地/服务器 fixture 一致）
-- [ ] 正式上架前：`asset_status=master` 且凭证归档（当前母带仍 `qc_pending`，演示 license 表为 approved）
-
-## 循环与 crossfade
-
-- [ ] `rain_soft` / `rain_parasol` / `rain_bamboo_leaf` 各循环 ≥2 分钟听接点
-- [ ] 引擎按轨 `crossfade_ms`（1.0s / 1.2s / 0.8s / 1.0s）处理短循环
-- [ ] `wind_realistic` 两段（3:00、7:30）进出无爆点
-
-## 人工试听（含 v6 空间编排）
-
-- [ ] 手机外放：远雨垫底可辨，近雨不刺耳，竹叶层低于主雨
-- [ ] 耳机：近雨 0:30 自较远进入再靠近；竹叶层有缓慢位移；两段风声左右层次可辨、无快速绕头感
-- [ ] 结尾 9:20–10:20 可预期淡出，无硬停
-- [ ] 整场无音乐、人声、雷声、鸟叫
-
-## 缺口
-
-- `room_wood_tone` 未交付（P1 planned）
-- 包内 `audio/demo` / `alternatives` 未入库（体积；验收用原 WeChat 包）
-- 引擎 `set_position` 为阶跃；包内关键帧间无插值（若听感阶跃过硬，需后续引擎支持）
+# 檐下听雨 QC 清单（工程接入 sc_rain_v1 / timeline v8）
+
+包内验收原文：`packages/sc_rain_v1/qc/scene_acceptance.md`  
+工程映射：`packages/sc_rain_v1/INGEST.md`
+
+## 工程接入
+
+- [x] 工程 fixture `rain_eaves_timeline_v8.json` 通过 `timeline-contract-v1`（UUID cue / DemoIDs）
+- [x] Bundle 短键含 `wind_gust.wav`；A01–A03 母带哈希与包内 v02 一致
+- [x] v8：`position_keyframes` 已展开为 `set_position`（本地/服务器 fixture 一致）
+- [x] A04 `play_oneshot` ×2（188s / 458s）
+
+## 待人工试听
+
+- [ ] A01–A03 进出场与空间运动无爆点、无接缝咔哒
+- [ ] `wind_gust` 两处 oneshot（约 3:08、7:38）音量合适、空间扫过自然
+- [ ] 官方预设「细雨慢听」稳态混音与时间线自动化不打架
+
+## 人工试听（含 v8 空间编排）
+
+见包内 `qc/` 报告；正式上架前补 license 归档。

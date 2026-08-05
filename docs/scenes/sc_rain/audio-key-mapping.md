@@ -1,12 +1,10 @@
-# 音频短键：檐下听雨母带映射
+# 檐下听雨 · 音频短键映射
 
-已交付母带可本地演示使用；当前状态为 `qc_pending`。进入正式 Bundle / 上架前须完成循环验收与许可证登记。
+| Bundle 短键 | 母带文件 | 用途 | 备注 |
+|-------------|---------|------|------|
+| `rain_soft` | `dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav` | A01 远雨垫底 | 循环；引擎 crossfade ~1000ms |
+| `rain_parasol` | `dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav` | A02 檐下雨 / 近雨 | 循环；crossfade ~1200ms |
+| `rain_bamboo_leaf` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav` | A03 竹叶雨 | 循环；音量低于近雨/远雨 |
+| `wind_gust` | `dw_official_trg_wind_gust_oneshot_sc_rain_far_v03_t01.wav` | A04 阵风 oneshot | 非循环；timeline `play_oneshot` @ 188s / 458s |
 
-| resource_key | 规范母带文件 | 原始文件 | 听感用途 | 处理备注 |
-| --- | --- | --- | --- | --- |
-| `rain_parasol` | `dw_official_env_rain_parasol_loop_sc_rain_near_v01_t01.wav` | `Close-up_gentle_rain_#4-….wav` | 近雨 / 檐面主环境 | 循环；若首尾不闭环需引擎 crossfade |
-| `rain_soft` | `dw_official_amb_rain_soft_loop_sc_rain_far_v01_t01.wav` | `Indoor_perspective_o_#2-….wav` | 室内远雨垫底 | 循环；若首尾不闭环需引擎 crossfade |
-| `rain_bamboo_leaf` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v01_t01.wav` | `Soft_rainy_bamboo_fo_#3-….wav` | 竹叶雨细腻氛围层 | 循环；音量须低于近雨/远雨 |
-| `wind_realistic` | `dw_official_env_wind_realistic_loop_sc_rain_far_v01_t01.wav` | `audiomass-output (5).wav` | 远风短段进入 | 循环素材；脚本仅 3:00–3:20、7:30–7:50 启用 |
-
-技术：48kHz 立体声 WAV；轻度处理、无激进降噪/固定降频；为保留可循环性未做首尾人工淡入淡出。
+历史：`wind_realistic` 曾用于 v6 两段循环起风；其它场景仍可引用，雨檐官方轨已改为 `wind_gust`。

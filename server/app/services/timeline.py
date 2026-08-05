@@ -22,9 +22,9 @@ VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 HAIR_CARE_TIMELINE_VERSION = 4
-RAIN_EAVES_TIMELINE_VERSION = 6
+RAIN_EAVES_TIMELINE_VERSION = 8
 _HAIR_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
-_RAIN_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v6.json"
+_RAIN_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v8.json"
 
 
 def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:

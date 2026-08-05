@@ -4,7 +4,7 @@
   "passed": true,
   "errors": [],
   "warnings": [],
-  "checked_tracks": 5,
+  "checked_tracks": 4,
   "checked_audio": [
     {
       "track_id": "675d3d70-7f0b-49a1-b754-ed38d163ba41",
@@ -32,19 +32,11 @@
     },
     {
       "track_id": "2cc9eff1-4520-46e1-a9d2-826b3299b7b5",
-      "file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
+      "file": "dw_official_trg_wind_gust_oneshot_sc_rain_far_v03_t01.wav",
       "sample_rate": 48000,
       "channels": 2,
-      "codec_name": "pcm_s16le",
-      "duration": 11.56975
-    },
-    {
-      "track_id": "ead3660e-83b7-4de2-b53d-ed9a1239090a",
-      "file": "dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav",
-      "sample_rate": 48000,
-      "channels": 2,
-      "codec_name": "pcm_s16le",
-      "duration": 11.56975
+      "codec_name": "pcm_s24le",
+      "duration": 3.709375
     }
   ]
 }

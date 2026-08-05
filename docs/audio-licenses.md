@@ -11,7 +11,8 @@
 | `rain_parasol.wav` | `dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav` | 素材交付 sc_rain_v1 | `docs/scenes/sc_rain/packages/sc_rain_v1` | **qc_pending**（演示 license `approved`） | 檐下听雨 · A02 近雨 | 正式上架前补凭证归档 |
 | `rain_soft.wav` | `dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A01 远雨 | 正式上架前补凭证归档 |
 | `rain_bamboo_leaf.wav` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A03 竹叶雨 | 正式上架前补凭证归档 |
-| `wind_realistic.wav` | `dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A04 远风 | 正式上架前补凭证归档 |
+| `wind_gust.wav` | `dw_official_trg_wind_gust_oneshot_sc_rain_far_v03_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A04 阵风 oneshot | 正式上架前补凭证归档 |
+| `wind_realistic.wav` | `dw_official_env_wind_realistic_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 其它场景风轨 / 历史雨檐 v6 | 雨檐官方已改用 `wind_gust` |
 | `rain_parasol.m4a`（旧） | Freesound 531947 | straget | Freesound | CC BY 4.0 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
 | `rain_soft.mp3`（旧） | Freesound 34070 | arctura | Freesound | 采用前复核 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |
 | `wind_realistic.m4a`（旧） | Freesound 405561 | InspectorJ | Freesound | 需署名 | 已由 qc_pending WAV 覆盖优先加载 | 保留作回退 |

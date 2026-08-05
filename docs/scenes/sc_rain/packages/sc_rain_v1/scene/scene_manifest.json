@@ -1,8 +1,8 @@
 {
   "scene_id": "sc_rain",
   "scene_name": "檐下听雨",
-  "package_version": "1.1.0",
-  "timeline_version": 6,
+  "package_version": "1.3.0",
+  "timeline_version": 8,
   "scene_type": "environment_no_text_no_voice",
   "duration_seconds": 620,
   "output_preference": "external_speaker_first",
@@ -13,6 +13,7 @@
   "release_ready": false,
   "release_blockers": [
     "四条母带仍为 qc_pending",
+    "wind_gust 的爱给网来源与原始作者授权仍待核验",
     "尚需手机外放整场试听",
     "尚需耳机空间层次试听",
     "尚需每条短循环连续至少2分钟接缝验收"

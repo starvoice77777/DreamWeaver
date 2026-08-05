@@ -81,4 +81,6 @@ async def test_rain_eaves_seeded_with_bamboo(client) -> None:  # noqa: ANN001
     assert by_name["竹叶雨"]["resource_key"] == "rain_bamboo_leaf"
     assert by_name["远雨"]["resource_key"] == "rain_soft"
     assert by_name["檐下雨"]["resource_key"] == "rain_parasol"
-    assert by_name["远风"]["resource_key"] == "wind_realistic"
+    assert by_name["阵风"]["resource_key"] == "wind_gust"
+    assert by_name["阵风"]["layer"] == "trigger"
+    assert by_name["阵风"]["loop"] is False

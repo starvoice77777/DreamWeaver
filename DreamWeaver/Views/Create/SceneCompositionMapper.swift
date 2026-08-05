@@ -143,7 +143,7 @@ enum SceneCompositionMapper {
         switch key {
         case "rain_soft", "rain_parasol":
             return catalog.first { $0.id == "rain" }
-        case "wind_realistic":
+        case "wind_realistic", "wind_gust":
             return catalog.first { $0.id == "wind" }
         case "rain_bamboo_leaf":
             return catalog.first { $0.id == "bamboo" }

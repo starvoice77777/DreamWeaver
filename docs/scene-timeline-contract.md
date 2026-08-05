@@ -105,7 +105,7 @@
 ## 4. 官方种子
 
 - 「洗头陪伴」：脚本 **v4**（约 620s），见 `docs/hair-care-scene-brief.md` 与 `hair_care_timeline_v4.json`；多句 `play_phrase` + 分层 `play_oneshot` / `set_volume` / `set_position`（人声母带未齐前用 `voice_phrase_mom` 占位）。
-- 「檐下听雨」：`rain_eaves_timeline_v6`（约 620s，`phrases: []`；对齐素材包 sc_rain_v1 v6；远雨 / 近雨 / 竹叶雨 / 远风分层 cue + 空间关键帧展开为 `set_position`）。
+- 「檐下听雨」：`rain_eaves_timeline_v8`（约 620s，`phrases: []`；对齐素材包 sc_rain_v1 v8；远雨 / 近雨 / 竹叶雨分层 cue + `wind_gust` `play_oneshot` @ 188s/458s；空间关键帧展开为 `set_position`）。
 - 其他含 voice 轨的场景：最小首句 + 28s 重复。
 - 无 voice 轨：空 `phrases` / `cues`，仍返回合法文档壳。
 

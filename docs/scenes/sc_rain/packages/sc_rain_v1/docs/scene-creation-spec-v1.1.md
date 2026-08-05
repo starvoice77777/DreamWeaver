@@ -174,7 +174,7 @@ dw_official_vox_phrase_hair_care_oneshot_sc_hair_soft_v01_t03.wav
 
 ### 7.3 位置关键帧的路径安全
 
-- 每条用户音频轨至少有一个位置关键帧，第一帧的 `at_seconds` 必须等于该轨 `start_seconds`；后续帧必须落在该轨播放片段内并按时间递增。
+- 每条用户音频轨至少有一个位置关键帧。普通单窗口轨的第一帧必须等于 `start_seconds`，其余帧落在该轨播放片段内；带 `playback_events[]` 的重复触发轨，每个播放窗口必须有起始位置帧，全部位置帧必须落在任一播放窗口内并按场景时间严格递增。
 - 后端负责验证每两个相邻位置关键帧之间的完整运动路径。使用音频引擎约定的听者坐标系与左右耳禁行区参数；任何路径穿过禁行区均为非法。
 - 本规范只要求平滑过渡与完整路径校验，不规定客户端的平滑算法、缓动曲线或采样实现。后端的职责是拒绝会经过人耳区域的路径，而不是替客户端生成运动效果。
 
@@ -381,7 +381,7 @@ dw_official_vox_phrase_hair_care_oneshot_sc_hair_soft_v01_t03.wav
 4. 正式场景引用的轨均为 `asset_status=master` 且 `license_status=approved`。
 5. `loop=true` 的轨已验收循环，或有 `requires_engine_crossfade=true`。
 6. 每条 `master` 轨已有 LUFS、true peak、工具与日期记录，并满足第 8.3 节对应图层范围。
-7. `automation_mode=user_timestamp` 的场景中，每个 `audio_track.start_seconds ≥ 0`，每条轨都有按时间递增的 `position_keyframes[]`，第一帧 `at_seconds = start_seconds`，所有帧均在本轨播放片段内；后端已通过相邻关键帧路径的耳部禁行区校验；`derived_duration_seconds` 等于所有轨道 `start_seconds + playback_duration_seconds` 的最大值。
+7. `automation_mode=user_timestamp` 的场景中，每个 `audio_track.start_seconds ≥ 0`，每条轨都有按时间递增的 `position_keyframes[]`。普通轨的第一帧等于 `start_seconds`；带 `playback_events[]` 的轨按各事件窗口校验位置帧。后端还须检查事件不重叠、每个事件有对应 `play_oneshot` cue，并通过相邻关键帧路径的耳部禁行区校验。
 
 ### 9.2 人工试听
 
@@ -417,6 +417,7 @@ dw_official_vox_phrase_hair_care_oneshot_sc_hair_soft_v01_t03.wav
 | `loop` | Boolean | 每条音频轨必填 | `true` 表示在本轨播放窗口内重复母带；`false` 表示只播放一次。不得依赖客户端默认值。 |
 | `asset_duration_seconds` | Number | 必填 | 音频文件真实物理时长，必须大于 0，以 `ffprobe` 或同等工具实测值为准。 |
 | `playback_duration_seconds` | Number | 必填 | 该轨在场景中的实际播放时长，由时间线决定，与母带时长相互独立。 |
+| `playback_events` | Array | 同一单次触发轨在多个时段复用时必填 | 每项至少包含 `event_id`、`start_seconds`、`playback_duration_seconds`、`volume`；事件必须按时间递增且不得重叠，每项对应一个从素材开头执行的 `play_oneshot` cue。 |
 | `requires_engine_crossfade` | Boolean | `loop=true` 时必填 | `true` 表示每轮循环必须由播放引擎交叉淡化；`false` 表示母带已验证可以直接无缝循环。 |
 | `crossfade_ms` | Integer | `requires_engine_crossfade=true` 时必填 | 每轮重叠淡化时长。通常为 600–1500ms，允许范围 300–2000ms；必须小于母带时长的一半。 |
 | `fade_in_ms` / `fade_out_ms` | Integer | 按轨需要 | 轨道进入、退出场景的外层淡入淡出，与循环接缝的 `crossfade_ms` 相互独立。 |
@@ -428,7 +429,7 @@ dw_official_vox_phrase_hair_care_oneshot_sc_hair_soft_v01_t03.wav
 3. `loop=true && requires_engine_crossfade=true`：当前轮结束前 `crossfade_ms` 启动下一轮，两轮使用等功率曲线交叉淡化；完成后释放上一轮实例。
 4. 循环只持续到 `start_seconds + playback_duration_seconds` 或更早的停止 cue。最后一轮允许被截断，但必须先执行轨道 `fade_out`，不得硬停。
 5. `set_volume` 控制场景混音层级；距离衰减由空间位置计算。循环交叉淡化不得改变轨道基准 `volume`，也不得把距离写进母带增益。
-6. 同一素材在不同时段重复出现且需要从头播放时，应创建两个 `track_id` 实例；不得依赖 `pause` 后再次 `play` 是否自动回到文件开头。
+6. 同一声音对象在多个不重叠时段重复出现时，优先复用一个 `track_id`，用 `playback_events[]` 明确每次播放窗口，并在对应 cue 执行 `play_oneshot`，保证每次从素材开头播放。只有事件需要重叠、独立混音或独立编辑时，才创建多个 `track_id`。
 
 ### 11.3 校验与降级
 

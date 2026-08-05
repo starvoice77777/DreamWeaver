@@ -437,13 +437,13 @@ enum MockDataService {
             ),
             SoundSource(
                 id: DemoIDs.sourceWind,
-                name: "远风",
+                name: "阵风",
                 symbolName: "wind",
                 isEnabled: false,
                 volume: 0.0,
                 position: SpatialPosition(angle: -2.4, radius: 0.95),
-                resourceName: "wind_realistic",
-                layer: .environment
+                resourceName: "wind_gust",
+                layer: .trigger
             )
         ]
         let manifest = SceneAudioManifest(
@@ -455,7 +455,7 @@ enum MockDataService {
                     symbolName: s.symbolName,
                     resourceName: resource,
                     layer: s.layer,
-                    loops: true,
+                    loops: s.layer != .trigger,
                     defaultVolume: s.volume,
                     defaultPosition: s.position,
                     isRequired: s.id == DemoIDs.sourceRainSoftFar
@@ -614,9 +614,10 @@ enum MockDataService {
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("远雨", "cloud.drizzle.fill", angle: 0.52, radius: 0.85, volume: 0.28, resourceName: "rain_soft", layer: .ambience),
-                    source("檐下雨", "cloud.rain.fill", angle: 2.83, radius: 0.38, volume: 0.42, resourceName: "rain_parasol"),
-                    source("竹叶雨", "leaf.fill", angle: -0.70, radius: 0.62, volume: 0.22, resourceName: "rain_bamboo_leaf", layer: .ambience)
+                    source("远雨", "cloud.drizzle.fill", angle: -0.35, radius: 0.85, volume: 0.22, resourceName: "rain_soft", layer: .environment),
+                    source("檐下雨", "cloud.rain.fill", angle: 0.7, radius: 0.62, volume: 0.4, resourceName: "rain_parasol", layer: .ambience),
+                    source("竹叶雨", "leaf.fill", angle: -1.2, radius: 0.88, volume: 0.27, resourceName: "rain_bamboo_leaf", layer: .ambience),
+                    source("阵风", "wind", angle: -2.4, radius: 0.95, volume: 0.20, resourceName: "wind_gust", layer: .trigger)
                 ],
                 sceneId: DemoIDs.rainEavesScene,
                 styleHint: SceneVisualStyle.rainEaves.rawValue
