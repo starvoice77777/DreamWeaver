@@ -32,7 +32,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
-    private let debugRunId = "run-3-timeline-visibility"
 
     /// Fired when timeline automation mutates a source (position / enable / volume).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
@@ -391,20 +390,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             resolved = nil
         }
         activeTimeline = resolved
-        // #region agent log
-        debugLog(
-            hypothesisId: "H5",
-            location: "LocalPlaybackService.configureTimelineScheduler",
-            message: "timeline scheduler configured",
-            data: [
-                "inputTimelineVersion": String(timeline?.version ?? -1),
-                "resolvedTimelineVersion": String(resolved?.version ?? -1),
-                "resolvedCueCount": String(resolved?.cues.count ?? 0),
-                "sourceCount": String(currentSources.count),
-                "voiceTrackCount": String(currentSources.values.filter { $0.layer == .voice }.count)
-            ]
-        )
-        // #endregion
 
         timelineScheduler.configure(timeline: resolved, overrides: []) { [weak self] actions in
             self?.executeTimelineActions(actions)
@@ -412,18 +397,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     private func executeTimelineActions(_ actions: [APIContentDTO.CueAction]) {
-        // #region agent log
-        debugLog(
-            hypothesisId: "H6",
-            location: "LocalPlaybackService.executeTimelineActions",
-            message: "timeline actions fired",
-            data: [
-                "actionCount": String(actions.count),
-                "types": actions.map(\.type).joined(separator: ","),
-                "trackIds": actions.compactMap { $0.track_id?.uuidString }.joined(separator: ",")
-            ]
-        )
-        // #endregion
         for action in actions {
             switch action.type {
             case "play_phrase":
@@ -773,73 +746,5 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             }
         }
         return nil
-    }
-
-    private static var didAnnounceDebugLogPath = false
-
-    private func debugLog(
-        hypothesisId: String,
-        location: String,
-        message: String,
-        data: [String: String]
-    ) {
-        struct Payload: Encodable {
-            let sessionId: String
-            let runId: String
-            let hypothesisId: String
-            let location: String
-            let message: String
-            let data: [String: String]
-            let timestamp: Int64
-        }
-        let payload = Payload(
-            sessionId: "f7559e",
-            runId: debugRunId,
-            hypothesisId: hypothesisId,
-            location: location,
-            message: message,
-            data: data,
-            timestamp: Int64(Date().timeIntervalSince1970 * 1000)
-        )
-        guard let encoded = try? JSONEncoder().encode(payload),
-              var line = String(data: encoded, encoding: .utf8) else { return }
-        line.append("\n")
-        let bytes = Data(line.utf8)
-        print("[DWDebug] \(line.trimmingCharacters(in: .newlines))")
-        var wrotePaths: [String] = []
-        for url in Self.debugLogURLs() {
-            do {
-                if FileManager.default.fileExists(atPath: url.path) {
-                    let handle = try FileHandle(forWritingTo: url)
-                    defer { try? handle.close() }
-                    try handle.seekToEnd()
-                    try handle.write(contentsOf: bytes)
-                } else {
-                    try bytes.write(to: url, options: .atomic)
-                }
-                wrotePaths.append(url.path)
-            } catch {
-                continue
-            }
-        }
-        if !Self.didAnnounceDebugLogPath {
-            Self.didAnnounceDebugLogPath = true
-            print("[DWDebug] log paths: \(wrotePaths.joined(separator: " | "))")
-        }
-    }
-
-    private static func debugLogURLs() -> [URL] {
-        var urls: [URL] = []
-        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            urls.append(docs.appendingPathComponent("debug-f7559e.log"))
-        }
-        let fileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = fileURL
-            .deletingLastPathComponent() // Services
-            .deletingLastPathComponent() // DreamWeaver
-            .deletingLastPathComponent() // repo root
-        urls.append(repoRoot.appendingPathComponent("debug-f7559e.log"))
-        urls.append(URL(fileURLWithPath: "/tmp/debug-f7559e.log"))
-        return urls
     }
 }
