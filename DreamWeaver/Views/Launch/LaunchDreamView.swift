@@ -22,7 +22,7 @@ struct LaunchDreamView: View {
             )
 
             Text(greeting.isEmpty ? " " : greeting)
-                .font(.system(size: 22, weight: .light))
+                .font(DreamTypography.pageTitle)
                 .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
                 .shadow(
                     color: appState.currentScene.palette.accentColor.opacity(0.22),

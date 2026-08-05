@@ -443,6 +443,42 @@ final class SpatialTimelineViewModel: ObservableObject {
         showToast("已清空场景内容")
     }
 
+    func makeSoundSources(baseScene: DreamScene?) -> [SoundSource] {
+        soundSources.map { editorSource in
+            let baseSource = baseScene?.soundSources.first(where: {
+                $0.name == editorSource.name || $0.symbolName == editorSource.iconName
+            })
+            let point = SpatialTrajectory.position(
+                at: 0,
+                keyPoints: editorSource.keyPoints,
+                defaultPosition: editorSource.defaultPosition
+            )
+            let radius = min(max(Double(hypot(point.x, point.y)), 0), 1)
+            let angle = atan2(Double(-point.y), Double(point.x))
+            let layer: AudioLayerKind = {
+                if editorSource.isVoice { return .voice }
+                if let layer = baseSource?.layer { return layer }
+                switch editorSource.materialID {
+                case "wind", "bamboo": return .ambience
+                case "towel": return .trigger
+                default: return .environment
+                }
+            }()
+
+            return SoundSource(
+                id: editorSource.id,
+                name: editorSource.name,
+                symbolName: editorSource.iconName,
+                isEnabled: true,
+                volume: max(baseSource?.volume ?? 0.55, 0.1),
+                position: SpatialPosition(angle: angle, radius: radius),
+                assetId: baseSource?.assetId,
+                resourceName: baseSource?.resourceName,
+                layer: layer
+            )
+        }
+    }
+
     var availableMaterials: [SpatialEditorMaterial] {
         SpatialEditorMaterial.catalog
     }

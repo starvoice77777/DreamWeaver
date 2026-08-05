@@ -11,6 +11,14 @@ enum SceneBackdropKind: Equatable {
     case emotionalFluid
     /// Painted coastal mist backdrop for「雾岸听潮」.
     case mistTide
+    /// Painted forest-stream backdrop for「幽谷清流」.
+    case valleyStream
+    /// Painted snowy study backdrop for「雪夜书房」.
+    case snowStudy
+    /// Painted cloudscape backdrop for「云间呼吸」.
+    case cloudBreath
+    /// Painted home-spa backdrop for「洗头陪伴」.
+    case hairCare
     /// Painted deep-forest backdrop for「深林萤火」.
     case fireflies
     /// Painted night-sky bedroom backdrop for「星河远眠」.
@@ -39,6 +47,14 @@ extension SceneVisualStyle {
             return .emotionalFluid
         case .mistTide:
             return .mistTide
+        case .valleyStream:
+            return .valleyStream
+        case .snowStudy:
+            return .snowStudy
+        case .cloudBreath:
+            return .cloudBreath
+        case .hairCare:
+            return .hairCare
         case .fireflies:
             return .fireflies
         case .starRiver:

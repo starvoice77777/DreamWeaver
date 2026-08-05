@@ -1,56 +1,121 @@
+import AVFoundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// First-class「创建」hub — personal scene authorship entry (roadmap §15.1).
 struct CreateHubView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var draftStore = CreateDraftStore.shared
     @State private var isScenePickerPresented = false
+    @State private var showSoundLibrary = false
     @State private var editorSeed: SpatialEditorSeed?
     @State private var isSpatialEditorPresented = false
     @State private var editorPresentationID = UUID()
+    @State private var showUploadChooser = false
+    @State private var showSeedChooser = false
+    @State private var showExistingSeedPicker = false
+    @State private var seedLaunch: SeedLaunchSource?
+    @State private var showUploadMock = false
+    @State private var showRecordMock = false
+    @State private var showFileImporter = false
+    @State private var isUploading = false
+    @State private var creationNotice: String?
+    @State private var showLoginHint = false
     @State private var isOpeningRemoteDraft = false
+
+    private var materialAssets: [SoundAsset] {
+        appState.soundAssets.filter { $0.kind == .recording || $0.kind == .community }
+    }
+
+    private var canRemoteUpload: Bool {
+        appState.contentBackendMode == .remote
+            && appState.isRemoteAuthenticated
+            && appState.remoteLibraryService != nil
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    SectionHeader(title: "创建")
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+            ZStack {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        SectionHeader(title: "创建")
+                            .padding(.top, 12)
 
-                    Text("把声音、画面与陪伴收成你自己的梦境。")
-                        .font(.system(size: 15))
-                        .foregroundStyle(DreamTheme.secondaryText)
-                        .padding(.horizontal, 20)
+                        Text("把场景与声音统一收进你的创作空间。")
+                            .font(DreamTypography.body)
+                            .foregroundStyle(DreamTheme.secondaryText)
 
-                    VStack(spacing: 14) {
-                        createActionCard(
-                            title: "从空白开始",
-                            subtitle: "选择画面气质、放入声音，再保存为个人场景",
-                            symbol: "sparkles"
-                        ) {
-                            openEditor(with: .blank)
+                        creationSectionTitle("场景", subtitle: "编排画面、声音与空间轨迹")
+
+                        VStack(spacing: 14) {
+                            createActionCard(
+                                title: "从空白开始",
+                                subtitle: "选择画面气质、放入声音，再保存为个人场景",
+                                symbol: "sparkles",
+                                accent: DreamTheme.warmApricot
+                            ) {
+                                openEditor(with: .blank)
+                            }
+
+                            createActionCard(
+                                title: "从已有场景创建",
+                                subtitle: "挑选一个已有场景作为底稿，改完后另存为个人场景",
+                                symbol: "slider.horizontal.3",
+                                accent: DreamTheme.warmApricot
+                            ) {
+                                isScenePickerPresented = true
+                            }
                         }
 
-                        createActionCard(
-                            title: "从已有场景创建",
-                            subtitle: "挑选一个已有场景作为底稿，改完后另存为个人场景",
-                            symbol: "slider.horizontal.3"
-                        ) {
-                            isScenePickerPresented = true
+                        if !draftStore.drafts.isEmpty {
+                            draftSection
+                        }
+
+                        if appState.isRemoteAuthenticated, !remoteOnlySummaries.isEmpty {
+                            remoteDraftSection
+                        }
+
+                        creationSectionTitle("声音", subtitle: "录制、上传或生成可用于场景的声音")
+
+                        VStack(spacing: 14) {
+                            createActionCard(
+                                title: "录制或上传声音",
+                                subtitle: "现场录音，或从本地选择音频文件加入声音库",
+                                symbol: "waveform.badge.plus",
+                                accent: DreamTheme.mistBlue
+                            ) {
+                                showUploadChooser = true
+                            }
+
+                            createActionCard(
+                                title: "创建声音种子",
+                                subtitle: "使用已有素材、上传文件或现场录音创建陪伴声音",
+                                symbol: "leaf.fill",
+                                accent: DreamTheme.softLavender
+                            ) {
+                                showSeedChooser = true
+                            }
+
+                            createActionCard(
+                                title: "管理已有声音",
+                                subtitle: "试听、收藏、重命名或删除已有的声音素材",
+                                symbol: "waveform.circle",
+                                accent: DreamTheme.mistBlue
+                            ) {
+                                showSoundLibrary = true
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
+                    .padding(.bottom, 120)
+                }
 
-                    if !draftStore.drafts.isEmpty {
-                        draftSection
-                    }
-
-                    if appState.isRemoteAuthenticated, !remoteOnlySummaries.isEmpty {
-                        remoteDraftSection
-                    }
-
-                    Spacer(minLength: 28)
+                if isUploading {
+                    Color.black.opacity(0.35).ignoresSafeArea()
+                    ProgressView("正在上传…")
+                        .padding(20)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .foregroundStyle(DreamTheme.moonWhite)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -71,6 +136,74 @@ struct CreateHubView: View {
                     .id(editorPresentationID)
                     .environmentObject(appState)
             }
+            .fullScreenCover(isPresented: $showSoundLibrary) {
+                SoundLibraryView(
+                    title: "管理已有声音",
+                    onCreateRequested: { showSoundLibrary = false },
+                    onDismiss: { showSoundLibrary = false }
+                )
+                .environmentObject(appState)
+            }
+            .fullScreenCover(item: $seedLaunch) { launch in
+                SeedCreationFlow(launchSource: launch)
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $showExistingSeedPicker) {
+                CreateExistingSoundPicker(
+                    assets: materialAssets,
+                    onSelect: { asset in
+                        showExistingSeedPicker = false
+                        openSeedFlow(.existing(asset))
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
+            .confirmationDialog("创建声音", isPresented: $showUploadChooser, titleVisibility: .visible) {
+                Button("现场录音") { beginRecordUpload() }
+                Button("上传文件") { beginFileUpload() }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("选择录音或直接上传本地音频文件。")
+            }
+            .confirmationDialog("创建声音种子", isPresented: $showSeedChooser, titleVisibility: .visible) {
+                Button("已有素材") { showExistingSeedPicker = true }
+                Button("上传文件") { openSeedFlow(.file) }
+                Button("现场录音") { openSeedFlow(.record) }
+                Button("取消", role: .cancel) {}
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: Self.uploadContentTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                handleImportedFiles(result)
+            }
+            .alert("上传本地文件", isPresented: $showUploadMock) {
+                Button("选择演示文件") { addMockRecording(isRecorded: false) }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("本地演示模式不会读取真实文件。")
+            }
+            .alert("录制声音", isPresented: $showRecordMock) {
+                Button("完成模拟录制") { addMockRecording(isRecorded: true) }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("演示模式不会调用麦克风。远程模式下请先上传本地音频文件。")
+            }
+            .alert("需要登录", isPresented: $showLoginHint) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text("远程声音创建需要先登录。可在「我的」完成登录。")
+            }
+            .alert("提示", isPresented: Binding(
+                get: { creationNotice != nil },
+                set: { if !$0 { creationNotice = nil } }
+            )) {
+                Button("好", role: .cancel) { creationNotice = nil }
+            } message: {
+                Text(creationNotice ?? "")
+            }
+
             .overlay {
                 if isOpeningRemoteDraft {
                     ProgressView("打开云端草稿…")
@@ -89,6 +222,19 @@ struct CreateHubView: View {
         }
     }
 
+    private static let uploadContentTypes: [UTType] = {
+        var types: [UTType] = [.audio, .mp3, .wav, .aiff]
+        if let m4a = UTType(filenameExtension: "m4a") { types.append(m4a) }
+        if let caf = UTType(filenameExtension: "caf") { types.append(caf) }
+        return types
+    }()
+
+    private func openEditor(with seed: SpatialEditorSeed) {
+        editorSeed = seed
+        editorPresentationID = UUID()
+        isSpatialEditorPresented = true
+    }
+
     private var remoteOnlySummaries: [APIContentDTO.PrivateSceneSummary] {
         let localPrivateIds = Set(draftStore.drafts.compactMap(\.privateSceneId))
         return appState.privateSceneSummaries.filter { !localPrivateIds.contains($0.id) }
@@ -99,19 +245,16 @@ struct CreateHubView: View {
             Text("我的草稿")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(DreamTheme.moonWhite)
-                .padding(.horizontal, 20)
 
             Text("保存在本机；登录远程后还会同步到云端私人场景。")
                 .font(.system(size: 12))
                 .foregroundStyle(DreamTheme.tertiaryText)
-                .padding(.horizontal, 20)
 
             VStack(spacing: 10) {
                 ForEach(draftStore.drafts) { draft in
                     draftRow(draft)
                 }
             }
-            .padding(.horizontal, 20)
         }
     }
 
@@ -120,19 +263,16 @@ struct CreateHubView: View {
             Text("云端私人场景")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(DreamTheme.moonWhite)
-                .padding(.horizontal, 20)
 
             Text("其它设备或此前云端保存的草稿，点按可继续编辑。")
                 .font(.system(size: 12))
                 .foregroundStyle(DreamTheme.tertiaryText)
-                .padding(.horizontal, 20)
 
             VStack(spacing: 10) {
                 ForEach(remoteOnlySummaries) { summary in
                     remoteSummaryRow(summary)
                 }
             }
-            .padding(.horizontal, 20)
         }
     }
 
@@ -269,6 +409,7 @@ struct CreateHubView: View {
         title: String,
         subtitle: String,
         symbol: String,
+        accent: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -278,15 +419,15 @@ struct CreateHubView: View {
                     .foregroundStyle(DreamTheme.moonWhite)
                     .frame(width: 48, height: 48)
                     .background {
-                        Circle().fill(Color.white.opacity(0.12))
+                        Circle().fill(accent.opacity(0.16))
                     }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.system(size: 18, weight: .medium))
+                        .font(DreamTypography.sectionTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
                     Text(subtitle)
-                        .font(.system(size: 13))
+                        .font(DreamTypography.callout)
                         .foregroundStyle(DreamTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -299,16 +440,175 @@ struct CreateHubView: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .dreamRefractiveLiquidGlassRounded(
-                cornerRadius: 22,
-                accent: DreamTheme.warmApricot,
-                intensity: 0.8,
-                interactive: true
-            )
+            .background {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.white.opacity(0.065))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(accent.opacity(0.16), lineWidth: 0.75)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityHint(subtitle)
+    }
+
+    private func creationSectionTitle(_ title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(DreamTypography.sectionTitle)
+                .foregroundStyle(DreamTheme.moonWhite)
+            Text(subtitle)
+                .font(DreamTypography.caption)
+                .foregroundStyle(DreamTheme.tertiaryText)
+        }
+        .padding(.top, 4)
+    }
+
+    private func beginRecordUpload() {
+        if appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated {
+            showLoginHint = true
+        } else {
+            showRecordMock = true
+        }
+    }
+
+    private func beginFileUpload() {
+        if canRemoteUpload {
+            showFileImporter = true
+        } else if appState.contentBackendMode == .remote {
+            showLoginHint = true
+        } else {
+            showUploadMock = true
+        }
+    }
+
+    private func openSeedFlow(_ source: SeedLaunchSource) {
+        if appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated {
+            showLoginHint = true
+        } else {
+            seedLaunch = source
+        }
+    }
+
+    private func addMockRecording(isRecorded: Bool) {
+        let count = materialAssets.filter { $0.kind == .recording }.count + 1
+        let asset = SoundAsset(
+            id: UUID(),
+            name: isRecorded ? "新录音 \(count)" : "本地录音 \(count)",
+            kind: .recording,
+            durationSeconds: isRecorded ? 72 : 96,
+            symbolName: isRecorded ? "mic.fill" : "doc.fill",
+            avatarColor: isRecorded ? 0xA8B8D0 : 0x8197B5,
+            isFavorite: false,
+            relation: nil,
+            createdAt: Date(),
+            lastUsedAt: Date()
+        )
+        appState.addSoundAsset(asset)
+        creationNotice = "已创建「\(asset.name)」，可在声音库中查看"
+    }
+
+    private func handleImportedFiles(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            creationNotice = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            Task { await uploadRemoteAudio(from: url) }
+        }
+    }
+
+    @MainActor
+    private func uploadRemoteAudio(from fileURL: URL) async {
+        guard let remote = appState.remoteLibraryService else {
+            creationNotice = "远程声音库服务不可用"
+            return
+        }
+        let accessed = fileURL.startAccessingSecurityScopedResource()
+        defer { if accessed { fileURL.stopAccessingSecurityScopedResource() } }
+        isUploading = true
+        defer { isUploading = false }
+
+        do {
+            let media = AVURLAsset(url: fileURL)
+            let duration = try await media.load(.duration)
+            let seconds = CMTimeGetSeconds(duration)
+            let durationSeconds = max(1, Int((seconds.isFinite ? seconds : 1).rounded()))
+            let name = fileURL.deletingPathExtension().lastPathComponent
+            let asset = try await remote.uploadAudio(
+                fileURL: fileURL,
+                filename: fileURL.lastPathComponent,
+                contentType: mimeType(for: fileURL),
+                kind: .recording,
+                name: name.isEmpty ? nil : name,
+                durationSeconds: durationSeconds
+            )
+            appState.addSoundAsset(asset)
+            creationNotice = "已创建「\(asset.name)」，可在声音库中查看"
+        } catch {
+            creationNotice = error.localizedDescription
+        }
+    }
+
+    private func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "m4a", "mp4", "aac": return "audio/mp4"
+        case "mp3": return "audio/mpeg"
+        case "wav": return "audio/wav"
+        case "aiff", "aif": return "audio/aiff"
+        case "caf": return "audio/x-caf"
+        default: return "application/octet-stream"
+        }
+    }
+}
+
+private struct CreateExistingSoundPicker: View {
+    @Environment(\.dismiss) private var dismiss
+    let assets: [SoundAsset]
+    let onSelect: (SoundAsset) -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if assets.isEmpty {
+                    ContentUnavailableView(
+                        "暂无可选素材",
+                        systemImage: "tray",
+                        description: Text("请先录制或上传一个声音。")
+                    )
+                } else {
+                    List(assets) { asset in
+                        Button { onSelect(asset) } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: asset.symbolName)
+                                    .foregroundStyle(DreamTheme.moonWhite)
+                                    .frame(width: 36, height: 36)
+                                    .background(Circle().fill(Color(hex: asset.avatarColor).opacity(0.85)))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(asset.name).foregroundStyle(DreamTheme.moonWhite)
+                                    Text(asset.durationText)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(DreamTheme.secondaryText)
+                                }
+                            }
+                        }
+                        .listRowBackground(Color.white.opacity(0.04))
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .background(DreamTheme.deepBlue.ignoresSafeArea())
+            .navigationTitle("选择已有素材")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+            }
+        }
     }
 }
 

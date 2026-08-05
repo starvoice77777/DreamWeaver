@@ -215,21 +215,21 @@ struct SpatialEditorView: View {
                     prompt: Text("填写场景名称")
                         .foregroundStyle(DreamTheme.tertiaryText)
                 )
-                .font(.system(size: 17, weight: .medium))
+                .font(DreamTypography.cardTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
 
                 Text(sceneSummaryCaption)
-                .font(.system(size: 11))
+                .font(DreamTypography.caption)
                 .foregroundStyle(DreamTheme.secondaryText)
             }
 
             Spacer(minLength: 8)
 
             Text(SpatialTimeText.string(viewModel.duration))
-                .font(.system(size: 11, design: .monospaced))
+                .font(DreamTypography.timecode)
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(12)

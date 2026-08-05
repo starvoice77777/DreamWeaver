@@ -37,6 +37,16 @@ enum SceneCoverArt {
         case .mistTide:
             // Unique filename — Copy Bundle Resources flattens paths; cannot share `bg.jpg` with RainEaves.
             return ("mist_tide_bg", "Scenes/MistTide", "mist_tide_bg.jpg")
+        case .valleyStream:
+            return ("valley_stream_bg", "Scenes/ValleyStream", "valley_stream_bg.png")
+        case .snowStudy:
+            return ("snow_study_bg", "Scenes/SnowStudy", "snow_study_bg.png")
+        case .cloudBreath:
+            return ("cloud_breath_bg", "Scenes/CloudBreath", "cloud_breath_bg.png")
+        case .emotionalFluid:
+            return ("emotional_fluid_bg", "Scenes/EmotionalFluid", "emotional_fluid_bg.png")
+        case .hairCare:
+            return ("hair_care_bg", "Scenes/HairCare", "hair_care_bg.png")
         case .fireflies:
             return ("fireflies_bg", "Scenes/Fireflies", "fireflies_bg.jpg")
         case .starRiver:

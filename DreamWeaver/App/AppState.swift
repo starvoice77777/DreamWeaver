@@ -253,7 +253,11 @@ final class AppState: ObservableObject {
                 _ = try await contentService.loadBootstrap()
             }
 
-            let loadedScenes = try await contentService.fetchScenes()
+            var loadedScenes = try await contentService.fetchScenes()
+            let createdScenes = store.loadCreatedScenes()
+            let createdIDs = Set(createdScenes.map(\.id))
+            loadedScenes.removeAll { createdIDs.contains($0.id) }
+            loadedScenes.insert(contentsOf: createdScenes, at: 0)
             scenes = loadedScenes
             catalogSourcesByScene = Dictionary(
                 uniqueKeysWithValues: loadedScenes.map { ($0.id, $0.soundSources) }
@@ -1107,6 +1111,76 @@ final class AppState: ObservableObject {
         // Explicit remote save only when authenticated — never auto on drag.
         guard contentBackendMode == .remote, isRemoteAuthenticated else { return }
         Task { await saveCurrentMixToRemote(name: mix.name) }
+    }
+
+    /// Saves a Create-editor result as a reusable personal scene shown in the existing scene library.
+    @discardableResult
+    func saveCreatedScene(
+        id: UUID,
+        name: String,
+        sourceSceneId: UUID?,
+        soundSources: [SoundSource]
+    ) throws -> DreamScene {
+        let base = sourceSceneId.flatMap { sourceID in
+            scenes.first { $0.id == sourceID }
+        } ?? currentScene
+        let manifestTracks = soundSources.compactMap { source -> AudioTrackRef? in
+            guard let resourceName = source.resourceName else { return nil }
+            return AudioTrackRef(
+                id: source.id,
+                name: source.name,
+                symbolName: source.symbolName,
+                resourceName: resourceName,
+                layer: source.layer,
+                loops: source.layer != .voice && source.layer != .trigger,
+                defaultVolume: source.volume,
+                defaultPosition: source.position,
+                isRequired: false
+            )
+        }
+        let scene = DreamScene(
+            id: id,
+            name: name,
+            subtitle: "个人场景 · \(soundSources.count) 个声源",
+            description: "基于「\(base.name)」保存的个人场景。",
+            category: base.category,
+            tags: Array(Set(base.tags + ["个人场景"])).sorted(),
+            palette: base.palette,
+            soundSources: soundSources,
+            isFavorite: false,
+            isFrequentlyUsed: false,
+            listenCount: 0,
+            mockListenerCount: 0,
+            visualStyle: base.visualStyle,
+            isDemoPlayable: !manifestTracks.isEmpty,
+            audioManifest: manifestTracks.isEmpty
+                ? nil
+                : SceneAudioManifest(
+                    tracks: manifestTracks,
+                    voicePhraseResourceName: soundSources.first(where: { $0.layer == .voice })?.resourceName
+                )
+        )
+
+        let previousScene = scenes.first { $0.id == id }
+        if let index = scenes.firstIndex(where: { $0.id == id }) {
+            scenes[index] = scene
+        } else {
+            scenes.insert(scene, at: 0)
+        }
+
+        var createdScenes = store.loadCreatedScenes()
+        createdScenes.removeAll { $0.id == id }
+        createdScenes.insert(scene, at: 0)
+        do {
+            try store.saveCreatedScenes(createdScenes)
+        } catch {
+            scenes.removeAll { $0.id == id }
+            if let previousScene {
+                scenes.insert(previousScene, at: 0)
+            }
+            throw error
+        }
+        return scene
     }
 
     /// Explicit cloud save for frontend confirm dialogs.

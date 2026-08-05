@@ -35,6 +35,9 @@ private enum SeedSourceChoice: String, CaseIterable, Identifiable {
 
 struct SoundLibraryView: View {
     @EnvironmentObject private var appState: AppState
+    var title: String = "声音库"
+    var onCreateRequested: (() -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil
 
     @State private var section: LibraryHubSection = .existing
     @State private var showSearch = false
@@ -104,18 +107,7 @@ struct SoundLibraryView: View {
                             .foregroundStyle(DreamTheme.moonWhite)
                     }
 
-                    sectionSwitcher
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 4)
-
-                    Group {
-                        switch section {
-                        case .existing:
-                            existingContent
-                        case .custom:
-                            customContent
-                        }
-                    }
+                    existingContent
                 }
                 .background(DreamTheme.backgroundGradient.ignoresSafeArea())
 
@@ -300,19 +292,28 @@ struct SoundLibraryView: View {
 
     private var header: some View {
         HStack {
-            SectionHeader(title: "声音库")
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(DreamTheme.warmApricot)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(Color.white.opacity(0.05)))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("返回创建")
+            }
+
+            SectionHeader(title: title)
             GlassEffectContainer(spacing: 10) {
                 Button {
                     withAnimation { showSearch.toggle() }
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(DreamTheme.moonWhite)
+                        .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
                         .frame(width: 44, height: 44)
-                        .dreamSpatialLiquidGlassCircle(
-                            accent: DreamTheme.mistBlue,
-                            intensity: showSearch ? 0.95 : 0.78
-                        )
+                        .background(Circle().fill(Color.white.opacity(showSearch ? 0.12 : 0.06)))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("搜索")
@@ -332,7 +333,7 @@ struct SoundLibraryView: View {
                         }
                     } label: {
                         Text(item.rawValue)
-                            .font(.system(size: 15, weight: section == item ? .semibold : .regular))
+                            .font(section == item ? DreamTypography.callout.bold() : DreamTypography.callout)
                             .foregroundStyle(
                                 section == item
                                     ? DreamTheme.moonWhite
@@ -363,10 +364,14 @@ struct SoundLibraryView: View {
             if materialAssets.isEmpty && seedAssets.isEmpty {
                 EmptyStateView(
                     symbol: "waveform",
-                    message: "还没有素材或人声种子。去「自定义」上传音频或创建种子。",
-                    actionTitle: "去自定义"
+                    message: "还没有声音素材。可以先去「创建」录制或上传声音。",
+                    actionTitle: "去创建"
                 ) {
-                    section = .custom
+                    if let onCreateRequested {
+                        onCreateRequested()
+                    } else {
+                        appState.selectedTab = .create
+                    }
                 }
                 .padding(.top, 24)
                 Spacer()
@@ -404,12 +409,12 @@ struct SoundLibraryView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
+                .font(DreamTypography.callout)
                 .foregroundStyle(DreamTheme.secondaryText)
 
             if items.isEmpty {
                 Text(emptyHint)
-                    .font(.system(size: 13))
+                    .font(DreamTypography.callout)
                     .foregroundStyle(DreamTheme.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
@@ -425,9 +430,9 @@ struct SoundLibraryView: View {
                     } label: {
                         HStack {
                             Text("更多")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(DreamTypography.callout)
                             Text("共 \(items.count) 项")
-                                .font(.system(size: 12))
+                                .font(DreamTypography.caption)
                                 .foregroundStyle(DreamTheme.tertiaryText)
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -785,10 +790,10 @@ struct SoundAssetRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(asset.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DreamTypography.cardTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
                 Text("\(asset.kind.rawValue) · \(asset.durationText)")
-                    .font(.system(size: 12))
+                    .font(DreamTypography.caption)
                     .foregroundStyle(DreamTheme.secondaryText)
             }
 
@@ -816,10 +821,7 @@ struct SoundAssetRow: View {
                                 asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.moonWhite.opacity(0.85)
                             )
                             .frame(width: 40, height: 40)
-                            .dreamSpatialLiquidGlassCircle(
-                                accent: asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.mistBlue,
-                                intensity: asset.isFavorite ? 0.92 : 0.68
-                            )
+                            .background(Circle().fill(Color.white.opacity(asset.isFavorite ? 0.10 : 0.04)))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(asset.isFavorite ? "取消收藏" : "收藏")
@@ -841,10 +843,7 @@ struct SoundAssetRow: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(DreamTheme.moonWhite.opacity(0.85))
                             .frame(width: 40, height: 40)
-                            .dreamSpatialLiquidGlassCircle(
-                                accent: DreamTheme.mistBlue,
-                                intensity: 0.66
-                            )
+                            .background(Circle().fill(Color.white.opacity(0.04)))
                     }
                     .accessibilityLabel("更多操作")
                 }
@@ -874,7 +873,7 @@ struct SoundDetailSheet: View {
 
             VStack(alignment: .leading, spacing: 16) {
                 Text(asset.name)
-                    .font(.system(size: 24, weight: .light))
+                    .font(DreamTypography.pageTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
                 Text("分类：\(asset.kind.rawValue)")
                     .foregroundStyle(DreamTheme.secondaryText)
@@ -887,7 +886,7 @@ struct SoundDetailSheet: View {
                 Text(asset.isFavorite
                      ? "已收藏。可与基本声音一起在场景声源添加界面使用。"
                      : "收藏后，即可在场景声源添加界面调用此声音。基本声音无需收藏也可使用。")
-                    .font(.system(size: 13))
+                    .font(DreamTypography.callout)
                     .foregroundStyle(DreamTheme.tertiaryText)
                 Spacer(minLength: 0)
                     .contentShape(Rectangle())

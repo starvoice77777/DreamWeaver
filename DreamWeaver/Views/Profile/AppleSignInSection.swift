@@ -17,7 +17,7 @@ struct AppleSignInSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("账户")
-                .font(.system(size: 18, weight: .medium))
+                .font(DreamTypography.sectionTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
 
             VStack(alignment: .leading, spacing: 12) {
@@ -29,7 +29,7 @@ struct AppleSignInSection: View {
                             Task { await signOut() }
                         } label: {
                             Text(isBusy ? "退出中…" : "退出登录")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(DreamTypography.callout)
                                 .foregroundStyle(DreamTheme.moonWhite)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 44)
@@ -59,7 +59,7 @@ struct AppleSignInSection: View {
                             Task { await signInWithDevAccount() }
                         } label: {
                             Text(isBusy ? "登录中…" : "开发登录（dev:demo-user）")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(DreamTypography.callout)
                                 .foregroundStyle(DreamTheme.moonWhite)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 40)
@@ -74,24 +74,24 @@ struct AppleSignInSection: View {
 
                         #if targetEnvironment(simulator)
                         Text("模拟器上系统 Apple 登录常会超时；联调请用开发登录。真机再验正式 Apple。")
-                            .font(.system(size: 11))
+                            .font(DreamTypography.caption)
                             .foregroundStyle(DreamTheme.tertiaryText)
                         #endif
                     }
                 } else {
                     Text("切换到「远程 API」并重启后，可使用 Apple 登录同步收藏与设置。")
-                        .font(.system(size: 12))
+                        .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.tertiaryText)
                 }
 
                 if let localError {
                     Text(localError)
-                        .font(.system(size: 12))
+                        .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.warmApricot)
                 } else if let message = appState.lastServiceMessage,
                           message.contains("登录") || message.contains("退出") {
                     Text(message)
-                        .font(.system(size: 12))
+                        .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.secondaryText)
                 }
             }
@@ -111,10 +111,10 @@ struct AppleSignInSection: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusTitle)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DreamTypography.cardTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
                 Text(statusSubtitle)
-                    .font(.system(size: 12))
+                    .font(DreamTypography.caption)
                     .foregroundStyle(DreamTheme.secondaryText)
             }
             Spacer(minLength: 0)

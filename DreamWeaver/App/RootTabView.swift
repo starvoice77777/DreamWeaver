@@ -14,12 +14,8 @@ struct RootTabView: View {
                 switch appState.selectedTab {
                 case .now:
                     NowView()
-                case .scenes:
-                    SceneLibraryView()
                 case .create:
                     CreateHubView()
-                case .sounds:
-                    SoundLibraryView()
                 case .profile:
                     ProfileView()
                 }

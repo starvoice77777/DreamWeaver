@@ -1,29 +1,30 @@
 import Combine
 import SwiftUI
 
-/// Infinite 3D cylindrical spiral ported from the supplied HTML reference.
+/// Vertical cylindrical wheel for the scene library.
 ///
-/// Cards rotate around the Y axis while advancing linearly on Y, so every full
-/// revolution becomes the next turn of a helix. Repeated virtual cards keep the
-/// structure populated above and below the viewport.
+/// Cards travel on a circle in the Y/Z plane and rotate around the X axis,
+/// so neighbors stack above and below the focused card like a roller.
+/// Virtual replicas keep the wheel populated as it spins infinitely.
 struct SpiralSceneCarousel: View {
     @EnvironmentObject private var appState: AppState
 
     let scenes: [DreamScene]
+    var onToggleFavorite: (DreamScene) -> Void = { _ in }
     var onActivate: (DreamScene) -> Void
 
     @State private var renderedRotation: CGFloat = 0
     @State private var targetRotation: CGFloat = 0
     @State private var angularVelocity: CGFloat = 0
     @State private var isDragging = false
-    @State private var previousDragX: CGFloat = 0
+    @State private var previousDragY: CGFloat = 0
     @State private var lastFrameDate: Date?
 
     private let replicaCount = 3
-    private let maximumVisibleCardsPerSide = 13
-    private let angleStep: CGFloat = 24
-    private let dragSensitivity: CGFloat = 0.4
-    private let autoSpinDegreesPerFrame: CGFloat = 0.14
+    private let maximumVisibleCardsPerSide = 7
+    private let angleStep: CGFloat = 36
+    private let dragSensitivity: CGFloat = 0.38
+    private let autoSpinDegreesPerFrame: CGFloat = 0.12
     private let frictionPerFrame: CGFloat = 0.95
     private let interpolationPerFrame: CGFloat = 0.15
 
@@ -44,7 +45,7 @@ struct SpiralSceneCarousel: View {
                 )
                 .foregroundStyle(DreamTheme.secondaryText)
             } else {
-                spiralStage(in: proxy.size)
+                wheelStage(in: proxy.size)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .gesture(dragGesture)
@@ -64,32 +65,25 @@ struct SpiralSceneCarousel: View {
     }
 
     @ViewBuilder
-    private func spiralStage(in size: CGSize) -> some View {
+    private func wheelStage(in size: CGSize) -> some View {
         let virtualCount = max(scenes.count * replicaCount, 30)
         let range = CGFloat(virtualCount) * angleStep
-        // The front perspective scale is 1.30, so a 46%-wide base card
-        // projects to roughly 60% of the viewport: one complete main card plus
-        // about one-third of each neighboring card remains visible at the sides.
-        let cardWidth = size.width * 0.46
-        // Give the enlarged cards a longer vertical silhouette while retaining
-        // enough landscape width for the scene artwork and labels.
-        let cardHeight = cardWidth * 0.86
-        let radius = size.width * 1.05
-        // HTML uses 35 px for a 260 px card. The app card is landscape and
-        // shorter, so 30 pt preserves the video's open vertical spiral.
-        let heightStep: CGFloat = 42
+        // Wider main card: neighbors live above/below, so horizontal space can
+        // be dedicated to the focused scene artwork.
+        let cardWidth = size.width * 0.68
+        let cardHeight = cardWidth * 0.58
+        // A wider radius and angle step leave breathing room between neighbors.
+        let radius = max(size.height * 0.60, cardHeight * 2.05)
         let placements = visiblePlacements(
             virtualCount: virtualCount,
-            range: range,
-            heightStep: heightStep
+            range: range
         )
 
         ZStack {
             ForEach(placements) { placement in
-                spiralCard(
+                wheelCard(
                     scene: scenes[placement.virtualIndex % scenes.count],
                     normalizedAngle: placement.angle,
-                    yOffset: placement.yOffset,
                     radius: radius,
                     cardWidth: cardWidth,
                     cardHeight: cardHeight,
@@ -97,20 +91,12 @@ struct SpiralSceneCarousel: View {
                 )
             }
         }
-        // Matches the reference stage's rotateX(8deg) rotateZ(-2deg).
-        .rotation3DEffect(
-            .degrees(8),
-            axis: (x: 1, y: 0, z: 0),
-            perspective: 0.08
-        )
-        .rotationEffect(.degrees(-2))
     }
 
     @ViewBuilder
-    private func spiralCard(
+    private func wheelCard(
         scene: DreamScene,
         normalizedAngle: CGFloat,
-        yOffset: CGFloat,
         radius: CGFloat,
         cardWidth: CGFloat,
         cardHeight: CGFloat,
@@ -119,36 +105,37 @@ struct SpiralSceneCarousel: View {
         let radians = normalizedAngle * .pi / 180
         let zPosition = cos(radians) * radius
         let depthRatio = min(max((zPosition + radius) / (2 * radius), 0), 1)
-        let xPosition = sin(radians) * radius
+        // Vertical wheel: travel on Y while depth rides Z.
+        let yPosition = sin(radians) * radius
 
-        // CSS perspective naturally enlarges the front and shrinks the back.
-        // This bounded equivalent keeps the iOS layout stable on small screens.
-        let perspectiveScale = 0.58 + 0.72 * depthRatio
-        // CSS perspective scales both the card and its translated position.
-        // Applying the same ratio here keeps background spacing visually equal
-        // to the front instead of leaving small cards on an oversized radius.
+        let perspectiveScale = 0.52 + 0.78 * depthRatio
+        // Concentrate visual weight at the center instead of giving the nearest
+        // neighbors almost the same size and brightness.
+        let focusProgress = max(
+            0,
+            1 - abs(normalizedAngle) / (angleStep * 1.4)
+        )
+        let emphasisScale = 0.88 + 0.12 * focusProgress
+        let displayScale = perspectiveScale * emphasisScale
+        let focusOpacity = 0.56 + 0.44 * Double(focusProgress)
+        let saturation = 0.50 + 0.50 * focusProgress
+        let brightness = -0.08 + 0.08 * focusProgress
         let positionScale = perspectiveScale / 1.30
-        let projectedX = xPosition * positionScale
-        let projectedY = yOffset * positionScale
-        let projectedHalfWidth = cardWidth * perspectiveScale / 2
-        let projectedHalfHeight = cardHeight * perspectiveScale / 2
+        let projectedY = yPosition * positionScale
+        let projectedHalfWidth = cardWidth * displayScale / 2
+        let projectedHalfHeight = cardHeight * displayScale / 2
         let horizontalExit = max(
-            abs(projectedX) + projectedHalfWidth - containerSize.width / 2,
+            projectedHalfWidth - containerSize.width / 2,
             0
         ) / max(projectedHalfWidth * 1.15, 1)
         let verticalExit = max(
             abs(projectedY) + projectedHalfHeight - containerSize.height / 2,
             0
         ) / max(projectedHalfHeight * 1.15, 1)
-        // Stay fully visible until the card first touches an edge, then fade
-        // continuously while the existing cylindrical trajectory carries it out.
         let edgeFade = 1 - min(max(horizontalExit, verticalExit), 1)
-        // Keep the back turn legible as a silhouette without restoring its
-        // expensive motif/text layers.
         let opacity = 0.28 + 0.72 * Double(depthRatio)
         let darkness = 0.44 * (1 - Double(depthRatio))
         let isFocused = abs(normalizedAngle) < angleStep * 0.52
-        // Back hemisphere: skip cover/motif/text — flat low-sat gray only.
         let isBackCard = depthRatio < 0.52
         let showsArt = !isBackCard
         let showsMotif = showsArt
@@ -157,11 +144,15 @@ struct SpiralSceneCarousel: View {
         SpiralSceneCard(
             scene: scene,
             isFocused: isFocused,
+            focusProgress: focusProgress,
             isPlaying: appState.isPlaying && appState.currentSceneId == scene.id,
             darkness: isBackCard ? 0 : darkness,
             showsArt: showsArt,
             showsMotif: showsMotif,
             showsDetails: showsDetails,
+            onToggleFavorite: {
+                onToggleFavorite(scene)
+            },
             onTap: {
                 if isFocused {
                     onActivate(scene)
@@ -171,18 +162,16 @@ struct SpiralSceneCarousel: View {
             }
         )
         .frame(width: cardWidth, height: cardHeight)
-        .scaleEffect(perspectiveScale)
-        .opacity(opacity * Double(edgeFade))
-        // Back faces remain visible, matching backface-visibility: visible.
+        .scaleEffect(displayScale)
+        .saturation(saturation)
+        .brightness(brightness)
+        .opacity(opacity * focusOpacity * Double(edgeFade))
         .rotation3DEffect(
-            .degrees(Double(normalizedAngle)),
-            axis: (x: 0, y: 1, z: 0),
+            .degrees(Double(-normalizedAngle)),
+            axis: (x: 1, y: 0, z: 0),
             perspective: 0.42
         )
-        .offset(
-            x: projectedX,
-            y: projectedY
-        )
+        .offset(y: projectedY)
         .zIndex(Double(zPosition))
         .allowsHitTesting(!isDragging && edgeFade > 0.45)
         .accessibilityAddTraits(isFocused ? .isSelected : [])
@@ -190,9 +179,8 @@ struct SpiralSceneCarousel: View {
 
     private func visiblePlacements(
         virtualCount: Int,
-        range: CGFloat,
-        heightStep: CGFloat
-    ) -> [SpiralPlacement] {
+        range: CGFloat
+    ) -> [WheelPlacement] {
         guard virtualCount > 0 else { return [] }
 
         let centerUnwrappedIndex = Int(
@@ -208,10 +196,9 @@ struct SpiralSceneCarousel: View {
             let virtualIndex = positiveModulo(unwrappedIndex, virtualCount)
             let rawAngle = CGFloat(virtualIndex) * angleStep + renderedRotation
             let angle = wrappedAngle(rawAngle, range: range)
-            return SpiralPlacement(
+            return WheelPlacement(
                 virtualIndex: virtualIndex,
-                angle: angle,
-                yOffset: angle / angleStep * heightStep
+                angle: angle
             )
         }
     }
@@ -221,20 +208,21 @@ struct SpiralSceneCarousel: View {
             .onChanged { value in
                 if !isDragging {
                     isDragging = true
-                    previousDragX = value.translation.width
+                    previousDragY = value.translation.height
                     angularVelocity = 0
                     return
                 }
 
-                let deltaX = value.translation.width - previousDragX
-                let deltaRotation = deltaX * dragSensitivity
+                // Dragging down brings upper cards into focus.
+                let deltaY = value.translation.height - previousDragY
+                let deltaRotation = deltaY * dragSensitivity
                 targetRotation += deltaRotation
                 angularVelocity = deltaRotation
-                previousDragX = value.translation.width
+                previousDragY = value.translation.height
             }
             .onEnded { _ in
                 isDragging = false
-                previousDragX = 0
+                previousDragY = 0
             }
     }
 
@@ -306,10 +294,9 @@ struct SpiralSceneCarousel: View {
     }
 }
 
-private struct SpiralPlacement: Identifiable {
+private struct WheelPlacement: Identifiable {
     let virtualIndex: Int
     let angle: CGFloat
-    let yOffset: CGFloat
 
     var id: Int { virtualIndex }
 }
@@ -317,11 +304,13 @@ private struct SpiralPlacement: Identifiable {
 private struct SpiralSceneCard: View {
     let scene: DreamScene
     let isFocused: Bool
+    let focusProgress: CGFloat
     let isPlaying: Bool
     let darkness: Double
     let showsArt: Bool
     let showsMotif: Bool
     let showsDetails: Bool
+    var onToggleFavorite: () -> Void
     var onTap: () -> Void
 
     var body: some View {
@@ -367,16 +356,34 @@ private struct SpiralSceneCard: View {
                     Spacer()
 
                     Text(scene.name)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(DreamTypography.cardTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
                         .lineLimit(1)
 
                     Text(scene.subtitle)
-                        .font(.system(size: 10))
+                        .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.moonWhite.opacity(0.72))
                         .lineLimit(1)
                 }
                 .padding(12)
+            }
+
+            if showsDetails {
+                Button(action: onToggleFavorite) {
+                    Image(systemName: scene.isFavorite ? "heart.fill" : "heart")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(
+                            scene.isFavorite
+                                ? DreamTheme.warmApricot
+                                : DreamTheme.moonWhite.opacity(0.82)
+                        )
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.black.opacity(0.24)))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(10)
+                .accessibilityLabel(scene.isFavorite ? "取消收藏" : "收藏场景")
             }
 
             Color.black
@@ -390,10 +397,20 @@ private struct SpiralSceneCard: View {
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
-                    Color.white.opacity(showsArt ? (0.08 + (isFocused ? 0.10 : 0)) : 0.05),
-                    lineWidth: 1
+                    showsArt
+                        ? scene.palette.accentColor.opacity(
+                            0.08 + 0.70 * Double(focusProgress)
+                        )
+                        : Color.white.opacity(0.05),
+                    lineWidth: 1 + 0.6 * focusProgress
                 )
         }
+        .shadow(
+            color: scene.palette.accentColor.opacity(
+                0.34 * Double(focusProgress)
+            ),
+            radius: 22 * focusProgress
+        )
         .shadow(
             color: .black.opacity(isFocused ? 0.60 : 0),
             radius: isFocused ? 15 : 0,
@@ -425,6 +442,7 @@ private struct SpiralSceneCard: View {
 #Preview {
     SpiralSceneCarousel(
         scenes: MockDataService.makeScenes(),
+        onToggleFavorite: { _ in },
         onActivate: { _ in }
     )
     .background(Color.black)

@@ -353,7 +353,7 @@ struct SectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.system(size: 28, weight: .light))
+                .font(DreamTypography.largeTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
             Spacer()
             if let trailing {
@@ -377,13 +377,13 @@ struct EmptyStateView: View {
                 .accessibilityHidden(true)
 
             Text(message)
-                .font(.system(size: 15, weight: .regular))
+                .font(DreamTypography.body)
                 .foregroundStyle(DreamTheme.secondaryText)
                 .multilineTextAlignment(.center)
 
             Button(action: action) {
                 Text(actionTitle)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DreamTypography.callout)
                     .foregroundStyle(DreamTheme.moonWhite)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
@@ -412,7 +412,7 @@ struct CapsuleChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: fixedWidth == nil ? 13 : 15, weight: selected ? .semibold : .regular))
+                .font(selected ? DreamTypography.callout.bold() : DreamTypography.callout)
                 .foregroundStyle(foreground)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
@@ -476,7 +476,7 @@ struct TimerOptionChip: View {
     var body: some View {
         Button(action: action) {
             Text(option.rawValue)
-                .font(.system(size: 13, weight: selected ? .medium : .regular))
+                .font(selected ? DreamTypography.callout : DreamTypography.caption)
                 .foregroundStyle(textColor)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 14)
