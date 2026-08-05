@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Cards travel on a circle in the Y/Z plane and rotate around the X axis,
 /// so neighbors stack above and below the focused card like a roller.
-/// Virtual replicas keep the wheel populated as it spins infinitely.
+/// Virtual replicas keep the wheel populated while the user spins it.
 struct SpiralSceneCarousel: View {
     @EnvironmentObject private var appState: AppState
 
@@ -24,7 +24,6 @@ struct SpiralSceneCarousel: View {
     private let maximumVisibleCardsPerSide = 7
     private let angleStep: CGFloat = 36
     private let dragSensitivity: CGFloat = 0.38
-    private let autoSpinDegreesPerFrame: CGFloat = 0.12
     private let frictionPerFrame: CGFloat = 0.95
     private let interpolationPerFrame: CGFloat = 0.15
 
@@ -232,7 +231,6 @@ struct SpiralSceneCarousel: View {
         let frameScale = CGFloat(min(max(elapsed * 60, 0.25), 3))
 
         if !isDragging {
-            targetRotation -= autoSpinDegreesPerFrame * frameScale
             targetRotation += angularVelocity * frameScale
             angularVelocity *= CGFloat(
                 pow(Double(frictionPerFrame), Double(frameScale))

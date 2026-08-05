@@ -10,6 +10,18 @@ struct SceneBackdropHost: View {
     var intensity: Double
 
     var body: some View {
+        SceneDepthMotionContainer(
+            isEnabled: !reduceMotion,
+            maximumOffset: depthOffset
+        ) {
+            backdrop
+        }
+        .ignoresSafeArea()
+        // Avoid crossfade “refresh” when identity swaps mid-swipe; curtain path hides the cut.
+    }
+
+    @ViewBuilder
+    private var backdrop: some View {
         Group {
             switch scene.visualStyle.backdropKind {
             case .rainyNight(let configuration):
@@ -59,6 +71,11 @@ struct SceneBackdropHost: View {
             }
         }
         .ignoresSafeArea()
-        // Avoid crossfade “refresh” when identity swaps mid-swipe; curtain path hides the cut.
+    }
+
+    private var depthOffset: CGFloat {
+        // Keep the effect ambient: the listener sees a scene respond to tilt,
+        // not a foreground card floating over the UI.
+        CGFloat(7 + 9 * min(max(intensity, 0.2), 1))
     }
 }

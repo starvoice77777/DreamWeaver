@@ -204,7 +204,7 @@ final class AppState: ObservableObject {
         scenes.firstIndex(where: { $0.id == currentSceneId }) ?? 0
     }
 
-    /// Official / community presets that belong to the current scene (for MixPresetBrowser).
+    /// Official / community presets that belong to the current scene.
     var mixPresetsForCurrentScene: [MixPreset] {
         let styleKey = currentScene.visualStyle.rawValue
         let sceneId = currentSceneId

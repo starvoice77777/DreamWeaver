@@ -1,135 +1,11 @@
 import SwiftUI
 
-struct BasicMixSound: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let symbolName: String
-
-    static let all: [BasicMixSound] = [
-        .init(id: "rain", name: "雨声", symbolName: "cloud.rain.fill"),
-        .init(id: "wind", name: "风声", symbolName: "wind"),
-        .init(id: "bamboo", name: "竹叶雨", symbolName: "leaf.fill"),
-        .init(id: "voice", name: "人声", symbolName: "person.wave.2.fill"),
-        .init(id: "piano", name: "钢琴", symbolName: "pianokeys"),
-        .init(id: "insect", name: "虫鸣", symbolName: "leaf.fill"),
-        .init(id: "tide", name: "潮声", symbolName: "water.waves"),
-        .init(id: "stream", name: "流水", symbolName: "drop.fill"),
-        .init(id: "fire", name: "炉火", symbolName: "flame.fill")
-    ]
-
-    func resourceName(for style: SceneVisualStyle) -> String? {
-        switch id {
-        case "rain": return "rain_parasol"
-        case "wind": return "wind_realistic"
-        case "bamboo": return "rain_bamboo_leaf"
-        case "stream":
-            switch style {
-            case .hairCare:
-                return "hair_wash_water_cycle"
-            case .valleyStream, .moonLake:
-                return "stream_nature"
-            default:
-                return nil
-            }
-        case "voice": return "voice_phrase_mom"
-        default: return nil
-        }
-    }
-
-    var layer: AudioLayerKind {
-        switch id {
-        case "voice": return .voice
-        case "wind", "bamboo": return .ambience
-        default: return .environment
-        }
-    }
-
-    /// Basic sounds allowed for a scene; favorites remain universal elsewhere.
-    static func available(for style: SceneVisualStyle) -> [BasicMixSound] {
-        let ids = style.allowedBasicSoundIds
-        return all.filter { ids.contains($0.id) }
-    }
-}
-
-extension SceneVisualStyle {
-    var allowedBasicSoundIds: Set<String> {
-        switch self {
-        case .rainEaves:
-            return ["rain", "wind", "bamboo", "piano"]
-        case .fireflies:
-            return ["wind", "insect", "voice", "piano"]
-        case .mistTide:
-            return ["tide", "wind", "voice", "rain"]
-        case .valleyStream:
-            return ["stream", "wind", "voice", "insect"]
-        case .moonLake:
-            return ["stream", "wind", "piano", "voice"]
-        case .starRiver:
-            return ["piano", "wind", "voice"]
-        case .warmLamp:
-            return ["voice", "piano", "rain", "fire"]
-        case .snowStudy:
-            return ["wind", "voice", "piano", "rain"]
-        case .wheatWind:
-            return ["wind", "insect", "voice"]
-        case .cloudBreath:
-            return ["wind", "voice", "piano"]
-        case .summerInsects:
-            return ["insect", "wind", "voice", "rain"]
-        case .fireplaceWhisper:
-            return ["fire", "voice", "rain", "piano"]
-        case .hairCare:
-            return ["stream", "wind", "voice", "fire"]
-        case .emotionalFluid:
-            return ["wind", "rain", "tide", "piano", "voice"]
-        }
-    }
-}
-
-private enum MixPaletteDrag: Equatable {
-    case basic(BasicMixSound)
-    case favorite(SoundAsset)
-}
-
-private struct ShatterBurst: Identifiable {
-    let id = UUID()
-    let origin: CGPoint
-    let symbolName: String
-    let born: Date
-    let shards: [ShatterShard]
-
-    struct ShatterShard: Identifiable {
-        let id = UUID()
-        let angle: Double
-        let distance: CGFloat
-        let size: CGFloat
-        let spin: Double
-    }
-
-    static func make(at origin: CGPoint, symbol: String) -> ShatterBurst {
-        let shards = (0..<14).map { i in
-            ShatterShard(
-                angle: Double(i) / 14 * .pi * 2 + Double.random(in: -0.2...0.2),
-                distance: CGFloat.random(in: 28...72),
-                size: CGFloat.random(in: 3...7),
-                spin: Double.random(in: -120...120)
-            )
-        }
-        return ShatterBurst(origin: origin, symbolName: symbol, born: Date(), shards: shards)
-    }
-}
-
-/// Scene mix stage: disk on the upper golden-ratio point;
-/// bottom dock crossfades between timer controls and the sound palette.
+/// Read-only spatial-position stage for the Now tab.
 struct SoundMixCircleEditor: View {
     @EnvironmentObject private var appState: AppState
     @Binding var showTimerPicker: Bool
 
-    @State private var draggingPalette: MixPaletteDrag?
-    @State private var draggingSourceId: UUID?
-    @State private var finger: CGPoint = .zero
-    @State private var stageSize: CGSize = .zero
-    /// Disk rings stay hidden until a source is moved / intro, then fade out after idle.
+    /// Disk rings appear briefly as each scene enters, then recede behind the nodes.
     @State private var diskVisible = false
     @State private var hideDiskTask: Task<Void, Never>?
     /// Waiting to show the scene-enter intro once the stage is actually visible.
@@ -137,7 +13,6 @@ struct SoundMixCircleEditor: View {
     /// Cold launch needs a short delay so ContentView fade-in finishes first.
     @State private var sceneIntroAfterLaunch = false
     @State private var sceneIntroTask: Task<Void, Never>?
-    @State private var shatterBursts: [ShatterBurst] = []
 
     /// Upper golden-section point for the disk center.
     private let goldenFromTop: CGFloat = 0.382
@@ -146,48 +21,12 @@ struct SoundMixCircleEditor: View {
     private let maxDisk: CGFloat = 392
     private let dockHeight: CGFloat = 108
     private let diskFadeDuration: TimeInterval = 0.35
-    /// How long rings stay after dragging a source (distinct from scene intro).
-    private let diskIdleHideDelay: TimeInterval = 0.2
     /// Boot / enter-scene intro hold (not the drag idle delay).
     private let sceneIntroHold: TimeInterval = 2.0
     /// Let the launch overlay finish dissolving before counting the scene intro.
     private let launchRevealDelay: TimeInterval = 0.18
-
     private var activeSources: [SoundSource] {
         appState.currentScene.soundSources.filter(\.isEnabled)
-    }
-
-    private var favoriteAssets: [SoundAsset] {
-        appState.soundAssets.filter(\.isFavorite)
-    }
-
-    private var availableBasicSounds: [BasicMixSound] {
-        BasicMixSound.available(for: appState.currentScene.visualStyle)
-    }
-
-    private var canEditMix: Bool {
-        appState.mixBoardSelection.isMine
-    }
-
-    private var showPalette: Bool {
-        appState.showMixPalette
-    }
-
-    private var diskSide: CGFloat {
-        guard stageSize.width > 0 else { return maxDisk }
-        return min(stageSize.width - 16, maxDisk)
-    }
-
-    private var circleSize: CGSize {
-        CGSize(width: diskSide, height: diskSide)
-    }
-
-    private var circleCenter: CGPoint {
-        CGPoint(x: stageSize.width / 2, y: stageSize.height * goldenFromTop)
-    }
-
-    private var circleOrigin: CGPoint {
-        CGPoint(x: circleCenter.x - diskSide / 2, y: circleCenter.y - diskSide / 2)
     }
 
     var body: some View {
@@ -217,10 +56,9 @@ struct SoundMixCircleEditor: View {
                             sourceNode(
                                 source,
                                 circleSize: localCircleSize,
-                                circleOrigin: origin,
-                                circleCenter: center
+                                circleOrigin: origin
                             )
-                            .allowsHitTesting(canEditMix)
+                            .allowsHitTesting(false)
                             .zIndex(2)
                         }
 
@@ -231,42 +69,16 @@ struct SoundMixCircleEditor: View {
                 }
                 .frame(width: size.width, height: size.height)
 
-                ForEach(shatterBursts) { burst in
-                    ShatterBurstView(burst: burst)
-                        .position(burst.origin)
-                        .allowsHitTesting(false)
-                        .zIndex(6)
-                }
-
                 bottomDock(width: dockWidth)
                     .frame(width: dockWidth, height: dockHeight)
                     .position(dockCenter)
                     .zIndex(4)
 
-                MixPresetBrowser()
-                    .frame(width: min(size.width - 24, dockWidth + 8))
-                    .position(
-                        x: size.width / 2,
-                        y: dockCenter.y - dockHeight / 2 - 34
-                    )
-                    .opacity(showPalette ? 0 : 1)
-                    .allowsHitTesting(!showPalette)
-                    .zIndex(5)
-
-                if let drag = draggingPalette {
-                    floatingChrome(for: drag)
-                        .position(finger)
-                        .allowsHitTesting(false)
-                        .zIndex(7)
-                }
             }
             .frame(width: size.width, height: size.height)
-            .coordinateSpace(name: "mixBoard")
             .onAppear {
-                stageSize = size
                 requestSceneIntroDisk(afterLaunch: appState.showLaunch)
             }
-            .onChange(of: size) { _, newSize in stageSize = newSize }
             .onChange(of: appState.currentSceneId) { _, _ in
                 if appState.consumeSkipSceneChromeIntro() { return }
                 requestSceneIntroDisk(afterLaunch: false)
@@ -292,93 +104,29 @@ struct SoundMixCircleEditor: View {
                 }
             }
         }
-        .animation(DreamTheme.chromeVisibilityAnimation, value: showPalette)
         .animation(.easeInOut(duration: 0.35), value: showTimerPicker)
-        .accessibilityHint("点按聆听位置或拖动声源可打开音源选择；拖出圆盘可移除声源")
+        .accessibilityHint("圆盘仅展示当前场景中各音源的空间位置")
     }
 
     private func listenerAnchor(at center: CGPoint) -> some View {
-        Button {
-            guard canEditMix else { return }
-            appState.openMixPalette()
-            appState.bumpInteraction()
-            beginDiskInteraction()
-            scheduleDiskHide(after: 1.0)
-        } label: {
-            Image(systemName: "person.fill")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
-                .frame(width: 44, height: 44)
-                .dreamSpatialLiquidGlassCircle(
-                    accent: DreamTheme.warmApricot,
-                    intensity: 0.92
-                )
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
+        Image(systemName: "person.fill")
+            .font(.system(size: 18, weight: .medium))
+            .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
+            .frame(width: 44, height: 44)
+            .dreamSpatialLiquidGlassCircle(
+                accent: DreamTheme.warmApricot,
+                intensity: 0.92,
+                interactive: false
+            )
         .position(center)
+        .allowsHitTesting(false)
         .accessibilityLabel("聆听位置")
-        .accessibilityHint("点按打开音源选择")
-    }
-
-    @ViewBuilder
-    private func floatingChrome(for drag: MixPaletteDrag) -> some View {
-        switch drag {
-        case .basic(let item):
-            nodeChrome(symbol: item.symbolName, name: item.name, volume: 0.75, pressed: true)
-        case .favorite(let asset):
-            nodeChrome(symbol: asset.symbolName, name: asset.name, volume: 0.75, pressed: true)
-        }
+        .accessibilityHint("当前仅展示空间位置")
     }
 
     private func bottomDock(width: CGFloat) -> some View {
-        ZStack {
-            NowControlsOverlay(showTimerPicker: $showTimerPicker)
-                .opacity(showPalette ? 0 : 1)
-                .allowsHitTesting(!showPalette)
-                .offset(y: showPalette ? 6 : 0)
-
-            mixPaletteDock()
-                .opacity(showPalette ? 1 : 0)
-                .allowsHitTesting(showPalette && canEditMix)
-                .offset(y: showPalette ? 0 : 6)
-        }
-        .frame(width: width, height: dockHeight)
-    }
-
-    private func mixPaletteDock() -> some View {
-        HStack(alignment: .center, spacing: 0) {
-            GlassEffectContainer(spacing: 12) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 14) {
-                        paletteGroup(title: "基本") {
-                            ForEach(availableBasicSounds) { item in
-                                basicChip(item)
-                            }
-                        }
-
-                        if !favoriteAssets.isEmpty {
-                            Rectangle()
-                                .fill(DreamTheme.divider)
-                                .frame(width: 1, height: 52)
-                                .padding(.top, 14)
-
-                            paletteGroup(title: "收藏") {
-                                ForEach(favoriteAssets) { asset in
-                                    favoriteChip(asset)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                }
-            }
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 24)
-        .opacity(canEditMix ? 1 : 0.4)
+        NowControlsOverlay(showTimerPicker: $showTimerPicker)
+            .frame(width: width, height: dockHeight)
     }
 
     // MARK: - Layers
@@ -397,151 +145,27 @@ struct SoundMixCircleEditor: View {
         .frame(width: size.width, height: size.height)
     }
 
-    private func paletteGroup<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 10))
-                .foregroundStyle(DreamTheme.tertiaryText)
-            HStack(spacing: 12) {
-                content()
-            }
-        }
-    }
-
     // MARK: - Nodes
 
     private func sourceNode(
         _ source: SoundSource,
         circleSize: CGSize,
-        circleOrigin: CGPoint,
-        circleCenter: CGPoint
+        circleOrigin: CGPoint
     ) -> some View {
         let local = source.position.point(in: circleSize)
         let home = CGPoint(x: circleOrigin.x + local.x, y: circleOrigin.y + local.y)
-        let shown = draggingSourceId == source.id ? finger : home
 
         return nodeChrome(
             symbol: source.symbolName,
             name: source.name,
-            volume: source.volume,
-            pressed: draggingSourceId == source.id
+            volume: source.volume
         )
-        .position(shown)
-        .highPriorityGesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .named("mixBoard"))
-                .onChanged { value in
-                    appState.beginMixDrag()
-                    appState.markMixInteraction()
-                    beginDiskInteraction()
-                    draggingSourceId = source.id
-                    finger = value.location
-
-                    if isInsideCircle(value.location, center: circleCenter, side: circleSize.width) {
-                        let clamped = clampToCircle(value.location, center: circleCenter, side: circleSize.width)
-                        let localPoint = CGPoint(x: clamped.x - circleOrigin.x, y: clamped.y - circleOrigin.y)
-                        appState.updateSourcePlacement(
-                            id: source.id,
-                            position: SpatialPosition.from(point: localPoint, in: circleSize)
-                        )
-                    }
-                }
-                .onEnded { value in
-                    defer {
-                        draggingSourceId = nil
-                        endDiskInteraction()
-                        appState.endMixDrag()
-                    }
-
-                    if isInsideCircle(value.location, center: circleCenter, side: circleSize.width) {
-                        let clamped = clampToCircle(value.location, center: circleCenter, side: circleSize.width)
-                        let localPoint = CGPoint(x: clamped.x - circleOrigin.x, y: clamped.y - circleOrigin.y)
-                        appState.updateSourcePlacement(
-                            id: source.id,
-                            position: SpatialPosition.from(point: localPoint, in: circleSize)
-                        )
-                    } else {
-                        shatterAndRemove(source, at: value.location)
-                    }
-                }
-        )
-        .accessibilityLabel("\(source.name)，拖动调整位置与大小，拖出圆形可移除")
+        .position(home)
+        .accessibilityLabel("\(source.name)，空间位置展示")
+        .accessibilityHint("播放时不可调整位置")
     }
 
-    private func basicChip(_ item: BasicMixSound) -> some View {
-        paletteIcon(
-            symbol: item.symbolName,
-            name: item.name,
-            accent: appState.currentScene.palette.accentColor,
-            dimmed: {
-                if case .basic(let current) = draggingPalette { return current.id == item.id }
-                return false
-            }()
-        )
-        .highPriorityGesture(
-            DragGesture(minimumDistance: 4, coordinateSpace: .named("mixBoard"))
-                .onChanged { value in
-                    appState.beginMixDrag()
-                    appState.markMixInteraction()
-                    beginDiskInteraction()
-                    draggingPalette = .basic(item)
-                    finger = value.location
-                }
-                .onEnded { value in
-                    finishPaletteDrag(.basic(item), location: value.location)
-                    endDiskInteraction()
-                    appState.endMixDrag()
-                }
-        )
-        .accessibilityLabel("\(item.name)，基本声音，拖入圆内添加")
-    }
-
-    private func favoriteChip(_ asset: SoundAsset) -> some View {
-        paletteIcon(
-            symbol: asset.symbolName,
-            name: asset.name,
-            accent: Color(hex: asset.avatarColor),
-            dimmed: {
-                if case .favorite(let current) = draggingPalette { return current.id == asset.id }
-                return false
-            }()
-        )
-        .highPriorityGesture(
-            DragGesture(minimumDistance: 4, coordinateSpace: .named("mixBoard"))
-                .onChanged { value in
-                    appState.beginMixDrag()
-                    appState.markMixInteraction()
-                    beginDiskInteraction()
-                    draggingPalette = .favorite(asset)
-                    finger = value.location
-                }
-                .onEnded { value in
-                    finishPaletteDrag(.favorite(asset), location: value.location)
-                    endDiskInteraction()
-                    appState.endMixDrag()
-                }
-        )
-        .accessibilityLabel("\(asset.name)，收藏声音，拖入圆内添加")
-    }
-
-    private func paletteIcon(symbol: String, name: String, accent: Color, dimmed: Bool) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: symbol)
-                .font(.system(size: 15))
-                .frame(width: 42, height: 42)
-                .dreamSpatialLiquidGlassCircle(
-                    accent: accent,
-                    intensity: 0.76
-                )
-            Text(name)
-                .font(.system(size: 10))
-                .lineLimit(1)
-                .frame(width: 52)
-        }
-        .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
-        .opacity(dimmed ? 0.3 : 1)
-    }
-
-    private func nodeChrome(symbol: String, name: String, volume: Double, pressed: Bool) -> some View {
+    private func nodeChrome(symbol: String, name: String, volume: Double) -> some View {
         let scale = 0.78 + volume * 0.5
         let iconSize: CGFloat = 14 * scale
         let side: CGFloat = 50 * scale
@@ -558,49 +182,9 @@ struct SoundMixCircleEditor: View {
         .frame(width: side, height: side)
         .dreamSpatialLiquidGlassCircle(
             accent: appState.currentScene.palette.accentColor,
-            intensity: 0.55 + volume * 0.45
+            intensity: 0.55 + volume * 0.45,
+            interactive: false
         )
-        .scaleEffect(pressed ? 1.16 : 1.0)
-        .shadow(color: .black.opacity(pressed ? 0.22 : 0), radius: pressed ? 10 : 0, y: 3)
-        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: pressed)
-    }
-
-    private func finishPaletteDrag(_ drag: MixPaletteDrag, location: CGPoint) {
-        defer { draggingPalette = nil }
-        let size = circleSize
-        let center = circleCenter
-        let origin = circleOrigin
-        guard isInsideCircle(location, center: center, side: size.width) else { return }
-        let clamped = clampToCircle(location, center: center, side: size.width)
-        let localPoint = CGPoint(x: clamped.x - origin.x, y: clamped.y - origin.y)
-        let position = SpatialPosition.from(point: localPoint, in: size)
-        let volume = AppState.volume(fromRadius: position.radius)
-
-        let source: SoundSource
-        switch drag {
-        case .basic(let item):
-            source = SoundSource(
-                name: item.name,
-                symbolName: item.symbolName,
-                isEnabled: true,
-                volume: volume,
-                position: position,
-                resourceName: item.resourceName(for: appState.currentScene.visualStyle),
-                layer: item.layer
-            )
-        case .favorite(let asset):
-            source = SoundSource(
-                name: asset.name,
-                symbolName: asset.symbolName,
-                isEnabled: true,
-                volume: volume,
-                position: position,
-                assetId: asset.id,
-                resourceName: asset.previewResourceName,
-                layer: asset.kind == .seed ? .voice : .environment
-            )
-        }
-        appState.addSource(source)
     }
 
     // MARK: - Disk visibility & effects
@@ -649,22 +233,6 @@ struct SoundMixCircleEditor: View {
         }
     }
 
-    private func beginDiskInteraction() {
-        sceneIntroTask?.cancel()
-        hideDiskTask?.cancel()
-        hideDiskTask = nil
-        pendingSceneIntro = false
-        sceneIntroAfterLaunch = false
-        guard !diskVisible else { return }
-        withAnimation(.easeInOut(duration: diskFadeDuration)) {
-            diskVisible = true
-        }
-    }
-
-    private func endDiskInteraction() {
-        scheduleDiskHide(after: diskIdleHideDelay)
-    }
-
     private func scheduleDiskHide(after delay: TimeInterval) {
         hideDiskTask?.cancel()
         hideDiskTask = Task {
@@ -678,151 +246,6 @@ struct SoundMixCircleEditor: View {
         }
     }
 
-    private func shatterAndRemove(_ source: SoundSource, at point: CGPoint) {
-        let burst = ShatterBurst.make(at: point, symbol: source.symbolName)
-        shatterBursts.append(burst)
-        appState.removeSource(id: source.id)
-        Task {
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            await MainActor.run {
-                shatterBursts.removeAll { $0.id == burst.id }
-            }
-        }
-    }
-
-    // MARK: - Geometry (stage coordinates)
-
-    private func isInsideCircle(_ point: CGPoint, center: CGPoint, side: CGFloat) -> Bool {
-        let limit = side * 0.42
-        return hypot(point.x - center.x, point.y - center.y) <= limit * 1.08
-    }
-
-    private func clampToCircle(_ point: CGPoint, center: CGPoint, side: CGFloat) -> CGPoint {
-        let limit = side * 0.42
-        let dx = point.x - center.x
-        let dy = point.y - center.y
-        let distance = hypot(dx, dy)
-        if distance <= limit || distance < 0.001 {
-            return point
-        }
-        let scale = limit / distance
-        return CGPoint(x: center.x + dx * scale, y: center.y + dy * scale)
-    }
-}
-
-// MARK: - Mix presets
-
-/// 「我的」+ 当前场景官方/社区预设；选预设仅试听，不可改盘。
-private struct MixPresetBrowser: View {
-    @EnvironmentObject private var appState: AppState
-
-    private var scenePresets: [MixPreset] {
-        appState.mixPresetsForCurrentScene
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    selectionChip(
-                        title: "我的",
-                        selected: appState.mixBoardSelection.isMine
-                    ) {
-                        appState.selectMineMixBoard()
-                    }
-
-                    ForEach(scenePresets) { preset in
-                        selectionChip(
-                            title: preset.title,
-                            selected: {
-                                if case .preset(let id) = appState.mixBoardSelection {
-                                    return id == preset.id
-                                }
-                                return false
-                            }()
-                        ) {
-                            appState.selectMixPreset(preset)
-                        }
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-
-            Text(
-                appState.mixBoardSelection.isMine
-                    ? (scenePresets.isEmpty
-                       ? "可自由调整圆内声源"
-                       : "可自由调整。切换预设不会清空「我的」布局")
-                    : "当前为预设试听，不可编辑。返回「我的」可继续调整"
-            )
-            .font(.system(size: 11))
-            .foregroundStyle(DreamTheme.tertiaryText)
-            .padding(.horizontal, 4)
-            .lineLimit(1)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.22))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(DreamTheme.chromeStroke.opacity(0.55), lineWidth: 1)
-                )
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("声音布局预设")
-    }
-
-    private func selectionChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13, weight: selected ? .semibold : .regular))
-                .foregroundStyle(selected ? DreamTheme.midnight : DreamTheme.moonWhite)
-                .lineLimit(1)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(selected ? DreamTheme.moonWhite.opacity(0.92) : Color.white.opacity(0.10))
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-// MARK: - Shatter
-
-private struct ShatterBurstView: View {
-    let burst: ShatterBurst
-    @State private var progress: CGFloat = 0
-
-    var body: some View {
-        ZStack {
-            ForEach(burst.shards) { shard in
-                Circle()
-                    .fill(DreamTheme.moonWhite.opacity(0.85 * (1 - progress)))
-                    .frame(width: shard.size, height: shard.size)
-                    .offset(
-                        x: cos(shard.angle) * shard.distance * progress,
-                        y: sin(shard.angle) * shard.distance * progress
-                    )
-                    .rotationEffect(.degrees(shard.spin * Double(progress)))
-            }
-
-            Image(systemName: burst.symbolName)
-                .font(.system(size: 12))
-                .foregroundStyle(DreamTheme.moonWhite.opacity(0.7 * (1 - min(progress * 1.4, 1))))
-                .scaleEffect(1 - 0.55 * progress)
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.65)) {
-                progress = 1
-            }
-        }
-    }
 }
 
 #Preview {

@@ -17,7 +17,6 @@ struct SpatialEditorView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
-                    editorHeader
                     sceneSummary
                     soundFieldSection
                     timelineSection
@@ -26,8 +25,14 @@ struct SpatialEditorView: View {
                     Spacer(minLength: 28)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
+                .padding(.top, 12)
                 .padding(.bottom, 20)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                editorHeader
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(headerBackground)
             }
 
             if let toast = viewModel.toastMessage {
@@ -150,6 +155,18 @@ struct SpatialEditorView: View {
             .accessibilityLabel("保存场景")
             .accessibilityHint("可选择保存为草稿或个人场景")
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var headerBackground: some View {
+        Rectangle()
+            .fill(DreamTheme.midnight.opacity(0.84))
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(DreamTheme.chromeStroke.opacity(0.42))
+                    .frame(height: 1)
+            }
+            .ignoresSafeArea(edges: .top)
     }
 
     @MainActor

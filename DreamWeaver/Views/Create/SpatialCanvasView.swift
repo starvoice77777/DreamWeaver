@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SpatialCanvasView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
@@ -131,6 +132,7 @@ private struct SoundSourceNodeView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
 
     @State private var isDragging = false
+    @State private var edgeHaptics = EdgeProximityHaptics()
 
     var body: some View {
         VStack(spacing: 3) {
@@ -202,6 +204,7 @@ private struct SoundSourceNodeView: View {
                     fieldRadius: fieldRadius,
                     clampToField: false
                 )
+                edgeHaptics.update(for: hypot(normalized.x, normalized.y))
                 viewModel.updateSourceDrag(source.id, position: normalized)
             }
             .onEnded { value in
@@ -211,12 +214,12 @@ private struct SoundSourceNodeView: View {
                     fieldRadius: fieldRadius,
                     clampToField: false
                 )
+                edgeHaptics.stop()
                 viewModel.endSourceDrag(source.id, position: normalized)
                 isDragging = false
             }
         )
         .opacity(isOutsideField ? 0.55 : 1)
-        .sensoryFeedback(.impact(weight: .light), trigger: isDragging)
         .animation(.easeInOut(duration: 0.24), value: isSelected)
         .accessibilityLabel("\(source.name)，\(distanceText)")
         .accessibilityHint("拖动记录位置；拖出圆盘可移除音源")
@@ -231,6 +234,41 @@ private struct SoundSourceNodeView: View {
         if radius < 0.34 { return "近" }
         if radius < 0.68 { return "中" }
         return "远"
+    }
+}
+
+@MainActor
+private final class EdgeProximityHaptics {
+    private let activationDistance: CGFloat = 0.78
+    private let edgeDistance: CGFloat = 1.0
+    private let generator = UIImpactFeedbackGenerator(style: .soft)
+    private var lastImpactTime: TimeInterval = 0
+    private var isInEdgeZone = false
+
+    func update(for distance: CGFloat) {
+        guard distance >= activationDistance else {
+            isInEdgeZone = false
+            return
+        }
+
+        let proximity = min(
+            max((distance - activationDistance) / (edgeDistance - activationDistance), 0),
+            1
+        )
+        let now = ProcessInfo.processInfo.systemUptime
+        let interval = 0.16 - (0.10 * proximity)
+
+        guard !isInEdgeZone || now - lastImpactTime >= interval else { return }
+
+        generator.impactOccurred(intensity: 0.25 + (0.75 * proximity))
+        generator.prepare()
+        lastImpactTime = now
+        isInEdgeZone = true
+    }
+
+    func stop() {
+        isInEdgeZone = false
+        lastImpactTime = 0
     }
 }
 

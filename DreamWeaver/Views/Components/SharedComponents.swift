@@ -98,7 +98,7 @@ struct LiquidGlassShape<S: InsettableShape>: View {
 
 typealias LiquidGlassCircle = LiquidGlassShape<Circle>
 
-/// Native iOS 26 refractive glass for draggable spatial-mix nodes.
+/// Native iOS 26 refractive glass for spatial nodes and controls.
 ///
 /// Shu Ding's web implementation concentrates displacement at the edge of a
 /// clear lens and adds a subtle chromatic fringe. SwiftUI's native clear glass
@@ -106,6 +106,7 @@ typealias LiquidGlassCircle = LiquidGlassShape<Circle>
 struct SpatialLiquidGlassCircle: ViewModifier {
     var accent: Color
     var intensity: Double
+    var interactive = true
 
     func body(content: Content) -> some View {
         let strength = max(0, min(1, intensity))
@@ -115,7 +116,10 @@ struct SpatialLiquidGlassCircle: ViewModifier {
                 Circle()
                     .fill(accent.opacity(0.025 + strength * 0.035))
             }
-            .glassEffect(.clear.interactive(), in: Circle())
+            .glassEffect(
+                interactive ? .clear.interactive() : .clear,
+                in: Circle()
+            )
             .overlay {
                 Circle()
                     .strokeBorder(
@@ -305,12 +309,14 @@ extension View {
 
     func dreamSpatialLiquidGlassCircle(
         accent: Color = DreamTheme.mistBlue,
-        intensity: Double = 0.75
+        intensity: Double = 0.75,
+        interactive: Bool = true
     ) -> some View {
         modifier(
             SpatialLiquidGlassCircle(
                 accent: accent,
-                intensity: intensity
+                intensity: intensity,
+                interactive: interactive
             )
         )
     }

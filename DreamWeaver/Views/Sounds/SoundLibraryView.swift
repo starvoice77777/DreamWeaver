@@ -667,7 +667,6 @@ struct SoundLibraryView: View {
                     )
                 )
                 appState.selectedTab = .now
-                appState.openMixPalette()
             },
             onDelete: { beginDelete(asset) }
         )
