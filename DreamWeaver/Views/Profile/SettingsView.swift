@@ -37,15 +37,7 @@ struct SettingsView: View {
                     .foregroundStyle(DreamTheme.warmApricot)
                 }
                 .listRowBackground(Color.white.opacity(0.05))
-                Text("当前进程：\(appState.contentBackendMode.title)。远程基址 \(ServiceBackendConfig.remoteBaseURL.absoluteString)。切换数据源后请完全退出 App 再打开。")
-                    .font(DreamTypography.caption)
-                    .foregroundStyle(DreamTheme.tertiaryText)
                 if appState.contentBackendMode == .remote {
-                    Text(appState.isRemoteAuthenticated
-                         ? "远程会话：已登录\(appState.sessionUserId.map { "（\(String($0.uuidString.prefix(8)))…）" } ?? "")"
-                         : "远程会话：游客（可开发登录）")
-                        .font(DreamTypography.caption)
-                        .foregroundStyle(DreamTheme.secondaryText)
                     if appState.isRemoteAuthenticated {
                         Button("退出远程登录") {
                             Task { await appState.signOutRemote() }
@@ -71,9 +63,6 @@ struct SettingsView: View {
                         .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.secondaryText)
                 }
-                Text("拍摄前请重置。主场景：洗头陪伴；备用：檐下听雨。人声为预录制演示产物，非真实克隆。")
-                    .font(DreamTypography.caption)
-                    .foregroundStyle(DreamTheme.tertiaryText)
             }
 
             Section("播放") {

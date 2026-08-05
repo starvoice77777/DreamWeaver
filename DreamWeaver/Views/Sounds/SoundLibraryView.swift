@@ -125,16 +125,12 @@ struct SoundLibraryView: View {
                 Button("现场录音") { beginRecordUpload() }
                 Button("上传文件") { beginFileUpload() }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("选择录音或直接上传本地音频文件。")
             }
             .confirmationDialog("声音种子创建", isPresented: $showSeedChooser, titleVisibility: .visible) {
                 Button("已有素材") { showExistingSeedPicker = true }
                 Button("上传文件") { openSeedFlow(.file) }
                 Button("现场录音") { openSeedFlow(.record) }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("选择已有素材、上传文件或现场录音作为种子来源。")
             }
             .sheet(isPresented: $showExistingSeedPicker) {
                 ExistingSeedSourcePicker(
@@ -227,8 +223,6 @@ struct SoundLibraryView: View {
                     section = .existing
                 }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("本地演示模式不会读取真实文件。")
             }
             .alert("录制声音", isPresented: $showRecordMock) {
                 Button("完成模拟录制") {
@@ -249,13 +243,11 @@ struct SoundLibraryView: View {
                     section = .existing
                 }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("演示模式不会调用麦克风。远程模式下请先上传本地音频文件。")
             }
             .alert("需要登录", isPresented: $showLoginHint) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text("远程声音库上传/删除需要先登录（开发登录或 Apple）。可在「我的」完成登录。")
+                Text("请先登录。")
             }
             .alert("提示", isPresented: Binding(
                 get: { libraryNotice != nil },
@@ -725,7 +717,7 @@ private struct ExistingSeedSourcePicker: View {
                     ContentUnavailableView(
                         "暂无可选素材",
                         systemImage: "tray",
-                        description: Text("请先在「自定义」上传音频，或等待官方素材同步。")
+                        description: nil
                     )
                 } else {
                     List(assets) { asset in

@@ -271,9 +271,6 @@ struct SpatialEditorView: View {
                 .autocorrectionDisabled()
                 .submitLabel(.done)
 
-                Text(sceneSummaryCaption)
-                .font(DreamTypography.caption)
-                .foregroundStyle(DreamTheme.secondaryText)
             }
 
             Spacer(minLength: 8)
@@ -293,19 +290,6 @@ struct SpatialEditorView: View {
         }
     }
 
-    private var sceneSummaryCaption: String {
-        if viewModel.isFromExistingScene {
-            let base = viewModel.sourceSceneSubtitle?.isEmpty == false
-                ? (viewModel.sourceSceneSubtitle ?? "已有场景底稿")
-                : "已有场景底稿"
-            return "\(base) · \(viewModel.soundSources.count) 个声源"
-        }
-        if viewModel.soundSources.isEmpty {
-            return "空白场景 · 从下方素材开始添加"
-        }
-        return "空间轨迹 · \(viewModel.soundSources.count) 个声源"
-    }
-
     private var soundFieldSection: some View {
         VStack(spacing: 10) {
             HStack {
@@ -313,9 +297,6 @@ struct SpatialEditorView: View {
                     Text("声场")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(DreamTheme.warmApricot)
-                    Text("空间轨迹")
-                        .font(.system(size: 10))
-                        .foregroundStyle(DreamTheme.secondaryText)
                 }
 
                 Spacer()
@@ -341,22 +322,6 @@ struct SpatialEditorView: View {
                 .frame(maxWidth: 350)
                 .frame(maxWidth: .infinity)
 
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(viewModel.selectedSource?.themeColor ?? DreamTheme.warmApricot)
-                    .frame(width: 5, height: 5)
-                Text(
-                    viewModel.soundSources.isEmpty
-                        ? "从下方选择素材加入声场，再拖动记录空间轨迹。"
-                        : viewModel.showsFirstUseHint
-                            ? "移动时间指针，再拖动声源记录位置；拖出圆盘可移除。"
-                            : "拖动即记录 · 拖出圆盘移除音源"
-                )
-                .font(.system(size: 10))
-                .foregroundStyle(DreamTheme.secondaryText)
-            }
-            .frame(maxWidth: .infinity)
-            .animation(.easeInOut(duration: 0.25), value: viewModel.showsFirstUseHint)
         }
     }
 
@@ -390,11 +355,6 @@ struct SpatialEditorView: View {
                     }
             }
 
-            Text(timelineModeHint)
-                .font(.system(size: 10))
-                .foregroundStyle(DreamTheme.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
             TimelineEditorView(viewModel: viewModel)
 
             PlaybackControlView(viewModel: viewModel)
@@ -427,15 +387,6 @@ struct SpatialEditorView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var timelineModeHint: String {
-        switch viewModel.timelineEditMode {
-        case .audioTiming:
-            return "拖动音频片段调整开始时间，拖动两端调整时长；不会改变空间定位点。"
-        case .spatialTrajectory:
-            return "横条显示当前时间对应的音频部分；拖动声源只记录位置，不改变音频时长。"
-        }
-    }
-
     private var textEditorSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
@@ -449,10 +400,6 @@ struct SpatialEditorView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(DreamTheme.tertiaryText)
             }
-
-            Text("在当前时间添加一句文本，添加后仍可直接修改。")
-                .font(.system(size: 11))
-                .foregroundStyle(DreamTheme.secondaryText)
 
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -603,10 +550,6 @@ struct SpatialEditorView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(DreamTheme.tertiaryText)
             }
-
-            Text("自然声可同时加入多个；人声在同一场景中只保留一个。")
-                .font(.system(size: 11))
-                .foregroundStyle(DreamTheme.secondaryText)
 
             LazyVGrid(
                 columns: Array(

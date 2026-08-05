@@ -42,9 +42,6 @@ struct ProfileView: View {
                 Text(appState.nickname)
                     .font(DreamTypography.pageTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
-                Text(headerLoginCaption)
-                    .font(DreamTypography.caption)
-                    .foregroundStyle(DreamTheme.secondaryText)
                 Text(appState.isMember ? "织梦会员" : "免费体验")
                     .font(DreamTypography.caption.weight(.medium))
                     .foregroundStyle(DreamTheme.warmApricot)
@@ -52,13 +49,6 @@ struct ProfileView: View {
             Spacer()
         }
         .padding(.top, 12)
-    }
-
-    private var headerLoginCaption: String {
-        if appState.contentBackendMode != .remote {
-            return "本地演示"
-        }
-        return appState.isRemoteAuthenticated ? "已通过 Apple 登录" : "未登录"
     }
 
     private var companionshipSection: some View {

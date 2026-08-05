@@ -41,16 +41,11 @@ struct CreateHubView: View {
                         SectionHeader(title: "创建")
                             .padding(.top, 12)
 
-                        Text("把场景与声音统一收进你的创作空间。")
-                            .font(DreamTypography.body)
-                            .foregroundStyle(DreamTheme.secondaryText)
-
-                        creationSectionTitle("场景", subtitle: "编排画面、声音与空间轨迹")
+                        creationSectionTitle("场景")
 
                         VStack(spacing: 14) {
                             createActionCard(
                                 title: "从空白开始",
-                                subtitle: "选择画面气质、放入声音，再保存为个人场景",
                                 symbol: "sparkles",
                                 accent: DreamTheme.warmApricot
                             ) {
@@ -59,7 +54,6 @@ struct CreateHubView: View {
 
                             createActionCard(
                                 title: "从已有场景创建",
-                                subtitle: "挑选一个已有场景作为底稿，改完后另存为个人场景",
                                 symbol: "slider.horizontal.3",
                                 accent: DreamTheme.warmApricot
                             ) {
@@ -75,12 +69,11 @@ struct CreateHubView: View {
                             remoteDraftSection
                         }
 
-                        creationSectionTitle("声音", subtitle: "录制、上传或生成可用于场景的声音")
+                        creationSectionTitle("声音")
 
                         VStack(spacing: 14) {
                             createActionCard(
                                 title: "录制或上传声音",
-                                subtitle: "现场录音，或从本地选择音频文件加入声音库",
                                 symbol: "waveform.badge.plus",
                                 accent: DreamTheme.mistBlue
                             ) {
@@ -89,7 +82,6 @@ struct CreateHubView: View {
 
                             createActionCard(
                                 title: "创建声音种子",
-                                subtitle: "使用已有素材、上传文件或现场录音创建陪伴声音",
                                 symbol: "leaf.fill",
                                 accent: DreamTheme.softLavender
                             ) {
@@ -98,7 +90,6 @@ struct CreateHubView: View {
 
                             createActionCard(
                                 title: "管理已有声音",
-                                subtitle: "试听、收藏、重命名或删除已有的声音素材",
                                 symbol: "waveform.circle",
                                 accent: DreamTheme.mistBlue
                             ) {
@@ -162,8 +153,6 @@ struct CreateHubView: View {
                 Button("现场录音") { beginRecordUpload() }
                 Button("上传文件") { beginFileUpload() }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("选择录音或直接上传本地音频文件。")
             }
             .confirmationDialog("创建声音种子", isPresented: $showSeedChooser, titleVisibility: .visible) {
                 Button("已有素材") { showExistingSeedPicker = true }
@@ -181,19 +170,15 @@ struct CreateHubView: View {
             .alert("上传本地文件", isPresented: $showUploadMock) {
                 Button("选择演示文件") { addMockRecording(isRecorded: false) }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("本地演示模式不会读取真实文件。")
             }
             .alert("录制声音", isPresented: $showRecordMock) {
                 Button("完成模拟录制") { addMockRecording(isRecorded: true) }
                 Button("取消", role: .cancel) {}
-            } message: {
-                Text("演示模式不会调用麦克风。远程模式下请先上传本地音频文件。")
             }
             .alert("需要登录", isPresented: $showLoginHint) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text("远程声音创建需要先登录。可在「我的」完成登录。")
+                Text("请先登录。")
             }
             .alert("提示", isPresented: Binding(
                 get: { creationNotice != nil },
@@ -401,7 +386,6 @@ struct CreateHubView: View {
 
     private func createActionCard(
         title: String,
-        subtitle: String,
         symbol: String,
         accent: Color,
         action: @escaping () -> Void
@@ -416,14 +400,10 @@ struct CreateHubView: View {
                         Circle().fill(accent.opacity(0.16))
                     }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading) {
                     Text(title)
                         .font(DreamTypography.sectionTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
-                    Text(subtitle)
-                        .font(DreamTypography.callout)
-                        .foregroundStyle(DreamTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 0)
@@ -446,17 +426,13 @@ struct CreateHubView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityHint(subtitle)
     }
 
-    private func creationSectionTitle(_ title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func creationSectionTitle(_ title: String) -> some View {
+        VStack(alignment: .leading) {
             Text(title)
                 .font(DreamTypography.sectionTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
-            Text(subtitle)
-                .font(DreamTypography.caption)
-                .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(.top, 4)
     }
@@ -571,7 +547,7 @@ private struct CreateExistingSoundPicker: View {
                     ContentUnavailableView(
                         "暂无可选素材",
                         systemImage: "tray",
-                        description: Text("请先录制或上传一个声音。")
+                        description: nil
                     )
                 } else {
                     List(assets) { asset in

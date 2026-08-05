@@ -72,16 +72,8 @@ struct AppleSignInSection: View {
                         .disabled(isBusy)
                         .accessibilityLabel("开发登录")
 
-                        #if targetEnvironment(simulator)
-                        Text("模拟器上系统 Apple 登录常会超时；联调请用开发登录。真机再验正式 Apple。")
-                            .font(DreamTypography.caption)
-                            .foregroundStyle(DreamTheme.tertiaryText)
-                        #endif
                     }
                 } else {
-                    Text("切换到「远程 API」并重启后，可使用 Apple 登录同步收藏与设置。")
-                        .font(DreamTypography.caption)
-                        .foregroundStyle(DreamTheme.tertiaryText)
                 }
 
                 if let localError {

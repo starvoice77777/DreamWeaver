@@ -41,7 +41,7 @@ struct SpiralSceneCarousel: View {
                 ContentUnavailableView(
                     "没有匹配的场景",
                     systemImage: "sparkles",
-                    description: Text("尝试选择其他分类或搜索词")
+                    description: nil
                 )
                 .foregroundStyle(DreamTheme.secondaryText)
             } else {

@@ -3,6 +3,7 @@ import SwiftUI
 struct RootTabView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @State private var createHubEntryID = UUID()
 
     private var reduceMotion: Bool {
         appState.reduceMotion || systemReduceMotion
@@ -16,6 +17,9 @@ struct RootTabView: View {
                     NowView()
                 case .create:
                     CreateHubView()
+                        // Every tab entry starts at the hub instead of restoring a
+                        // previously presented blank-scene editor or creation flow.
+                        .id(createHubEntryID)
                 case .profile:
                     ProfileView()
                 }
@@ -48,6 +52,8 @@ struct RootTabView: View {
                 withAnimation(DreamTheme.chromeVisibilityAnimation) {
                     appState.revealControls()
                 }
+            } else if tab == .create {
+                createHubEntryID = UUID()
             }
         }
     }
@@ -67,6 +73,7 @@ struct DreamTabBar: View {
     @State private var barWidth: CGFloat = 0
 
     private let barHeight: CGFloat = 56
+    private let barMaxWidth: CGFloat = 280
 
     private var displayedSelection: AppTab {
         draggedTab ?? selected
@@ -92,6 +99,10 @@ struct DreamTabBar: View {
         return max(0, 1 - distance)
     }
 
+    private var selectionDiameter: CGFloat {
+        barHeight - 8 + 4 * createGrow
+    }
+
     var body: some View {
         ZStack {
             GeometryReader { geometry in
@@ -111,7 +122,7 @@ struct DreamTabBar: View {
                 }
             }
         }
-        .frame(maxWidth: 380)
+        .frame(maxWidth: barMaxWidth)
         .frame(height: barHeight)
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
@@ -134,40 +145,23 @@ struct DreamTabBar: View {
         let count = CGFloat(max(tabs.count, 1))
         let segmentWidth = size.width / count
         let lensX = segmentWidth * (selectionProgress + 0.5)
-        let lensWidth = max(segmentWidth - 8 + 4 * createGrow, 36)
+        let diameter = min(selectionDiameter, size.height - 4)
         let fillOpacity = createGrow > 0.55
             ? 0.10 + 0.08 * createGrow
             : 0.09
         let fillColor = createGrow > 0.55
             ? DreamTheme.warmApricot.opacity(fillOpacity)
             : DreamTheme.moonWhite.opacity(fillOpacity)
-        let strokeColors: [Color] = createGrow > 0.55
-            ? [
-                Color.white.opacity(0.62),
-                DreamTheme.warmApricot.opacity(0.35),
-                Color.white.opacity(0.22)
-            ]
-            : [
-                Color.white.opacity(0.58),
-                Color.cyan.opacity(0.15),
-                Color.pink.opacity(0.11)
-            ]
 
-        return Capsule(style: .continuous)
+        return Circle()
             .fill(fillColor)
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: strokeColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.85
-                    )
-                    .blendMode(.screen)
-            }
-            .frame(width: lensWidth, height: size.height - 4)
+            .frame(width: diameter, height: diameter)
+            .dreamSpatialLiquidGlassCircle(
+                accent: createGrow > 0.55
+                    ? DreamTheme.warmApricot
+                    : appState.currentScene.palette.accentColor,
+                intensity: 0.92
+            )
             .position(x: lensX, y: size.height / 2)
             .animation(lensAnimation, value: selectionProgress)
             .allowsHitTesting(false)
@@ -308,7 +302,7 @@ struct DreamTabBar: View {
         }
 
         let segmentWidth = barWidth / CGFloat(tabs.count)
-        let lensHalfWidth = max((segmentWidth - 8) / 2, 0)
+        let lensHalfWidth = selectionDiameter / 2
         let iconHalfWidth = iconWidth / 2
         let lensCenter = (selectionProgress - CGFloat(index)) * segmentWidth
         let leftEdge = max(-iconHalfWidth, lensCenter - lensHalfWidth)

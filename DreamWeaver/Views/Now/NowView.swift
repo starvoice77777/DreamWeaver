@@ -8,7 +8,7 @@ struct NowView: View {
     @State private var swipeOffset: CGFloat = 0
     @State private var isSwipeSwitching = false
     @State private var stageWidth: CGFloat = 390
-    /// Pre-picked neighbors so swipe commit never waits on random + I/O.
+    /// Adjacent scenes in library order, preloaded so swipe commits never wait on I/O.
     @State private var leftNeighbor: DreamScene?
     @State private var rightNeighbor: DreamScene?
 
@@ -57,7 +57,7 @@ struct NowView: View {
                     .onTapGesture {
                         dismissOverlayOrToggleControls()
                     }
-                    .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动切换随机场景")
+                    .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动按顺序切换场景")
 
                 // Same opacity/scale fade as the tab bar (not insert/remove transition).
                 SoundMixCircleEditor(showTimerPicker: $showTimerPicker)
@@ -229,22 +229,30 @@ struct NowView: View {
     }
 
     private func refillSwipeNeighbors() {
-        let others = appState.scenes.filter { $0.id != appState.currentSceneId }
-        guard !others.isEmpty else {
+        let scenes = appState.scenes
+        guard scenes.count > 1,
+              let currentIndex = scenes.firstIndex(where: { $0.id == appState.currentSceneId }) else {
             leftNeighbor = nil
             rightNeighbor = nil
             return
         }
 
-        var pool = others.shuffled()
-        let left = pool.removeFirst()
-        let right = pool.first ?? left
-        leftNeighbor = left
-        rightNeighbor = right
+        let previousIndex = currentIndex == scenes.startIndex
+            ? scenes.index(before: scenes.endIndex)
+            : scenes.index(before: currentIndex)
+        let followingIndex = scenes.index(after: currentIndex)
+        let nextIndex = followingIndex == scenes.endIndex
+            ? scenes.startIndex
+            : followingIndex
 
-        appState.prefetchSwipeScene(left.id)
-        if right.id != left.id {
-            appState.prefetchSwipeScene(right.id)
+        let previous = scenes[previousIndex]
+        let next = scenes[nextIndex]
+        leftNeighbor = previous
+        rightNeighbor = next
+
+        appState.prefetchSwipeScene(previous.id)
+        if next.id != previous.id {
+            appState.prefetchSwipeScene(next.id)
         }
     }
 
@@ -332,11 +340,6 @@ struct NowControlsOverlay: View {
                     Text(appState.currentScene.name)
                         .font(DreamTypography.cardTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
-                    HStack(spacing: 8) {
-                        Text(timerStatusText)
-                    }
-                    .font(DreamTypography.timecode)
-                    .foregroundStyle(DreamTheme.secondaryText)
 
                     PlaybackProgressSlider(value: $appState.playbackProgress) { isEditing in
                         if isEditing {
@@ -377,26 +380,6 @@ struct NowControlsOverlay: View {
         }
     }
 
-    private var timerStatusText: String {
-        if appState.timerElapsedProgress >= 1 {
-            return "计时已结束"
-        }
-
-        switch appState.timerOption {
-        case .autoStop:
-            return "自动停止已开启"
-        case .forever:
-            return "未设置停止时间"
-        case .tenMinutes, .thirtyMinutes, .oneHour, .demoAccelerated:
-            guard let total = appState.timerOption.countdownSeconds else {
-                return "计时已开启"
-            }
-            let remaining = max(0, Int(ceil(total * (1 - appState.timerElapsedProgress))))
-            let minutes = remaining / 60
-            let seconds = remaining % 60
-            return String(format: "剩余 %02d:%02d", minutes, seconds)
-        }
-    }
 }
 
 private struct PlaybackProgressSlider: View {

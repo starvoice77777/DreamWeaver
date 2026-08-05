@@ -51,15 +51,6 @@ struct SeedCreationFlow: View {
         appState.seedPipeline as? RemoteSeedPipelineService
     }
 
-    private let tips = [
-        "选择安静的环境",
-        "与手机保持自然距离",
-        "使用平稳、清晰的语速",
-        "建议录制1至3分钟"
-    ]
-
-    private let sampleScript = "夜已经安静下来了。把今天的脚步放慢一点，让呼吸回到很轻的地方。我在这里，陪你一会儿。"
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -106,7 +97,7 @@ struct SeedCreationFlow: View {
             .alert("需要登录", isPresented: $showLoginHint) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text("远程创建声音种子需要先登录（开发登录或 Apple）。可在「我的」完成登录。")
+                Text("请先登录。")
             }
         }
         .interactiveDismissDisabled(step >= 2 && step <= 5)
@@ -176,7 +167,7 @@ struct SeedCreationFlow: View {
         switch step {
         case 0: return "声音种子"
         case 1: return "录制准备"
-        case 2: return usedLocalPick ? "本地音频" : "模拟录制"
+        case 2: return usedLocalPick ? "本地音频" : "录制"
         case 3: return "质量检测"
         case 4: return "授权确认"
         case 5: return "正在准备"
@@ -192,9 +183,6 @@ struct SeedCreationFlow: View {
             Text("留下一颗声音种子")
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite)
-            Text("用一段清晰的录音，为熟悉的声音留下一份温柔的陪伴。")
-                .font(.system(size: 16))
-                .foregroundStyle(DreamTheme.secondaryText)
             Spacer().allowsHitTesting(false)
             primaryButton("开始录制") {
                 guard ensureRemoteReady() else { return }
@@ -205,13 +193,6 @@ struct SeedCreationFlow: View {
                 guard ensureRemoteReady() else { return }
                 showFileImporter = true
             }
-            if appState.contentBackendMode == .remote {
-                Text(appState.isRemoteAuthenticated
-                     ? "已登录：本地音频会作为种子素材上传；麦克风录制仍为演示计时。"
-                     : "远程模式需先登录后再创建种子。")
-                    .font(.system(size: 12))
-                    .foregroundStyle(DreamTheme.tertiaryText)
-            }
         }
     }
 
@@ -220,27 +201,6 @@ struct SeedCreationFlow: View {
             Text("录音建议")
                 .font(.system(size: 24, weight: .light))
                 .foregroundStyle(DreamTheme.moonWhite)
-
-            ForEach(tips, id: \.self) { tip in
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checkmark.circle")
-                        .foregroundStyle(DreamTheme.warmApricot)
-                    Text(tip)
-                        .foregroundStyle(DreamTheme.secondaryText)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("示例朗读")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(DreamTheme.mistBlue)
-                Text(sampleScript)
-                    .font(.system(size: 15))
-                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
-                    .padding(16)
-                    .dreamGlass(cornerRadius: 16)
-            }
-            .padding(.top, 8)
 
             Spacer().allowsHitTesting(false)
             primaryButton("开始") {
@@ -262,13 +222,9 @@ struct SeedCreationFlow: View {
                 .frame(height: 72)
                 .padding(.horizontal, 8)
 
-            Text(isPaused ? "已暂停" : (isRecording ? "正在录制（演示计时）" : "准备就绪"))
+            Text(isPaused ? "已暂停" : (isRecording ? "正在录制" : "准备就绪"))
                 .font(.system(size: 14))
                 .foregroundStyle(DreamTheme.secondaryText)
-            Text("真实麦克风录音待后续接入；当前远程处理在未选本地文件时使用包内占位音。")
-                .font(.system(size: 12))
-                .foregroundStyle(DreamTheme.tertiaryText)
-                .multilineTextAlignment(.center)
 
             Spacer().allowsHitTesting(false)
 

@@ -11,12 +11,6 @@ struct CreateScenePickerView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    Text("选择一个已有场景作为底稿，编辑后另存为个人场景。")
-                        .font(DreamTypography.callout)
-                        .foregroundStyle(DreamTheme.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 4)
-
                     ForEach(appState.scenes) { scene in
                         Button {
                             onSelect(scene)
