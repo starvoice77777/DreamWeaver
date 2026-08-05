@@ -27,6 +27,14 @@ struct SceneBackdropHost: View {
                 )
             case .mistTide:
                 MistTideBackdrop(intensity: intensity)
+            case .valleyStream:
+                ValleyStreamBackdrop(intensity: intensity)
+            case .snowStudy:
+                SnowStudyBackdrop(intensity: intensity)
+            case .cloudBreath:
+                CloudBreathBackdrop(intensity: intensity)
+            case .hairCare:
+                HairCareBackdrop(intensity: intensity)
             case .fireflies:
                 FirefliesBackdrop(intensity: intensity)
             case .starRiver:

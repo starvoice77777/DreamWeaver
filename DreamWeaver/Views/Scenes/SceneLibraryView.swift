@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SceneLibraryView: View {
     @EnvironmentObject private var appState: AppState
+    var onSceneActivated: ((DreamScene) -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil
     /// `nil` = 全部场景（默认）；否则按分类筛选。
     @State private var selectedCategory: SceneCategory?
     @State private var searchText = ""
@@ -35,17 +37,25 @@ struct SceneLibraryView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     SectionHeader(title: "全部")
+                    if let onDismiss {
+                        Button(action: onDismiss) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(DreamTheme.moonWhite.opacity(0.78))
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.white.opacity(0.06)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("关闭场景选择")
+                    }
                     Button {
                         withAnimation { showSearch.toggle() }
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(DreamTheme.moonWhite)
+                            .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
                             .frame(width: 44, height: 44)
-                            .dreamSpatialLiquidGlassCircle(
-                                accent: DreamTheme.mistBlue,
-                                intensity: showSearch ? 0.95 : 0.78
-                            )
+                            .background(Circle().fill(Color.white.opacity(showSearch ? 0.12 : 0.06)))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("搜索")
@@ -82,16 +92,16 @@ struct SceneLibraryView: View {
                                 CapsuleChip(
                                     title: "全部",
                                     selected: selectedCategory == nil,
-                                    usesLiquidGlass: true,
+                                    usesLiquidGlass: false,
                                     fixedWidth: tagWidth
                                 ) {
                                     selectedCategory = nil
                                 }
-                                ForEach(SceneCategory.allCases) { category in
+                                ForEach(SceneCategory.allCases.filter { $0 != .frequent }) { category in
                                     CapsuleChip(
                                         title: category.rawValue,
                                         selected: selectedCategory == category,
-                                        usesLiquidGlass: true,
+                                        usesLiquidGlass: false,
                                         fixedWidth: tagWidth
                                     ) {
                                         selectedCategory = category
@@ -111,8 +121,15 @@ struct SceneLibraryView: View {
 
                 SpiralSceneCarousel(
                     scenes: filtered,
+                    onToggleFavorite: { scene in
+                        appState.toggleFavorite(sceneId: scene.id)
+                    },
                     onActivate: { scene in
-                        appState.enterDream(sceneId: scene.id)
+                        if let onSceneActivated {
+                            onSceneActivated(scene)
+                        } else {
+                            appState.enterDream(sceneId: scene.id)
+                        }
                     }
                 )
                 .padding(.bottom, 88)

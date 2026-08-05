@@ -10,6 +10,7 @@ struct SpiralSceneCarousel: View {
     @EnvironmentObject private var appState: AppState
 
     let scenes: [DreamScene]
+    var onToggleFavorite: (DreamScene) -> Void = { _ in }
     var onActivate: (DreamScene) -> Void
 
     @State private var renderedRotation: CGFloat = 0
@@ -149,6 +150,9 @@ struct SpiralSceneCarousel: View {
             showsArt: showsArt,
             showsMotif: showsMotif,
             showsDetails: showsDetails,
+            onToggleFavorite: {
+                onToggleFavorite(scene)
+            },
             onTap: {
                 if isFocused {
                     onActivate(scene)
@@ -306,6 +310,7 @@ private struct SpiralSceneCard: View {
     let showsArt: Bool
     let showsMotif: Bool
     let showsDetails: Bool
+    var onToggleFavorite: () -> Void
     var onTap: () -> Void
 
     var body: some View {
@@ -351,16 +356,34 @@ private struct SpiralSceneCard: View {
                     Spacer()
 
                     Text(scene.name)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(DreamTypography.cardTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
                         .lineLimit(1)
 
                     Text(scene.subtitle)
-                        .font(.system(size: 10))
+                        .font(DreamTypography.caption)
                         .foregroundStyle(DreamTheme.moonWhite.opacity(0.72))
                         .lineLimit(1)
                 }
                 .padding(12)
+            }
+
+            if showsDetails {
+                Button(action: onToggleFavorite) {
+                    Image(systemName: scene.isFavorite ? "heart.fill" : "heart")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(
+                            scene.isFavorite
+                                ? DreamTheme.warmApricot
+                                : DreamTheme.moonWhite.opacity(0.82)
+                        )
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.black.opacity(0.24)))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(10)
+                .accessibilityLabel(scene.isFavorite ? "取消收藏" : "收藏场景")
             }
 
             Color.black
@@ -419,6 +442,7 @@ private struct SpiralSceneCard: View {
 #Preview {
     SpiralSceneCarousel(
         scenes: MockDataService.makeScenes(),
+        onToggleFavorite: { _ in },
         onActivate: { _ in }
     )
     .background(Color.black)

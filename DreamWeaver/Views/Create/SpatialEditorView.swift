@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct SpatialEditorView: View {
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: SpatialTimelineViewModel
+    @State private var isSaving = false
 
     init(seed: SpatialEditorSeed? = nil) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
@@ -26,6 +28,30 @@ struct SpatialEditorView: View {
                 .padding(.top, 6)
                 .padding(.bottom, 20)
             }
+
+            VStack {
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(DreamTheme.warmApricot)
+                            .frame(width: 38, height: 38)
+                            .background(Circle().fill(DreamTheme.midnight.opacity(0.82)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("返回创建")
+
+                    Spacer()
+                }
+
+                Spacer()
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 16)
+            .padding(.top, 6)
+            .zIndex(2)
 
             if let toast = viewModel.toastMessage {
                 Text(toast)
@@ -76,29 +102,17 @@ struct SpatialEditorView: View {
 
     private var editorHeader: some View {
         HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DreamTheme.warmApricot)
-                    .frame(width: 38, height: 38)
-                    .dreamSpatialLiquidGlassCircle(
-                        accent: DreamTheme.warmApricot,
-                        intensity: 0.62
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("返回创建")
+            Color.clear
+                .frame(width: 38, height: 38)
 
             Spacer()
 
             VStack(spacing: 1) {
                 Text("DreamWeaver")
-                    .font(.system(size: 23, weight: .light, design: .serif))
+                    .font(DreamTypography.brand)
                     .foregroundStyle(DreamTheme.warmApricot)
                 Text("编织你的梦境")
-                    .font(.system(size: 9))
+                    .font(DreamTypography.micro)
                     .tracking(4)
                     .foregroundStyle(DreamTheme.secondaryText)
             }
@@ -106,7 +120,7 @@ struct SpatialEditorView: View {
             Spacer()
 
             Button {
-                viewModel.saveDemoDraft()
+                saveScene()
             } label: {
                 Image(systemName: "checkmark")
                     .font(.system(size: 16, weight: .semibold))
@@ -118,7 +132,37 @@ struct SpatialEditorView: View {
                     )
             }
             .buttonStyle(.plain)
+            .disabled(isSaving)
             .accessibilityLabel("确认保存场景")
+        }
+    }
+
+    private func saveScene() {
+        viewModel.pause()
+        guard !viewModel.trimmedSceneName.isEmpty else {
+            viewModel.showToast("请先填写场景名称")
+            return
+        }
+
+        isSaving = true
+        let baseScene = viewModel.sourceSceneID.flatMap { sourceID in
+            appState.scenes.first { $0.id == sourceID }
+        }
+        do {
+            try appState.saveCreatedScene(
+                id: viewModel.createdSceneID,
+                name: viewModel.displaySceneName,
+                sourceSceneId: viewModel.sourceSceneID,
+                soundSources: viewModel.makeSoundSources(baseScene: baseScene)
+            )
+            viewModel.showToast("已保存到已有场景")
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 650_000_000)
+                dismiss()
+            }
+        } catch {
+            isSaving = false
+            viewModel.showToast("保存失败：\(error.localizedDescription)")
         }
     }
 
@@ -152,21 +196,21 @@ struct SpatialEditorView: View {
                     prompt: Text("填写场景名称")
                         .foregroundStyle(DreamTheme.tertiaryText)
                 )
-                .font(.system(size: 17, weight: .medium))
+                .font(DreamTypography.cardTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
 
                 Text(sceneSummaryCaption)
-                .font(.system(size: 11))
+                .font(DreamTypography.caption)
                 .foregroundStyle(DreamTheme.secondaryText)
             }
 
             Spacer(minLength: 8)
 
             Text(SpatialTimeText.string(viewModel.duration))
-                .font(.system(size: 11, design: .monospaced))
+                .font(DreamTypography.timecode)
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(12)
@@ -215,11 +259,7 @@ struct SpatialEditorView: View {
                         .foregroundStyle(DreamTheme.secondaryText)
                         .padding(.horizontal, 11)
                         .frame(height: 29)
-                        .dreamRefractiveLiquidGlassCapsule(
-                            accent: DreamTheme.warmApricot,
-                            intensity: 0.50,
-                            interactive: true
-                        )
+                        .background(Capsule().fill(Color.white.opacity(0.05)))
                 }
                 .buttonStyle(.plain)
             }
@@ -629,4 +669,5 @@ struct PlaybackControlView: View {
 
 #Preview {
     SpatialEditorView()
+        .environmentObject(AppState())
 }

@@ -12,7 +12,7 @@ struct CreateScenePickerView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     Text("选择一个已有场景作为底稿，编辑后另存为个人场景。")
-                        .font(.system(size: 13))
+                        .font(DreamTypography.callout)
                         .foregroundStyle(DreamTheme.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, 4)
@@ -68,17 +68,17 @@ struct CreateScenePickerView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(scene.name)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(DreamTypography.cardTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
                     .lineLimit(1)
 
                 Text(scene.subtitle)
-                    .font(.system(size: 12))
+                    .font(DreamTypography.caption)
                     .foregroundStyle(DreamTheme.secondaryText)
                     .lineLimit(1)
 
                 Text("\(scene.soundSources.count) 个声源 · \(scene.category.rawValue)")
-                    .font(.system(size: 11))
+                    .font(DreamTypography.caption)
                     .foregroundStyle(DreamTheme.tertiaryText)
             }
 

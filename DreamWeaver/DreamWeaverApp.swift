@@ -8,6 +8,7 @@ struct DreamWeaverApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .environment(\.font, DreamTypography.body)
         }
     }
 }

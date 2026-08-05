@@ -4,6 +4,7 @@ struct NowView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @State private var showTimerPicker = false
+    @State private var showSceneLibrary = false
     @State private var swipeOffset: CGFloat = 0
     @State private var isSwipeSwitching = false
     @State private var stageWidth: CGFloat = 390
@@ -67,6 +68,32 @@ struct NowView: View {
                     .zIndex(1)
 
                 VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            appState.bumpInteraction()
+                            showTimerPicker = false
+                            appState.closeMixPalette()
+                            showSceneLibrary = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.black.opacity(0.16)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("浏览全部场景")
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    Spacer()
+                }
+                .opacity(appState.controlsVisible ? 1 : 0)
+                .allowsHitTesting(appState.controlsVisible)
+                .zIndex(2)
+
+                VStack {
                     SceneTitleOverlay(
                         name: appState.currentScene.name,
                         subtitle: appState.currentScene.subtitle,
@@ -88,6 +115,18 @@ struct NowView: View {
         }
         .simultaneousGesture(sceneSwipeGesture)
         .animation(DreamTheme.chromeVisibilityAnimation, value: appState.controlsVisible)
+        .fullScreenCover(isPresented: $showSceneLibrary) {
+            SceneLibraryView(
+                onSceneActivated: { scene in
+                    showSceneLibrary = false
+                    appState.enterDream(sceneId: scene.id)
+                },
+                onDismiss: {
+                    showSceneLibrary = false
+                }
+            )
+            .environmentObject(appState)
+        }
         .onAppear {
             refillSwipeNeighbors()
         }
@@ -144,6 +183,7 @@ struct NowView: View {
     private func canBeginSceneSwipe(_ value: DragGesture.Value) -> Bool {
         guard !isSwipeSwitching else { return false }
         guard !appState.isTransitioningScene else { return false }
+        guard !appState.userIsInteracting else { return false }
         guard !showTimerPicker, !appState.showMixPalette else { return false }
         return abs(value.translation.width) >= abs(value.translation.height) * 0.85
     }
@@ -250,10 +290,10 @@ struct SceneTitleOverlay: View {
     var body: some View {
         VStack(spacing: 10) {
             Text(name)
-                .font(.system(size: 34, weight: .ultraLight))
+                .font(DreamTypography.dreamDisplay)
                 .foregroundStyle(DreamTheme.moonWhite)
             Text(subtitle)
-                .font(.system(size: 15, weight: .regular))
+                .font(DreamTypography.body)
                 .foregroundStyle(DreamTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
@@ -290,19 +330,22 @@ struct NowControlsOverlay: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(appState.currentScene.name)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(DreamTypography.cardTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
                     HStack(spacing: 8) {
-                        Text(appState.timerOption.rawValue)
-                        Text("·")
-                        Text(appState.isPlaying ? "播放中" : "已暂停")
+                        Text(timerStatusText)
                     }
-                    .font(.system(size: 12))
+                    .font(DreamTypography.timecode)
                     .foregroundStyle(DreamTheme.secondaryText)
 
-                    ProgressView(value: appState.playbackProgress)
-                        .tint(DreamTheme.warmApricot.opacity(0.85))
-                        .accessibilityLabel("模拟播放进度")
+                    PlaybackProgressSlider(value: $appState.playbackProgress) { isEditing in
+                        if isEditing {
+                            appState.userIsInteracting = true
+                            appState.revealControls()
+                        } else {
+                            appState.bumpInteraction()
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -331,6 +374,104 @@ struct NowControlsOverlay: View {
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 24)
+        }
+    }
+
+    private var timerStatusText: String {
+        if appState.timerElapsedProgress >= 1 {
+            return "计时已结束"
+        }
+
+        switch appState.timerOption {
+        case .autoStop:
+            return "自动停止已开启"
+        case .forever:
+            return "未设置停止时间"
+        case .tenMinutes, .thirtyMinutes, .oneHour, .demoAccelerated:
+            guard let total = appState.timerOption.countdownSeconds else {
+                return "计时已开启"
+            }
+            let remaining = max(0, Int(ceil(total * (1 - appState.timerElapsedProgress))))
+            let minutes = remaining / 60
+            let seconds = remaining % 60
+            return String(format: "剩余 %02d:%02d", minutes, seconds)
+        }
+    }
+}
+
+private struct PlaybackProgressSlider: View {
+    @Binding var value: Double
+    var onEditingChanged: (Bool) -> Void
+
+    @State private var isDragging = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let clampedValue = min(max(value, 0), 1)
+            let fillWidth = width * clampedValue
+            let trackHeight: CGFloat = isDragging ? 11 : 8
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(isDragging ? 0.18 : 0.11))
+                    .overlay {
+                        Capsule()
+                            .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    }
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.mistBlue.opacity(0.82),
+                                DreamTheme.warmApricot.opacity(0.94),
+                                DreamTheme.moonWhite.opacity(0.96)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(fillWidth, clampedValue > 0 ? trackHeight : 0))
+                    .shadow(
+                        color: DreamTheme.warmApricot.opacity(isDragging ? 0.22 : 0),
+                        radius: isDragging ? 5 : 0
+                    )
+            }
+            .frame(height: trackHeight)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .animation(.spring(response: 0.22, dampingFraction: 0.82), value: isDragging)
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        if !isDragging {
+                            isDragging = true
+                            onEditingChanged(true)
+                        }
+                        value = min(max(gesture.location.x / width, 0), 1)
+                    }
+                    .onEnded { gesture in
+                        value = min(max(gesture.location.x / width, 0), 1)
+                        isDragging = false
+                        onEditingChanged(false)
+                    }
+            )
+        }
+        .frame(height: 40)
+        .accessibilityElement()
+        .accessibilityLabel("场景进度")
+        .accessibilityValue("\(Int(min(max(value, 0), 1) * 100))%")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                value = min(value + 0.05, 1)
+            case .decrement:
+                value = max(value - 0.05, 0)
+            @unknown default:
+                break
+            }
+            onEditingChanged(false)
         }
     }
 }

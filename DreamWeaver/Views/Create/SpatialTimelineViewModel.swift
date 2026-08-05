@@ -23,11 +23,13 @@ final class SpatialTimelineViewModel: ObservableObject {
     @Published var toastMessage: String?
     @Published private(set) var sourceSceneSubtitle: String?
 
+    let createdSceneID = UUID()
     private let seedSourceSceneID: UUID?
     private var playbackTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
 
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
+    var sourceSceneID: UUID? { seedSourceSceneID }
 
     init(seed providedSeed: SpatialEditorSeed? = nil) {
         let seed = providedSeed ?? .blank
@@ -405,13 +407,40 @@ final class SpatialTimelineViewModel: ObservableObject {
         showToast("已清空场景内容")
     }
 
-    func saveDemoDraft() {
-        pause()
-        if trimmedSceneName.isEmpty {
-            showToast("请先填写场景名称")
-            return
+    func makeSoundSources(baseScene: DreamScene?) -> [SoundSource] {
+        soundSources.map { editorSource in
+            let baseSource = baseScene?.soundSources.first(where: {
+                $0.name == editorSource.name || $0.symbolName == editorSource.iconName
+            })
+            let point = SpatialTrajectory.position(
+                at: 0,
+                keyPoints: editorSource.keyPoints,
+                defaultPosition: editorSource.defaultPosition
+            )
+            let radius = min(max(Double(hypot(point.x, point.y)), 0), 1)
+            let angle = atan2(Double(-point.y), Double(point.x))
+            let layer: AudioLayerKind = {
+                if editorSource.isVoice { return .voice }
+                if let layer = baseSource?.layer { return layer }
+                switch editorSource.materialID {
+                case "wind", "bamboo": return .ambience
+                case "towel": return .trigger
+                default: return .environment
+                }
+            }()
+
+            return SoundSource(
+                id: editorSource.id,
+                name: editorSource.name,
+                symbolName: editorSource.iconName,
+                isEnabled: true,
+                volume: max(baseSource?.volume ?? 0.55, 0.1),
+                position: SpatialPosition(angle: angle, radius: radius),
+                assetId: baseSource?.assetId,
+                resourceName: baseSource?.resourceName,
+                layer: layer
+            )
         }
-        showToast("「\(displaySceneName)」草稿已保存")
     }
 
     var availableMaterials: [SpatialEditorMaterial] {

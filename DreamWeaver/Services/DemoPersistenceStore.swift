@@ -23,6 +23,7 @@ final class DemoPersistenceStore {
         static let usage = "dw.demo.v1.usage"
         static let personalMix = "dw.demo.v1.personalMix"
         static let favorites = "dw.demo.v1.favoriteSceneIds"
+        static let createdScenes = "dw.demo.v1.createdScenes"
     }
 
     struct ScenesOverlay: Codable {
@@ -78,8 +79,23 @@ final class DemoPersistenceStore {
         load(Key.personalMix)
     }
 
+    func saveCreatedScenes(_ scenes: [DreamScene]) throws {
+        try save(scenes, key: Key.createdScenes)
+    }
+
+    func loadCreatedScenes() -> [DreamScene] {
+        load(Key.createdScenes) ?? []
+    }
+
     func resetAllDemoKeys() {
-        [Key.scenesOverlay, Key.assets, Key.usage, Key.personalMix, Key.favorites].forEach {
+        [
+            Key.scenesOverlay,
+            Key.assets,
+            Key.usage,
+            Key.personalMix,
+            Key.favorites,
+            Key.createdScenes
+        ].forEach {
             defaults.removeObject(forKey: $0)
         }
         schemaVersion = DemoIDs.schemaVersion

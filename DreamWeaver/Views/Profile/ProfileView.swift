@@ -33,20 +33,20 @@ struct ProfileView: View {
                 .frame(width: 68, height: 68)
                 .overlay {
                     Text(String(appState.nickname.prefix(1)))
-                        .font(.system(size: 26, weight: .light))
+                        .font(DreamTypography.pageTitle)
                         .foregroundStyle(DreamTheme.moonWhite)
                 }
                 .accessibilityLabel("头像")
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(appState.nickname)
-                    .font(.system(size: 24, weight: .light))
+                    .font(DreamTypography.pageTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
                 Text(headerLoginCaption)
-                    .font(.system(size: 12))
+                    .font(DreamTypography.caption)
                     .foregroundStyle(DreamTheme.secondaryText)
                 Text(appState.isMember ? "织梦会员" : "免费体验")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(DreamTypography.caption.weight(.medium))
                     .foregroundStyle(DreamTheme.warmApricot)
             }
             Spacer()
@@ -64,7 +64,7 @@ struct ProfileView: View {
     private var companionshipSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("陪伴记录")
-                .font(.system(size: 18, weight: .medium))
+                .font(DreamTypography.sectionTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -75,7 +75,7 @@ struct ProfileView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("睡眠趋势")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DreamTypography.cardTitle)
                     .foregroundStyle(DreamTheme.moonWhite)
 
                 GeometryReader { geo in
@@ -108,7 +108,7 @@ struct ProfileView: View {
     private var settingsEntry: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("设置")
-                .font(.system(size: 18, weight: .medium))
+                .font(DreamTypography.sectionTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
 
             NavigationLink {
@@ -123,10 +123,10 @@ struct ProfileView: View {
     private func statCard(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 12))
+                .font(DreamTypography.caption)
                 .foregroundStyle(DreamTheme.secondaryText)
             Text(value)
-                .font(.system(size: 16, weight: .medium))
+                .font(DreamTypography.cardTitle)
                 .foregroundStyle(DreamTheme.moonWhite)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)

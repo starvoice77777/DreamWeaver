@@ -1,5 +1,33 @@
 import SwiftUI
 
+/// Semantic typography for DreamWeaver. Prefer these roles over page-local sizes.
+enum DreamTypography {
+    private static let sourceHanSansCN = "Source Han Sans CN VF"
+
+    private static func sourceHan(
+        size: CGFloat,
+        relativeTo textStyle: Font.TextStyle,
+        weight: Font.Weight
+    ) -> Font {
+        .custom(sourceHanSansCN, size: size, relativeTo: textStyle)
+            .weight(weight)
+    }
+
+    /// Immersive scene title; intentionally fixed to preserve the cinematic composition.
+    static let dreamDisplay = Font.custom(sourceHanSansCN, size: 34).weight(.light)
+    static let largeTitle = sourceHan(size: 28, relativeTo: .largeTitle, weight: .light)
+    static let pageTitle = sourceHan(size: 24, relativeTo: .title2, weight: .light)
+    static let sectionTitle = sourceHan(size: 18, relativeTo: .headline, weight: .medium)
+    static let cardTitle = sourceHan(size: 16, relativeTo: .body, weight: .medium)
+    static let body = sourceHan(size: 15, relativeTo: .body, weight: .regular)
+    static let callout = sourceHan(size: 14, relativeTo: .callout, weight: .medium)
+    static let caption = sourceHan(size: 12, relativeTo: .caption, weight: .regular)
+    static let micro = sourceHan(size: 10, relativeTo: .caption2, weight: .medium)
+    static let timecode = Font.system(.caption, design: .monospaced, weight: .medium)
+    /// Reserved for the short Latin brand wordmark only.
+    static let brand = Font.system(size: 23, weight: .light, design: .serif)
+}
+
 enum DreamTheme {
     static let midnight = Color(hex: 0x080B16)
     static let deepBlue = Color(hex: 0x11182A)
