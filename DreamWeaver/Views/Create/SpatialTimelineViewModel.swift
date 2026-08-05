@@ -67,8 +67,17 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func makeCompositionDocument() -> APIContentDTO.SceneComposition {
-        SceneCompositionMapper.composition(from: soundSources, duration: duration)
+        SceneCompositionMapper.composition(
+            from: soundSources,
+            duration: duration,
+            textCues: textCues
+        )
     }
+
+    /// Stable id used both for local drafts and published personal scenes.
+    var personalSceneID: UUID { draftID }
+
+    var sourceSceneID: UUID? { seedSourceSceneID }
 
     var trimmedSceneName: String {
         sceneName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -445,8 +454,11 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func makeSoundSources(baseScene: DreamScene?) -> [SoundSource] {
         soundSources.map { editorSource in
+            let mappedKey = SceneCompositionMapper.resourceKey(for: editorSource)
             let baseSource = baseScene?.soundSources.first(where: {
-                $0.name == editorSource.name || $0.symbolName == editorSource.iconName
+                $0.name == editorSource.name
+                    || $0.symbolName == editorSource.iconName
+                    || $0.resourceName == mappedKey
             })
             let point = SpatialTrajectory.position(
                 at: 0,
@@ -464,6 +476,10 @@ final class SpatialTimelineViewModel: ObservableObject {
                 default: return .environment
                 }
             }()
+            let resourceName: String? = {
+                if let existing = baseSource?.resourceName { return existing }
+                return mappedKey.hasPrefix("create_") ? nil : mappedKey
+            }()
 
             return SoundSource(
                 id: editorSource.id,
@@ -473,7 +489,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 volume: max(baseSource?.volume ?? 0.55, 0.1),
                 position: SpatialPosition(angle: angle, radius: radius),
                 assetId: baseSource?.assetId,
-                resourceName: baseSource?.resourceName,
+                resourceName: resourceName,
                 layer: layer
             )
         }

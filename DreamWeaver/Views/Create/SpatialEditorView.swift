@@ -5,6 +5,7 @@ struct SpatialEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: SpatialTimelineViewModel
     @State private var isSaving = false
+    @State private var showSaveChooser = false
 
     init(seed: SpatialEditorSeed? = nil) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
@@ -55,6 +56,17 @@ struct SpatialEditorView: View {
         }
         .onDisappear {
             viewModel.stopForDismissal()
+        }
+        .confirmationDialog("保存场景", isPresented: $showSaveChooser, titleVisibility: .visible) {
+            Button("保存为草稿") {
+                Task { await saveDraft() }
+            }
+            Button("保存为个人场景") {
+                Task { await saveAsPersonalScene() }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("草稿可在创建页继续修改；个人场景会出现在场景库中，可直接播放。")
         }
     }
 
@@ -115,7 +127,7 @@ struct SpatialEditorView: View {
             Spacer()
 
             Button {
-                Task { await saveDraft() }
+                showSaveChooser = true
             } label: {
                 Group {
                     if isSaving {
@@ -135,7 +147,8 @@ struct SpatialEditorView: View {
             }
             .buttonStyle(.plain)
             .disabled(isSaving)
-            .accessibilityLabel("确认保存场景")
+            .accessibilityLabel("保存场景")
+            .accessibilityHint("可选择保存为草稿或个人场景")
         }
     }
 
@@ -161,7 +174,7 @@ struct SpatialEditorView: View {
         let canSyncRemote = appState.contentBackendMode == .remote && appState.isRemoteAuthenticated
         if canSyncRemote {
             guard !viewModel.soundSources.isEmpty else {
-                viewModel.showToast("「\(draft.name)」已保存在本机；加入声音后可同步云端")
+                viewModel.showToast("「\(draft.name)」草稿已保存在本机；加入声音后可同步云端")
                 return
             }
             do {
@@ -176,12 +189,49 @@ struct SpatialEditorView: View {
                 draft.privateSceneId = detail.id
                 draft.updatedAt = Date()
                 try? CreateDraftStore.shared.upsert(draft)
-                viewModel.showToast("「\(draft.name)」草稿已保存，可在创建页继续编辑")
+                viewModel.showToast("「\(draft.name)」草稿已保存，可继续修改")
             } catch {
-                viewModel.showToast("本机已保存；云端同步失败：\(error.localizedDescription)")
+                viewModel.showToast("本机草稿已保存；云端同步失败：\(error.localizedDescription)")
             }
         } else {
-            viewModel.showToast("「\(draft.name)」草稿已保存，可在创建页继续编辑")
+            viewModel.showToast("「\(draft.name)」草稿已保存，可继续修改")
+        }
+    }
+
+    @MainActor
+    private func saveAsPersonalScene() async {
+        viewModel.pause()
+        if viewModel.trimmedSceneName.isEmpty {
+            viewModel.showToast("请先填写场景名称")
+            return
+        }
+        guard !viewModel.soundSources.isEmpty else {
+            viewModel.showToast("请先加入至少一个声音再保存为个人场景")
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        let baseScene = viewModel.sourceSceneID.flatMap { sourceID in
+            appState.scenes.first { $0.id == sourceID }
+        }
+        do {
+            let scene = try appState.saveCreatedScene(
+                id: viewModel.personalSceneID,
+                name: viewModel.displaySceneName,
+                sourceSceneId: viewModel.sourceSceneID,
+                soundSources: viewModel.makeSoundSources(baseScene: baseScene)
+            )
+            // Personal scene is published to the library; drop the draft entry.
+            CreateDraftStore.shared.delete(id: viewModel.draftID)
+            viewModel.showToast("已保存为个人场景「\(scene.name)」")
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 650_000_000)
+                dismiss()
+            }
+        } catch {
+            viewModel.showToast("保存个人场景失败：\(error.localizedDescription)")
         }
     }
 

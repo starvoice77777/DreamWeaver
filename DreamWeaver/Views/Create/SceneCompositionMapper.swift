@@ -5,7 +5,8 @@ import Foundation
 enum SceneCompositionMapper {
     static func composition(
         from sources: [SpatialEditorSource],
-        duration: Double
+        duration: Double,
+        textCues: [SpatialTextCue] = []
     ) -> APIContentDTO.SceneComposition {
         let tracks = sources.map { source -> APIContentDTO.CompositionTrack in
             let start = max(0, source.audioStartTime)
@@ -24,12 +25,27 @@ enum SceneCompositionMapper {
             )
         }
         let durationSeconds = tracks.map(\.end_seconds).max() ?? duration
+        let cues: [APIContentDTO.CompositionTextCue]? = textCues.isEmpty
+            ? nil
+            : textCues.map {
+                APIContentDTO.CompositionTextCue(id: $0.id, time: $0.time, text: $0.text)
+            }
         return APIContentDTO.SceneComposition(
             schema: "scene_composition_v1",
             version: 1,
             duration_seconds: durationSeconds,
-            tracks: tracks
+            tracks: tracks,
+            text_cues: cues
         )
+    }
+
+    static func textCues(
+        from composition: APIContentDTO.SceneComposition
+    ) -> [SpatialTextCue] {
+        (composition.text_cues ?? []).map {
+            SpatialTextCue(id: $0.id, time: $0.time, text: $0.text)
+        }
+        .sorted { $0.time < $1.time }
     }
 
     static func editorSources(

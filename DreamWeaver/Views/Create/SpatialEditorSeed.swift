@@ -80,12 +80,18 @@ struct SpatialEditorSeed: Equatable {
         } else {
             sources = []
         }
+        let cues: [SpatialTextCue]
+        if let composition {
+            cues = SceneCompositionMapper.textCues(from: composition)
+        } else {
+            cues = []
+        }
         return SpatialEditorSeed(
             draftID: nil,
             privateSceneID: detail.id,
             sceneName: detail.name,
             soundSources: sources,
-            textCues: [],
+            textCues: cues,
             sourceSceneID: detail.source_scene_id,
             sourceSceneSubtitle: detail.subtitle
         )

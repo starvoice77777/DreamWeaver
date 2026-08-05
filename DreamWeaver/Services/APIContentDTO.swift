@@ -252,6 +252,14 @@ enum APIContentDTO {
         let version: Int
         let duration_seconds: Double?
         let tracks: [CompositionTrack]
+        /// Optional text-cue track for Create editor; preserved by server validate_composition.
+        var text_cues: [CompositionTextCue]? = nil
+    }
+
+    struct CompositionTextCue: Codable, Equatable {
+        let id: UUID
+        let time: Double
+        let text: String
     }
 
     struct CompositionTrack: Codable {

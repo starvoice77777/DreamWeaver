@@ -381,12 +381,6 @@ struct CreateHubView: View {
         return f
     }()
 
-    private func openEditor(with seed: SpatialEditorSeed) {
-        editorSeed = seed
-        editorPresentationID = UUID()
-        isSpatialEditorPresented = true
-    }
-
     private func openRemoteSummary(_ summary: APIContentDTO.PrivateSceneSummary) async {
         isOpeningRemoteDraft = true
         defer { isOpeningRemoteDraft = false }
