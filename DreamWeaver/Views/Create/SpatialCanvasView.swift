@@ -185,6 +185,10 @@ private struct SoundSourceNodeView: View {
                 fieldRadius: fieldRadius
             )
         )
+        .background {
+            EdgeHapticAttachmentView(haptics: edgeHaptics)
+                .allowsHitTesting(false)
+        }
         .onTapGesture {
             viewModel.selectSource(source.id)
         }
@@ -198,14 +202,17 @@ private struct SoundSourceNodeView: View {
                     isDragging = true
                     viewModel.beginSourceDrag(source.id)
                 }
-                let normalized = SpatialCanvasTransform.normalizedPoint(
+                let rawPosition = SpatialCanvasTransform.normalizedPoint(
                     from: value.location,
                     side: side,
                     fieldRadius: fieldRadius,
                     clampToField: false
                 )
-                edgeHaptics.update(for: hypot(normalized.x, normalized.y))
-                viewModel.updateSourceDrag(source.id, position: normalized)
+                edgeHaptics.update(for: hypot(rawPosition.x, rawPosition.y))
+                viewModel.updateSourceDrag(
+                    source.id,
+                    position: SpatialCanvasTransform.rubberBandedPoint(rawPosition)
+                )
             }
             .onEnded { value in
                 let normalized = SpatialCanvasTransform.normalizedPoint(
@@ -241,9 +248,17 @@ private struct SoundSourceNodeView: View {
 private final class EdgeProximityHaptics {
     private let activationDistance: CGFloat = 0.78
     private let edgeDistance: CGFloat = 1.0
-    private let generator = UIImpactFeedbackGenerator(style: .soft)
+    private weak var attachedView: UIView?
+    private var generator: UIImpactFeedbackGenerator?
     private var lastImpactTime: TimeInterval = 0
     private var isInEdgeZone = false
+
+    func attach(to view: UIView) {
+        guard attachedView !== view else { return }
+        attachedView = view
+        generator = UIImpactFeedbackGenerator(style: .soft, view: view)
+        generator?.prepare()
+    }
 
     func update(for distance: CGFloat) {
         guard distance >= activationDistance else {
@@ -260,8 +275,8 @@ private final class EdgeProximityHaptics {
 
         guard !isInEdgeZone || now - lastImpactTime >= interval else { return }
 
-        generator.impactOccurred(intensity: 0.25 + (0.75 * proximity))
-        generator.prepare()
+        generator?.impactOccurred(intensity: 0.25 + (0.75 * proximity))
+        generator?.prepare()
         lastImpactTime = now
         isInEdgeZone = true
     }
@@ -269,6 +284,22 @@ private final class EdgeProximityHaptics {
     func stop() {
         isInEdgeZone = false
         lastImpactTime = 0
+    }
+}
+
+private struct EdgeHapticAttachmentView: UIViewRepresentable {
+    let haptics: EdgeProximityHaptics
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .clear
+        view.isUserInteractionEnabled = false
+        haptics.attach(to: view)
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        haptics.attach(to: view)
     }
 }
 
@@ -375,5 +406,18 @@ enum SpatialCanvasTransform {
             y: (canvasPoint.y - side / 2) / max(fieldRadius, 1)
         )
         return clampToField ? SpatialTrajectory.clampedToUnitCircle(point) : point
+    }
+
+    /// Compresses overshoot beyond the field so removing a source requires a
+    /// deliberate pull instead of a few accidental points past the rim.
+    static func rubberBandedPoint(_ point: CGPoint) -> CGPoint {
+        let radius = hypot(point.x, point.y)
+        guard radius > 1 else { return point }
+
+        let overshoot = radius - 1
+        let resistanceLength: CGFloat = 0.28
+        let resistedOvershoot = overshoot * resistanceLength / (overshoot + resistanceLength)
+        let scale = (1 + resistedOvershoot) / radius
+        return CGPoint(x: point.x * scale, y: point.y * scale)
     }
 }

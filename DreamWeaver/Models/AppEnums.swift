@@ -85,7 +85,7 @@ enum TimerOption: String, CaseIterable, Identifiable, Codable {
         case .tenMinutes, .thirtyMinutes, .oneHour:
             return TimeInterval((minutes ?? 0) * 60)
         case .autoStop:
-            // Soft stop placeholder — not claimed as complete in materials.
+            // Default sleep timer when the user doesn't choose a fixed chip.
             return TimeInterval(45 * 60)
         case .forever:
             return nil

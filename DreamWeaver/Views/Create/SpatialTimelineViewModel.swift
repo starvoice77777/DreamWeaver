@@ -32,6 +32,8 @@ final class SpatialTimelineViewModel: ObservableObject {
     private var toastTask: Task<Void, Never>?
     private let previewPlayback: LocalPlaybackService
     private var previewGraphSignature: String?
+    /// Raw normalized pull distance required before a dragged source is removed.
+    private let sourceRemovalRadius: CGFloat = 1.28
 
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
 
@@ -149,7 +151,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         draggingSourceID = nil
 
         let radius = hypot(position.x, position.y)
-        if radius > 1.02 {
+        if radius > sourceRemovalRadius {
             removeSource(sourceID)
             return
         }

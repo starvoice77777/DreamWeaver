@@ -52,7 +52,11 @@ private struct DreamWeaverDrawnMark: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let width = min(proxy.size.width * 0.72, 340)
+            let width = min(
+                proxy.size.width * 0.72,
+                proxy.size.height * 0.54,
+                340
+            )
             let lineWidth = width * 0.09
 
             ZStack {

@@ -77,6 +77,7 @@ final class AppState: ObservableObject {
     private var hideTitleTask: Task<Void, Never>?
     private var hideMixPaletteTask: Task<Void, Never>?
     private var sessionStartedAt: Date?
+    private var isSleepTimerArmed = false
     /// Maps official scene id → private scene id when home/save links them.
     private var privateSceneIdBySource: [UUID: UUID] = [:]
     /// Warm timelines for swipe targets so playback reload skips a network/disk round-trip.
@@ -453,6 +454,7 @@ final class AppState: ObservableObject {
         timerOption = .autoStop
         timerElapsedProgress = 0
         playback.cancelSleepTimer()
+        isSleepTimerArmed = false
         mixBoardSelection = .mine
         personalMixByScene[currentSceneId] = currentScene.soundSources
         lastServiceMessage = "已重置为标准演示状态"
@@ -478,6 +480,9 @@ final class AppState: ObservableObject {
         if autoPlayEnabled {
             playback.play()
             isPlaying = playback.isPlaying
+            if isPlaying, !isSleepTimerArmed {
+                armSelectedSleepTimer(resetProgress: true)
+            }
         }
         sessionStartedAt = Date()
     }
@@ -491,25 +496,37 @@ final class AppState: ObservableObject {
         } else {
             playback.play()
             isPlaying = playback.isPlaying
+            if isPlaying, !isSleepTimerArmed {
+                armSelectedSleepTimer(resetProgress: true)
+            }
         }
         bumpInteraction()
     }
 
     func setTimerOption(_ option: TimerOption) {
         timerOption = option
-        timerElapsedProgress = 0
-        playback.cancelSleepTimer()
+        armSelectedSleepTimer(resetProgress: true)
+    }
 
-        guard option.showsCountdownFill || option == .demoAccelerated else { return }
+    private func armSelectedSleepTimer(resetProgress: Bool) {
+        playback.cancelSleepTimer()
+        isSleepTimerArmed = false
+        if resetProgress {
+            timerElapsedProgress = 0
+        }
+
+        guard timerOption.countdownSeconds != nil else { return }
+        isSleepTimerArmed = true
 
         playback.startSleepTimer(
-            option: option,
+            option: timerOption,
             onTick: { [weak self] progress in
                 self?.timerElapsedProgress = progress
             },
             onFinished: { [weak self] in
                 guard let self else { return }
                 // PlaybackService already paused; keep UI flag in sync.
+                self.isSleepTimerArmed = false
                 self.isPlaying = false
                 self.timerElapsedProgress = 1
                 self.recordSessionEnd()
@@ -536,11 +553,15 @@ final class AppState: ObservableObject {
                 timeline = nil
             }
             do {
+                self.isSleepTimerArmed = false
                 try self.playback.load(scene: scene, sources: sources, timeline: timeline)
                 self.playbackProgress = self.playback.progress
                 if autoPlay {
                     self.playback.play()
                     self.isPlaying = self.playback.isPlaying
+                    if self.isPlaying {
+                        self.armSelectedSleepTimer(resetProgress: true)
+                    }
                 } else {
                     self.isPlaying = false
                 }
