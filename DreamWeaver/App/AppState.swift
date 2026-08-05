@@ -87,7 +87,7 @@ final class AppState: ObservableObject {
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
     private var isApplyingRemoteSettings = false
     private var remoteSettingsSyncTask: Task<Void, Never>?
-    private let debugRunId = "run-2-preset-position-fix"
+    private let debugRunId = "run-3-timeline-visibility"
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -610,19 +610,21 @@ final class AppState: ObservableObject {
         // Only suppress position while dragging the disk. `userIsInteracting` also covers
         // preset-chip taps (markMixInteraction ~500ms) and would drop t=0 set_position cues.
         let appliedPosition = !isMixDragging
-        mutateCurrentSources { sources in
-            if let i = sources.firstIndex(where: { $0.id == id }) {
-                if appliedPosition {
-                    sources[i].position = source.position
+        withAnimation(.easeInOut(duration: 0.45)) {
+            mutateCurrentSources { sources in
+                if let i = sources.firstIndex(where: { $0.id == id }) {
+                    if appliedPosition {
+                        sources[i].position = source.position
+                    }
+                    sources[i].isEnabled = source.isEnabled
+                    sources[i].volume = source.volume
+                    if sources[i].resourceName == nil {
+                        sources[i].resourceName = source.resourceName
+                    }
+                } else {
+                    // Official cue enabled a catalog track missing from the personal overlay.
+                    sources.append(source)
                 }
-                sources[i].isEnabled = source.isEnabled
-                sources[i].volume = source.volume
-                if sources[i].resourceName == nil {
-                    sources[i].resourceName = source.resourceName
-                }
-            } else {
-                // Official cue enabled a catalog track missing from the personal overlay.
-                sources.append(source)
             }
         }
         // #region agent log
@@ -1055,8 +1057,9 @@ final class AppState: ObservableObject {
         if mixBoardSelection.isMine {
             syncPersonalMixFromScene()
         }
-        // Keep official track UUIDs so timeline cues (e555…) still match.
-        let fresh = sourcesAlignedToOfficialTracks(preset.sources, forceEnabled: true)
+        // Overlay preset volumes/positions onto the full catalog so timeline cues can still
+        // enable/disable and move tracks. Forcing every preset chip on hid add/remove.
+        let fresh = sourcesOverlayingPresetOnCatalog(preset.sources)
         withAnimation(.easeInOut(duration: 0.35)) {
             mutateCurrentSources { $0 = fresh }
             mixBoardSelection = .preset(preset.id)
@@ -1072,12 +1075,13 @@ final class AppState: ObservableObject {
                 "presetSourceCount": String(preset.sources.count),
                 "rawPresetAngles": preset.sources.map { String(format: "%.2f", $0.position.angle) }.joined(separator: ","),
                 "mappedSourceCount": String(fresh.count),
+                "enabledCount": String(fresh.filter(\.isEnabled).count),
+                "enabledFlags": fresh.map { $0.isEnabled ? "1" : "0" }.joined(separator: ","),
                 "mappedAngles": fresh.map { String(format: "%.2f", $0.position.angle) }.joined(separator: ","),
                 "mappedRadii": fresh.map { String(format: "%.2f", $0.position.radius) }.joined(separator: ",")
             ]
         )
         // #endregion
-        // Reload first so t=0 timeline cues are not racing a interaction-suppressed window.
         reloadPlayback(autoPlay: true)
         markMixInteraction()
     }
@@ -1157,6 +1161,36 @@ final class AppState: ObservableObject {
                 assetId: source.assetId,
                 resourceName: source.resourceName,
                 layer: source.layer
+            )
+        }
+    }
+
+    /// Apply preset mix character onto the official catalog without collapsing the timeline track set.
+    private func sourcesOverlayingPresetOnCatalog(_ presetSources: [SoundSource]) -> [SoundSource] {
+        let catalog = catalogSourcesByScene[currentSceneId] ?? currentScene.soundSources
+        let aligned = sourcesAlignedToOfficialTracks(presetSources, forceEnabled: false)
+        var overlayByResource: [String: SoundSource] = [:]
+        for source in aligned {
+            if let key = source.resourceName {
+                overlayByResource[key] = source
+            }
+        }
+        return catalog.map { track in
+            guard let key = track.resourceName, let overlay = overlayByResource[key] else {
+                return track
+            }
+            let position = overlay.position == .default ? track.position : overlay.position
+            return SoundSource(
+                id: track.id,
+                name: overlay.name,
+                symbolName: overlay.symbolName,
+                // Keep catalog enable flags so timeline can reveal / hide chips over time.
+                isEnabled: track.isEnabled,
+                volume: overlay.volume,
+                position: position,
+                assetId: overlay.assetId ?? track.assetId,
+                resourceName: track.resourceName,
+                layer: overlay.layer
             )
         }
     }

@@ -32,7 +32,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
-    private let debugRunId = "run-2-preset-position-fix"
+    private let debugRunId = "run-3-timeline-visibility"
 
     /// Fired when timeline automation mutates a source (position / enable / volume).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
