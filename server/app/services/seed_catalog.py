@@ -844,6 +844,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.32,
                     "resourceName": "hair_wash_water_cycle",
                     "layer": "environment",
+                    "position": {"angle": 0.4, "radius": 0.55},
                 },
                 {
                     "name": "泡沫揉洗",
@@ -851,6 +852,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.3,
                     "resourceName": "hair_wash_foam_rub",
                     "layer": "ambience",
+                    "position": {"angle": math.pi * 0.9, "radius": 0.48},
                 },
                 {
                     "name": "底噪",
@@ -858,6 +860,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.18,
                     "resourceName": "ac_hum",
                     "layer": "ambience",
+                    "position": {"angle": math.pi * 1.2, "radius": 0.82},
                 },
                 {
                     "name": "轻声陪伴",
@@ -865,6 +868,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.48,
                     "resourceName": "voice_phrase_mom",
                     "layer": "voice",
+                    "position": {"angle": -math.pi * 0.25, "radius": 0.36},
                 },
             ],
         },
@@ -882,6 +886,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.22,
                     "resourceName": "rain_soft",
                     "layer": "environment",
+                    "position": {"angle": -0.35, "radius": 0.85},
                 },
                 {
                     "name": "檐下雨",
@@ -889,6 +894,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.4,
                     "resourceName": "rain_parasol",
                     "layer": "ambience",
+                    "position": {"angle": 0.7, "radius": 0.62},
                 },
                 {
                     "name": "竹叶雨",
@@ -896,6 +902,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.27,
                     "resourceName": "rain_bamboo_leaf",
                     "layer": "ambience",
+                    "position": {"angle": -1.2, "radius": 0.88},
                 },
                 {
                     "name": "阵风",
@@ -903,6 +910,7 @@ def official_preset_specs() -> list[dict]:
                     "volume": 0.20,
                     "resourceName": "wind_gust",
                     "layer": "trigger",
+                    "position": {"angle": -2.4, "radius": 0.95},
                 },
             ],
         },
@@ -1038,6 +1046,13 @@ async def ensure_official_catalog(
 
     for preset in official_preset_specs():
         if preset["id"] in existing_preset_ids:
+            existing = await session.get(MixPreset, preset["id"])
+            if existing is not None and existing.sources != preset["sources"]:
+                for key, value in preset.items():
+                    if key == "id":
+                        continue
+                    setattr(existing, key, value)
+                added = True
             continue
         session.add(MixPreset(**preset))
         added = True

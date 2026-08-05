@@ -87,7 +87,7 @@ final class AppState: ObservableObject {
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
     private var isApplyingRemoteSettings = false
     private var remoteSettingsSyncTask: Task<Void, Never>?
-    private let debugRunId = "run-1-preset-motion"
+    private let debugRunId = "run-2-preset-position-fix"
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -607,10 +607,12 @@ final class AppState: ObservableObject {
     /// Mirror timeline automation onto the mix disk. Does not persist personal mix or mark overrides.
     private func applyTimelineSourceChange(id: UUID, source: SoundSource) {
         let existedBefore = currentScene.soundSources.contains(where: { $0.id == id })
+        // Only suppress position while dragging the disk. `userIsInteracting` also covers
+        // preset-chip taps (markMixInteraction ~500ms) and would drop t=0 set_position cues.
+        let appliedPosition = !isMixDragging
         mutateCurrentSources { sources in
             if let i = sources.firstIndex(where: { $0.id == id }) {
-                // Keep the user's drag position while interacting; still sync enable/volume.
-                if !userIsInteracting, !isMixDragging {
+                if appliedPosition {
                     sources[i].position = source.position
                 }
                 sources[i].isEnabled = source.isEnabled
@@ -631,6 +633,7 @@ final class AppState: ObservableObject {
             data: [
                 "trackId": id.uuidString,
                 "existedBefore": String(existedBefore),
+                "appliedPosition": String(appliedPosition),
                 "enabled": String(source.isEnabled),
                 "volume": String(format: "%.3f", source.volume),
                 "angle": String(format: "%.3f", source.position.angle),
@@ -1067,12 +1070,14 @@ final class AppState: ObservableObject {
                 "presetId": preset.id.uuidString,
                 "presetTitle": preset.title,
                 "presetSourceCount": String(preset.sources.count),
+                "rawPresetAngles": preset.sources.map { String(format: "%.2f", $0.position.angle) }.joined(separator: ","),
                 "mappedSourceCount": String(fresh.count),
                 "mappedAngles": fresh.map { String(format: "%.2f", $0.position.angle) }.joined(separator: ","),
                 "mappedRadii": fresh.map { String(format: "%.2f", $0.position.radius) }.joined(separator: ",")
             ]
         )
         // #endregion
+        // Reload first so t=0 timeline cues are not racing a interaction-suppressed window.
         reloadPlayback(autoPlay: true)
         markMixInteraction()
     }
@@ -1124,20 +1129,31 @@ final class AppState: ObservableObject {
     ) -> [SoundSource] {
         let catalog = catalogSourcesByScene[currentSceneId] ?? currentScene.soundSources
         var idByResource: [String: UUID] = [:]
+        var catalogById: [UUID: SoundSource] = [:]
         for track in catalog {
+            catalogById[track.id] = track
             if let key = track.resourceName {
                 idByResource[key] = track.id
             }
         }
         return sources.map { source in
             let resolvedId = source.resourceName.flatMap { idByResource[$0] } ?? source.id
+            // Remote seed presets historically omit `position`, which decodes as `.default`
+            // (angle 0 / radius 0.55) and stacks every chip on the right of the disk.
+            let position: SpatialPosition
+            if source.position == .default, let catalogPos = catalogById[resolvedId]?.position,
+               catalogPos != .default {
+                position = catalogPos
+            } else {
+                position = source.position
+            }
             return SoundSource(
                 id: resolvedId,
                 name: source.name,
                 symbolName: source.symbolName,
                 isEnabled: forceEnabled ? true : source.isEnabled,
                 volume: source.volume,
-                position: source.position,
+                position: position,
                 assetId: source.assetId,
                 resourceName: source.resourceName,
                 layer: source.layer
