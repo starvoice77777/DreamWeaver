@@ -33,6 +33,10 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
 
+    /// Fired when timeline automation mutates a source (position / enable / volume).
+    /// AppState uses this to keep the mix disk in sync without marking manual overrides.
+    var onTimelineSourceChange: ((UUID, SoundSource) -> Void)?
+
     func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
@@ -400,19 +404,20 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             case "play_oneshot":
                 if let id = action.track_id, let source = currentSources[id] {
                     playOneShot(source: source)
+                    publishTimelineSource(id)
                 }
             case "set_volume":
                 if let id = action.track_id, let volume = action.volume {
-                    applyVolume(trackId: id, volume: volume, fadeMs: action.fade_ms)
+                    applyVolume(trackId: id, volume: volume, fadeMs: action.fade_ms, publish: true)
                 }
             case "fade_out":
                 if let id = action.track_id {
-                    applyVolume(trackId: id, volume: 0, fadeMs: action.fade_ms ?? 2000)
+                    applyVolume(trackId: id, volume: 0, fadeMs: action.fade_ms ?? 2000, publish: true)
                 }
             case "fade_in":
                 if let id = action.track_id {
                     let target = currentSources[id]?.volume ?? baseVolumes[id] ?? 0.7
-                    applyVolume(trackId: id, volume: target, fadeMs: action.fade_ms ?? 2000)
+                    applyVolume(trackId: id, volume: target, fadeMs: action.fade_ms ?? 2000, publish: true)
                 }
             case "set_position":
                 if let id = action.track_id,
@@ -422,6 +427,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     source.position = SpatialPosition(angle: angle, radius: radius)
                     currentSources[id] = source
                     updateSource(id: id, volume: source.volume, position: source.position, enabled: source.isEnabled)
+                    publishTimelineSource(id)
                 }
             case "enable":
                 if let id = action.track_id, var source = currentSources[id] {
@@ -432,12 +438,14 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     if playbackRequested, let node = players[id], !node.isPlaying, layers[id] != .voice {
                         node.play()
                     }
+                    publishTimelineSource(id)
                 }
             case "disable":
                 if let id = action.track_id, var source = currentSources[id] {
                     source.isEnabled = false
                     currentSources[id] = source
                     updateSource(id: id, volume: source.volume, position: source.position, enabled: false)
+                    publishTimelineSource(id)
                 }
             case "play":
                 if let id = action.track_id {
@@ -458,6 +466,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
     }
 
+    private func publishTimelineSource(_ id: UUID) {
+        guard let source = currentSources[id] else { return }
+        onTimelineSourceChange?(id, source)
+    }
+
     private func playPhraseAction(_ action: APIContentDTO.CueAction) {
         let trackId = action.track_id
             ?? action.phrase_id.flatMap { phraseById[$0]?.voice_binding.track_id }
@@ -475,18 +488,20 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         playOneShot(source: oneshot)
     }
 
-    private func applyVolume(trackId: UUID, volume: Double, fadeMs: Int?) {
+    private func applyVolume(trackId: UUID, volume: Double, fadeMs: Int?, publish: Bool = false) {
         guard players[trackId] != nil else { return }
         let clamped = min(max(volume, 0), 1)
         let duration = Double(fadeMs ?? 0) / 1000.0
+        // Publish target level immediately so the mix disk tracks automation intent.
+        if var source = currentSources[trackId] {
+            source.volume = clamped
+            currentSources[trackId] = source
+            if publish { publishTimelineSource(trackId) }
+        }
         if duration <= 0.05 {
             baseVolumes[trackId] = clamped
             let fade = fadeMultipliers[trackId] ?? 1
             players[trackId]?.volume = Float(clamped) * fade
-            if var source = currentSources[trackId] {
-                source.volume = clamped
-                currentSources[trackId] = source
-            }
             return
         }
         fadeTasks.append(Task { @MainActor [weak self] in
@@ -502,10 +517,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 if Task.isCancelled { return }
             }
             self.baseVolumes[trackId] = clamped
-            if var source = self.currentSources[trackId] {
-                source.volume = clamped
-                self.currentSources[trackId] = source
-            }
         })
     }
 

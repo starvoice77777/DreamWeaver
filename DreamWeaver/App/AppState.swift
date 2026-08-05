@@ -82,6 +82,8 @@ final class AppState: ObservableObject {
     /// Warm timelines for swipe targets so playback reload skips a network/disk round-trip.
     private var timelineCache: [UUID: APIContentDTO.SceneTimeline] = [:]
     private var swipePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    /// Official catalog tracks (stable DemoIDs) before personal-mix overlay — used to align presets.
+    private var catalogSourcesByScene: [UUID: [SoundSource]] = [:]
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
     private var isApplyingRemoteSettings = false
     private var remoteSettingsSyncTask: Task<Void, Never>?
@@ -187,6 +189,10 @@ final class AppState: ObservableObject {
             }
         }
 
+        playback.onTimelineSourceChange = { [weak self] id, source in
+            self?.applyTimelineSourceChange(id: id, source: source)
+        }
+
         Task { await self.bootstrap() }
     }
 
@@ -238,12 +244,20 @@ final class AppState: ObservableObject {
 
     func bootstrap() async {
         do {
+            // Drop cached timelines so catalog reseeds (v6→v8) take effect in-process.
+            timelineCache.removeAll()
+            swipePrefetchTasks.values.forEach { $0.cancel() }
+            swipePrefetchTasks.removeAll()
+
             if contentBackendMode == .remote {
                 _ = try await contentService.loadBootstrap()
             }
 
             let loadedScenes = try await contentService.fetchScenes()
             scenes = loadedScenes
+            catalogSourcesByScene = Dictionary(
+                uniqueKeysWithValues: loadedScenes.map { ($0.id, $0.soundSources) }
+            )
             // Library / analytics must not block home favorites + settings hydration.
             if let assets = try? await libraryService.fetchAssets() {
                 soundAssets = assets
@@ -270,12 +284,9 @@ final class AppState: ObservableObject {
                 currentSceneId = first.id
             }
 
-            // Drop stale personal mixes that no longer share resources with the server scene
-            // (common after catalog reseed: old hair_wash-era mixes hid official tracks/presets).
-            if contentBackendMode == .remote {
-                for scene in loadedScenes {
-                    reconcilePersonalMix(with: scene)
-                }
+            // Drop / repair stale personal mixes that no longer share official track IDs.
+            for scene in loadedScenes {
+                reconcilePersonalMix(with: scene)
             }
 
             if let personal = personalMixByScene[currentSceneId] {
@@ -424,6 +435,10 @@ final class AppState: ObservableObject {
     func resetDemoState() {
         store.resetAllDemoKeys()
         scenes = MockDataService.makeScenes()
+        catalogSourcesByScene = Dictionary(
+            uniqueKeysWithValues: scenes.map { ($0.id, $0.soundSources) }
+        )
+        timelineCache.removeAll()
         soundAssets = MockDataService.makeSoundAssets()
         usageRecord = MockDataService.makeUsageRecord()
         mixPresets = MockDataService.makeMixPresets()
@@ -554,6 +569,26 @@ final class AppState: ObservableObject {
     /// Frontend/backend: user mix edit exits timeline automation for this track only.
     private func noteManualMixOverride(trackId: UUID) {
         playback.markManualOverride(trackId: trackId)
+    }
+
+    /// Mirror timeline automation onto the mix disk. Does not persist personal mix or mark overrides.
+    private func applyTimelineSourceChange(id: UUID, source: SoundSource) {
+        mutateCurrentSources { sources in
+            if let i = sources.firstIndex(where: { $0.id == id }) {
+                // Keep the user's drag position while interacting; still sync enable/volume.
+                if !userIsInteracting, !isMixDragging {
+                    sources[i].position = source.position
+                }
+                sources[i].isEnabled = source.isEnabled
+                sources[i].volume = source.volume
+                if sources[i].resourceName == nil {
+                    sources[i].resourceName = source.resourceName
+                }
+            } else {
+                // Official cue enabled a catalog track missing from the personal overlay.
+                sources.append(source)
+            }
+        }
     }
 
     // MARK: - Controls visibility
@@ -939,10 +974,13 @@ final class AppState: ObservableObject {
 
     func restoreDefaultMix() {
         guard mixBoardSelection.isMine else { return }
-        if let original = MockDataService.makeScenes().first(where: { $0.name == currentScene.name }) {
-            mutateCurrentSources { $0 = duplicatedSources(original.soundSources) }
+        let catalog = catalogSourcesByScene[currentSceneId]
+            ?? MockDataService.makeScenes().first(where: { $0.id == currentSceneId })?.soundSources
+            ?? MockDataService.makeScenes().first(where: { $0.name == currentScene.name })?.soundSources
+        if let original = catalog {
+            mutateCurrentSources { $0 = sourcesAlignedToOfficialTracks(original, forceEnabled: false) }
             syncPersonalMixFromScene()
-            pushSpatialToPlayback()
+            reloadPlayback(autoPlay: isPlaying || autoPlayEnabled)
         }
         markMixInteraction()
     }
@@ -954,7 +992,7 @@ final class AppState: ObservableObject {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     mutateCurrentSources { $0 = personal }
                 }
-                pushSpatialToPlayback()
+                reloadPlayback(autoPlay: isPlaying || autoPlayEnabled)
             }
         }
         mixBoardSelection = .mine
@@ -965,12 +1003,13 @@ final class AppState: ObservableObject {
         if mixBoardSelection.isMine {
             syncPersonalMixFromScene()
         }
-        let fresh = duplicatedSources(preset.sources, forceEnabled: true)
+        // Keep official track UUIDs so timeline cues (e555…) still match.
+        let fresh = sourcesAlignedToOfficialTracks(preset.sources, forceEnabled: true)
         withAnimation(.easeInOut(duration: 0.35)) {
             mutateCurrentSources { $0 = fresh }
             mixBoardSelection = .preset(preset.id)
         }
-        pushSpatialToPlayback()
+        reloadPlayback(autoPlay: true)
         markMixInteraction()
     }
 
@@ -984,18 +1023,61 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Replaces a stored personal mix when it clearly belongs to an older catalog revision.
+    /// Replaces or repairs a stored personal mix when it drifts from the official catalog.
     private func reconcilePersonalMix(with scene: DreamScene) {
-        let remoteKeys = Set(scene.soundSources.compactMap(\.resourceName))
+        let official = scene.soundSources
+        let remoteKeys = Set(official.compactMap(\.resourceName))
         guard !remoteKeys.isEmpty else { return }
         guard let personal = personalMixByScene[scene.id] else {
-            personalMixByScene[scene.id] = scene.soundSources
+            personalMixByScene[scene.id] = official
             return
         }
         let personalKeys = Set(personal.compactMap(\.resourceName))
+        let officialResourceIds = Set(official.filter { $0.resourceName != nil }.map(\.id))
+        let personalIds = Set(personal.map(\.id))
+        let missingOfficialTracks = !officialResourceIds.isSubset(of: personalIds)
         if personalKeys.isEmpty || personalKeys.isDisjoint(with: remoteKeys) {
-            personalMixByScene[scene.id] = scene.soundSources
+            personalMixByScene[scene.id] = official
             persistPersonalMix()
+            return
+        }
+        if missingOfficialTracks {
+            var merged = personal
+            for track in official where track.resourceName != nil {
+                if merged.contains(where: { $0.id == track.id }) { continue }
+                merged.removeAll { $0.resourceName == track.resourceName }
+                merged.append(track)
+            }
+            personalMixByScene[scene.id] = merged
+            persistPersonalMix()
+        }
+    }
+
+    /// Map preset / restore sources onto catalog track IDs by `resourceName` (timeline-safe).
+    private func sourcesAlignedToOfficialTracks(
+        _ sources: [SoundSource],
+        forceEnabled: Bool
+    ) -> [SoundSource] {
+        let catalog = catalogSourcesByScene[currentSceneId] ?? currentScene.soundSources
+        var idByResource: [String: UUID] = [:]
+        for track in catalog {
+            if let key = track.resourceName {
+                idByResource[key] = track.id
+            }
+        }
+        return sources.map { source in
+            let resolvedId = source.resourceName.flatMap { idByResource[$0] } ?? source.id
+            return SoundSource(
+                id: resolvedId,
+                name: source.name,
+                symbolName: source.symbolName,
+                isEnabled: forceEnabled ? true : source.isEnabled,
+                volume: source.volume,
+                position: source.position,
+                assetId: source.assetId,
+                resourceName: source.resourceName,
+                layer: source.layer
+            )
         }
     }
 
@@ -1010,22 +1092,6 @@ final class AppState: ObservableObject {
             byScene: Dictionary(uniqueKeysWithValues: personalMixByScene.map { ($0.key.uuidString, $0.value) })
         )
         try? store.savePersonalMix(encoded)
-    }
-
-    private func duplicatedSources(_ sources: [SoundSource], forceEnabled: Bool = false) -> [SoundSource] {
-        sources.map {
-            SoundSource(
-                id: UUID(),
-                name: $0.name,
-                symbolName: $0.symbolName,
-                isEnabled: forceEnabled ? true : $0.isEnabled,
-                volume: $0.volume,
-                position: $0.position,
-                assetId: $0.assetId,
-                resourceName: $0.resourceName,
-                layer: $0.layer
-            )
-        }
     }
 
     func saveCurrentMix() {
