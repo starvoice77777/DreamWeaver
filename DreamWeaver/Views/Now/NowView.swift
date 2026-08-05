@@ -399,7 +399,7 @@ struct NowTimerPickerPopup: View {
     private let selectInsetY: CGFloat = 4
 
     private var podOptions: [TimerOption] {
-        TimerOption.userFacingCases
+        appState.showDemoControls ? TimerOption.demoCases : TimerOption.userFacingCases
     }
 
     private var selectedIndex: Int {

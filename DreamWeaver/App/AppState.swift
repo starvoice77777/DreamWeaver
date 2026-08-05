@@ -490,6 +490,7 @@ final class AppState: ObservableObject {
             },
             onFinished: { [weak self] in
                 guard let self else { return }
+                // PlaybackService already paused; keep UI flag in sync.
                 self.isPlaying = false
                 self.timerElapsedProgress = 1
                 self.recordSessionEnd()

@@ -267,17 +267,19 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         sleepStartedAt = Date()
 
         if option == .demoAccelerated {
+            // Layered fade for film takes; wall-clock `tickSleep` is the hard stop.
             performLayeredFade(phases: DemoFadeSchedule.accelerated) { [weak self] in
-                self?.pause()
-                onFinished()
+                self?.finishSleepTimer()
             }
         }
 
-        sleepTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.tickSleep()
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        sleepTimer = timer
     }
 
     func cancelSleepTimer() {
@@ -685,14 +687,26 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         let fraction = min(max(elapsed / sleepDuration, 0), 1)
         onSleepTick?(fraction)
         if fraction >= 1 {
-            sleepTimer?.invalidate()
-            sleepTimer = nil
-            if sleepDuration > 50 {
-                // Non-accelerated timers: simple pause at end.
-                pause()
-                onSleepFinished?()
-            }
+            finishSleepTimer()
         }
+    }
+
+    /// Single exit for countdown end (10/30/60 and demo accelerated). Idempotent.
+    private func finishSleepTimer() {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepStartedAt = nil
+        for task in fadeTasks { task.cancel() }
+        fadeTasks.removeAll()
+
+        let tick = onSleepTick
+        let finish = onSleepFinished
+        onSleepTick = nil
+        onSleepFinished = nil
+
+        pause()
+        tick?(1)
+        finish?()
     }
 
     static func url(forResource name: String) -> URL? {
