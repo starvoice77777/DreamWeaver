@@ -203,9 +203,12 @@ final class AppState: ObservableObject {
         let styleKey = currentScene.visualStyle.rawValue
         let sceneId = currentSceneId
         return mixPresets.filter { preset in
-            if let sid = preset.sceneId { return sid == sceneId }
-            if let hint = preset.styleHint, !hint.isEmpty { return hint == styleKey }
+            // Prefer positive matches; do not hard-fail when scene_id is set but style still matches
+            // (covers catalog reseed / id drift during联调).
+            if let sid = preset.sceneId, sid == sceneId { return true }
+            if let hint = preset.styleHint, !hint.isEmpty, hint == styleKey { return true }
             if !preset.subtitle.isEmpty, preset.subtitle == styleKey { return true }
+            if preset.sceneId != nil { return false }
             return legacyPresetMatchesCurrentScene(preset)
         }
     }
@@ -251,6 +254,7 @@ final class AppState: ObservableObject {
             do {
                 mixPresets = try await contentService.fetchMixPresets(sceneStyle: nil)
             } catch {
+                // Keep Mock presets so「洗头轻声 / 细雨慢听」chips remain available offline.
                 lastServiceMessage = "混音预设加载失败：\(error.localizedDescription)"
             }
 
@@ -264,6 +268,14 @@ final class AppState: ObservableObject {
                 currentSceneId = defaultScene.id
             } else if let first = loadedScenes.first {
                 currentSceneId = first.id
+            }
+
+            // Drop stale personal mixes that no longer share resources with the server scene
+            // (common after catalog reseed: old hair_wash-era mixes hid official tracks/presets).
+            if contentBackendMode == .remote {
+                for scene in loadedScenes {
+                    reconcilePersonalMix(with: scene)
+                }
             }
 
             if let personal = personalMixByScene[currentSceneId] {
@@ -968,6 +980,21 @@ final class AppState: ObservableObject {
     private func ensurePersonalMixSeededIfNeeded() {
         if personalMixByScene[currentSceneId] == nil {
             personalMixByScene[currentSceneId] = currentScene.soundSources
+        }
+    }
+
+    /// Replaces a stored personal mix when it clearly belongs to an older catalog revision.
+    private func reconcilePersonalMix(with scene: DreamScene) {
+        let remoteKeys = Set(scene.soundSources.compactMap(\.resourceName))
+        guard !remoteKeys.isEmpty else { return }
+        guard let personal = personalMixByScene[scene.id] else {
+            personalMixByScene[scene.id] = scene.soundSources
+            return
+        }
+        let personalKeys = Set(personal.compactMap(\.resourceName))
+        if personalKeys.isEmpty || personalKeys.isDisjoint(with: remoteKeys) {
+            personalMixByScene[scene.id] = scene.soundSources
+            persistPersonalMix()
         }
     }
 

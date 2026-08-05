@@ -43,7 +43,8 @@ class Settings(BaseSettings):
     allow_dev_apple_auth: bool | None = None
 
     # When true (and not production), lifespan upserts official catalog tracks once at startup.
-    force_reseed_catalog: bool = False
+    # Default true outside production so local DBs pick up seed_catalog changes after pull.
+    force_reseed_catalog: bool | None = None
     # When false, /ready skips Redis PING (useful for unit tests without Redis).
     ready_probe_redis: bool = True
 
@@ -52,6 +53,12 @@ class Settings(BaseSettings):
         if self.allow_dev_apple_auth is not None:
             return self.allow_dev_apple_auth
         return self.environment.lower() in {"development", "test", "local"}
+
+    @property
+    def force_reseed_catalog_enabled(self) -> bool:
+        if self.force_reseed_catalog is not None:
+            return self.force_reseed_catalog
+        return self.environment.lower() in {"development", "local"}
 
     @property
     def is_production(self) -> bool:

@@ -46,6 +46,13 @@ struct SpatialEditorView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onChange(of: viewModel.isPlaying) { _, playing in
+            // Avoid fighting the Now tab engine while Create preview is audible.
+            if playing, appState.isPlaying {
+                appState.playback.pause()
+                appState.isPlaying = false
+            }
+        }
         .onDisappear {
             viewModel.stopForDismissal()
         }

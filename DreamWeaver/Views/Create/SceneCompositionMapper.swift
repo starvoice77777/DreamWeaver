@@ -75,13 +75,44 @@ enum SceneCompositionMapper {
         case "wind": return "wind_realistic"
         case "bamboo": return "rain_bamboo_leaf"
         case "voice": return "voice_phrase_mom"
-        case "piano": return "piano_soft"
-        case "insect": return "insect_night"
+        // Bundle currently ships rain/wind/bamboo/stream/towel/voice/hair*; map others to closest loops.
+        case "piano": return "stream_nature"
+        case "insect": return "rain_bamboo_leaf"
         case "tide", "stream": return "stream_nature"
-        case "fire": return "fireplace_soft"
+        case "fire": return "ac_hum"
         case "towel": return "hair_towel"
         case let id?: return "create_\(id)"
         case nil: return "create_custom"
+        }
+    }
+
+    /// Flat `SoundSource` list for Create editor preview (LocalPlaybackService).
+    static func playbackSources(
+        from sources: [SpatialEditorSource],
+        at time: Double
+    ) -> [SoundSource] {
+        sources.compactMap { source in
+            let key = resourceKey(for: source)
+            guard !key.hasPrefix("create_") else { return nil }
+            let point = SpatialTrajectory.position(
+                at: time,
+                keyPoints: source.keyPoints,
+                defaultPosition: source.defaultPosition
+            )
+            let radius = min(max(hypot(point.x, point.y), 0), 1)
+            let angle = atan2(-point.y, point.x)
+            let inWindow = time >= source.audioStartTime && time < source.audioEndTime
+            return SoundSource(
+                id: source.id,
+                name: source.name,
+                symbolName: source.iconName,
+                isEnabled: inWindow,
+                volume: inWindow ? 0.55 : 0,
+                position: SpatialPosition(angle: angle, radius: radius),
+                resourceName: key,
+                // Preview uses continuous players; official `.voice` oneshots need a timeline.
+                layer: .ambience
+            )
         }
     }
 

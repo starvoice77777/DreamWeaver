@@ -30,6 +30,8 @@ final class SpatialTimelineViewModel: ObservableObject {
     private let seedSourceSceneID: UUID?
     private var playbackTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
+    private let previewPlayback: LocalPlaybackService
+    private var previewGraphSignature: String?
 
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
 
@@ -44,6 +46,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         self.sourceSceneSubtitle = seed.sourceSceneSubtitle
         self.seedSourceSceneID = seed.sourceSceneID
         self.showsFirstUseHint = seed.soundSources.isEmpty
+        self.previewPlayback = LocalPlaybackService()
     }
 
     func bindPrivateSceneID(_ id: UUID?) {
@@ -326,6 +329,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         currentTime = min(max(time, 0), duration)
         selectedKeyPointID = nil
         selectedTextCueID = nil
+        syncPreviewAudio(playIfReady: false)
     }
 
     func addTextCue() {
@@ -388,6 +392,10 @@ final class SpatialTimelineViewModel: ObservableObject {
             currentTime = 0
         }
 
+        guard syncPreviewAudio(playIfReady: true) else {
+            return
+        }
+
         isPlaying = true
         selectedKeyPointID = nil
         selectedTextCueID = nil
@@ -404,6 +412,7 @@ final class SpatialTimelineViewModel: ObservableObject {
 
                 let elapsed = Date().timeIntervalSince(startedAt)
                 self.currentTime = min(startedTime + elapsed, self.duration)
+                self.syncPreviewAudio(playIfReady: true)
                 if self.currentTime >= self.duration {
                     self.pause()
                     return
@@ -416,6 +425,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         isPlaying = false
         playbackTask?.cancel()
         playbackTask = nil
+        previewPlayback.pause()
     }
 
     func resetDemo() {
@@ -509,7 +519,78 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func stopForDismissal() {
         pause()
+        previewPlayback.stop()
+        previewGraphSignature = nil
         toastTask?.cancel()
+    }
+
+    /// Loads / updates Create preview audio. Returns false when nothing can play.
+    @discardableResult
+    private func syncPreviewAudio(playIfReady: Bool) -> Bool {
+        let sources = SceneCompositionMapper.playbackSources(from: soundSources, at: currentTime)
+        guard !sources.isEmpty else {
+            if playIfReady {
+                showToast("请先加入可播放的材料（雨/风/竹叶/流水等）")
+            }
+            previewPlayback.pause()
+            return false
+        }
+
+        let signature = sources
+            .map { "\($0.id.uuidString):\($0.resourceName ?? "")" }
+            .sorted()
+            .joined(separator: "|")
+
+        if previewGraphSignature != signature {
+            do {
+                try previewPlayback.load(
+                    scene: Self.previewHostScene(name: displaySceneName),
+                    sources: sources,
+                    timeline: nil
+                )
+                previewGraphSignature = signature
+            } catch {
+                showToast(error.localizedDescription)
+                return false
+            }
+        } else {
+            for source in sources {
+                previewPlayback.updateSource(
+                    id: source.id,
+                    volume: source.volume,
+                    position: source.position,
+                    enabled: source.isEnabled
+                )
+            }
+        }
+
+        if playIfReady {
+            previewPlayback.play()
+            if let message = previewPlayback.lastErrorMessage, !previewPlayback.isPlaying {
+                showToast(message)
+                return false
+            }
+        }
+        return true
+    }
+
+    private static func previewHostScene(name: String) -> DreamScene {
+        DreamScene(
+            id: UUID(),
+            name: name,
+            subtitle: "创作预览",
+            description: "",
+            category: .nature,
+            tags: [],
+            palette: ScenePalette(top: 0x1A2740, mid: 0x2C3E55, bottom: 0x1B1410, accent: 0xD79A72),
+            soundSources: [],
+            isFavorite: false,
+            isFrequentlyUsed: false,
+            listenCount: 0,
+            mockListenerCount: 0,
+            visualStyle: .warmLamp,
+            isDemoPlayable: true
+        )
     }
 
     private func sortKeyPoints(sourceIndex: Int) {

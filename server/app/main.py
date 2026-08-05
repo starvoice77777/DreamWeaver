@@ -18,7 +18,7 @@ from app.db.session import get_db_session, session_factory
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
     settings = get_settings()
-    if settings.force_reseed_catalog and not settings.is_production:
+    if settings.force_reseed_catalog_enabled and not settings.is_production:
         from app.services.seed_catalog import reseed_official_catalog
 
         async with session_factory() as session:
