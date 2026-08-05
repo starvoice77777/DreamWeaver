@@ -32,6 +32,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
+    private let debugRunId = "run-1-preset-motion"
 
     /// Fired when timeline automation mutates a source (position / enable / volume).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
@@ -390,6 +391,20 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             resolved = nil
         }
         activeTimeline = resolved
+        // #region agent log
+        debugLog(
+            hypothesisId: "H5",
+            location: "LocalPlaybackService.configureTimelineScheduler",
+            message: "timeline scheduler configured",
+            data: [
+                "inputTimelineVersion": String(timeline?.version ?? -1),
+                "resolvedTimelineVersion": String(resolved?.version ?? -1),
+                "resolvedCueCount": String(resolved?.cues.count ?? 0),
+                "sourceCount": String(currentSources.count),
+                "voiceTrackCount": String(currentSources.values.filter { $0.layer == .voice }.count)
+            ]
+        )
+        // #endregion
 
         timelineScheduler.configure(timeline: resolved, overrides: []) { [weak self] actions in
             self?.executeTimelineActions(actions)
@@ -397,6 +412,18 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     private func executeTimelineActions(_ actions: [APIContentDTO.CueAction]) {
+        // #region agent log
+        debugLog(
+            hypothesisId: "H6",
+            location: "LocalPlaybackService.executeTimelineActions",
+            message: "timeline actions fired",
+            data: [
+                "actionCount": String(actions.count),
+                "types": actions.map(\.type).joined(separator: ","),
+                "trackIds": actions.compactMap { $0.track_id?.uuidString }.joined(separator: ",")
+            ]
+        )
+        // #endregion
         for action in actions {
             switch action.type {
             case "play_phrase":
@@ -746,5 +773,42 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             }
         }
         return nil
+    }
+
+    private func debugLog(
+        hypothesisId: String,
+        location: String,
+        message: String,
+        data: [String: String]
+    ) {
+        struct Payload: Encodable {
+            let sessionId: String
+            let runId: String
+            let hypothesisId: String
+            let location: String
+            let message: String
+            let data: [String: String]
+            let timestamp: Int64
+        }
+        let payload = Payload(
+            sessionId: "f7559e",
+            runId: debugRunId,
+            hypothesisId: hypothesisId,
+            location: location,
+            message: message,
+            data: data,
+            timestamp: Int64(Date().timeIntervalSince1970 * 1000)
+        )
+        guard let encoded = try? JSONEncoder().encode(payload),
+              var line = String(data: encoded, encoding: .utf8) else { return }
+        line.append("\n")
+        let url = URL(fileURLWithPath: "debug-f7559e.log")
+        if let handle = try? FileHandle(forWritingTo: url) {
+            try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(line.utf8))
+            try? handle.close()
+        } else {
+            try? Data(line.utf8).write(to: url, options: .atomic)
+        }
     }
 }

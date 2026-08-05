@@ -87,6 +87,7 @@ final class AppState: ObservableObject {
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
     private var isApplyingRemoteSettings = false
     private var remoteSettingsSyncTask: Task<Void, Never>?
+    private let debugRunId = "run-1-preset-motion"
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -524,6 +525,20 @@ final class AppState: ObservableObject {
         // only 远雨 and made all later cues no-ops.
         let sources = scene.soundSources.filter { $0.resourceName != nil }
         let sceneId = currentSceneId
+        // #region agent log
+        debugLog(
+            hypothesisId: "H1",
+            location: "AppState.reloadPlayback.preTask",
+            message: "reloadPlayback invoked",
+            data: [
+                "sceneId": sceneId.uuidString,
+                "sceneName": scene.name,
+                "mixBoard": String(describing: mixBoardSelection),
+                "autoPlayArg": String(autoPlay),
+                "sourceCount": String(sources.count)
+            ]
+        )
+        // #endregion
         Task { @MainActor [weak self] in
             guard let self else { return }
             let timeline: APIContentDTO.SceneTimeline?
@@ -535,6 +550,20 @@ final class AppState: ObservableObject {
             } else {
                 timeline = nil
             }
+            // #region agent log
+            self.debugLog(
+                hypothesisId: "H2",
+                location: "AppState.reloadPlayback.preLoad",
+                message: "timeline resolved before playback load",
+                data: [
+                    "sceneId": sceneId.uuidString,
+                    "timelineVersion": String(timeline?.version ?? -1),
+                    "timelineCueCount": String(timeline?.cues.count ?? 0),
+                    "sourceCount": String(sources.count),
+                    "sourceIds": sources.map(\.id.uuidString).joined(separator: ",")
+                ]
+            )
+            // #endregion
             do {
                 try self.playback.load(scene: scene, sources: sources, timeline: timeline)
                 self.playbackProgress = self.playback.progress
@@ -577,6 +606,7 @@ final class AppState: ObservableObject {
 
     /// Mirror timeline automation onto the mix disk. Does not persist personal mix or mark overrides.
     private func applyTimelineSourceChange(id: UUID, source: SoundSource) {
+        let existedBefore = currentScene.soundSources.contains(where: { $0.id == id })
         mutateCurrentSources { sources in
             if let i = sources.firstIndex(where: { $0.id == id }) {
                 // Keep the user's drag position while interacting; still sync enable/volume.
@@ -593,6 +623,21 @@ final class AppState: ObservableObject {
                 sources.append(source)
             }
         }
+        // #region agent log
+        debugLog(
+            hypothesisId: "H3",
+            location: "AppState.applyTimelineSourceChange",
+            message: "timeline source mirrored to scene disk",
+            data: [
+                "trackId": id.uuidString,
+                "existedBefore": String(existedBefore),
+                "enabled": String(source.isEnabled),
+                "volume": String(format: "%.3f", source.volume),
+                "angle": String(format: "%.3f", source.position.angle),
+                "radius": String(format: "%.3f", source.position.radius)
+            ]
+        )
+        // #endregion
     }
 
     // MARK: - Controls visibility
@@ -1013,6 +1058,21 @@ final class AppState: ObservableObject {
             mutateCurrentSources { $0 = fresh }
             mixBoardSelection = .preset(preset.id)
         }
+        // #region agent log
+        debugLog(
+            hypothesisId: "H4",
+            location: "AppState.selectMixPreset",
+            message: "preset selected and mapped to official track ids",
+            data: [
+                "presetId": preset.id.uuidString,
+                "presetTitle": preset.title,
+                "presetSourceCount": String(preset.sources.count),
+                "mappedSourceCount": String(fresh.count),
+                "mappedAngles": fresh.map { String(format: "%.2f", $0.position.angle) }.joined(separator: ","),
+                "mappedRadii": fresh.map { String(format: "%.2f", $0.position.radius) }.joined(separator: ",")
+            ]
+        )
+        // #endregion
         reloadPlayback(autoPlay: true)
         markMixInteraction()
     }
@@ -1398,6 +1458,43 @@ final class AppState: ObservableObject {
             )
         } catch {
             lastServiceMessage = "设置同步失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func debugLog(
+        hypothesisId: String,
+        location: String,
+        message: String,
+        data: [String: String]
+    ) {
+        struct Payload: Encodable {
+            let sessionId: String
+            let runId: String
+            let hypothesisId: String
+            let location: String
+            let message: String
+            let data: [String: String]
+            let timestamp: Int64
+        }
+        let payload = Payload(
+            sessionId: "f7559e",
+            runId: debugRunId,
+            hypothesisId: hypothesisId,
+            location: location,
+            message: message,
+            data: data,
+            timestamp: Int64(Date().timeIntervalSince1970 * 1000)
+        )
+        guard let encoded = try? JSONEncoder().encode(payload),
+              var line = String(data: encoded, encoding: .utf8) else { return }
+        line.append("\n")
+        let url = URL(fileURLWithPath: "debug-f7559e.log")
+        if let handle = try? FileHandle(forWritingTo: url) {
+            try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(line.utf8))
+            try? handle.close()
+        } else {
+            try? Data(line.utf8).write(to: url, options: .atomic)
         }
     }
 }
