@@ -775,6 +775,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         return nil
     }
 
+    private static var didAnnounceDebugLogPath = false
+
     private func debugLog(
         hypothesisId: String,
         location: String,
@@ -802,13 +804,42 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         guard let encoded = try? JSONEncoder().encode(payload),
               var line = String(data: encoded, encoding: .utf8) else { return }
         line.append("\n")
-        let url = URL(fileURLWithPath: "debug-f7559e.log")
-        if let handle = try? FileHandle(forWritingTo: url) {
-            try? handle.seekToEnd()
-            try? handle.write(contentsOf: Data(line.utf8))
-            try? handle.close()
-        } else {
-            try? Data(line.utf8).write(to: url, options: .atomic)
+        let bytes = Data(line.utf8)
+        print("[DWDebug] \(line.trimmingCharacters(in: .newlines))")
+        var wrotePaths: [String] = []
+        for url in Self.debugLogURLs() {
+            do {
+                if FileManager.default.fileExists(atPath: url.path) {
+                    let handle = try FileHandle(forWritingTo: url)
+                    defer { try? handle.close() }
+                    try handle.seekToEnd()
+                    try handle.write(contentsOf: bytes)
+                } else {
+                    try bytes.write(to: url, options: .atomic)
+                }
+                wrotePaths.append(url.path)
+            } catch {
+                continue
+            }
         }
+        if !Self.didAnnounceDebugLogPath {
+            Self.didAnnounceDebugLogPath = true
+            print("[DWDebug] log paths: \(wrotePaths.joined(separator: " | "))")
+        }
+    }
+
+    private static func debugLogURLs() -> [URL] {
+        var urls: [URL] = []
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            urls.append(docs.appendingPathComponent("debug-f7559e.log"))
+        }
+        let fileURL = URL(fileURLWithPath: #filePath)
+        let repoRoot = fileURL
+            .deletingLastPathComponent() // Services
+            .deletingLastPathComponent() // DreamWeaver
+            .deletingLastPathComponent() // repo root
+        urls.append(repoRoot.appendingPathComponent("debug-f7559e.log"))
+        urls.append(URL(fileURLWithPath: "/tmp/debug-f7559e.log"))
+        return urls
     }
 }
