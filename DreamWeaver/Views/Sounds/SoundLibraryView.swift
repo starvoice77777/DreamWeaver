@@ -25,14 +25,6 @@ private enum AudioUploadChoice: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-private enum SeedSourceChoice: String, CaseIterable, Identifiable {
-    case existing = "已有素材"
-    case file = "上传文件"
-    case record = "现场录音"
-
-    var id: String { rawValue }
-}
-
 struct SoundLibraryView: View {
     @EnvironmentObject private var appState: AppState
     var title: String = "声音库"
@@ -50,9 +42,6 @@ struct SoundLibraryView: View {
     @State private var detailTarget: SoundAsset?
 
     @State private var showUploadChooser = false
-    @State private var showSeedChooser = false
-    @State private var showExistingSeedPicker = false
-    @State private var seedLaunch: SeedLaunchSource?
 
     @State private var showUploadMock = false
     @State private var showRecordMock = false
@@ -77,11 +66,6 @@ struct SoundLibraryView: View {
 
     private var seedAssets: [SoundAsset] {
         filterList(appState.soundAssets.filter { $0.kind == .seed })
-    }
-
-    /// Materials that can become a seed source.
-    private var seedableAssets: [SoundAsset] {
-        materialAssets
     }
 
     private func filterList(_ list: [SoundAsset]) -> [SoundAsset] {
@@ -126,23 +110,6 @@ struct SoundLibraryView: View {
                 Button("上传文件") { beginFileUpload() }
                 Button("取消", role: .cancel) {}
             }
-            .confirmationDialog("声音种子创建", isPresented: $showSeedChooser, titleVisibility: .visible) {
-                Button("已有素材") { showExistingSeedPicker = true }
-                Button("上传文件") { openSeedFlow(.file) }
-                Button("现场录音") { openSeedFlow(.record) }
-                Button("取消", role: .cancel) {}
-            }
-            .sheet(isPresented: $showExistingSeedPicker) {
-                ExistingSeedSourcePicker(
-                    assets: seedableAssets,
-                    onSelect: { asset in
-                        showExistingSeedPicker = false
-                        openSeedFlow(.existing(asset))
-                    },
-                    onCancel: { showExistingSeedPicker = false }
-                )
-                .presentationDetents([.medium, .large])
-            }
             .sheet(item: $expandedLibraryGroup) { group in
                 ExistingLibraryFullList(
                     title: group.rawValue,
@@ -185,17 +152,6 @@ struct SoundLibraryView: View {
                 SoundDetailSheet(asset: asset)
                     .environmentObject(appState)
                     .presentationDetents([.medium])
-            }
-            .fullScreenCover(item: $seedLaunch) { launch in
-                SeedCreationFlow(launchSource: launch)
-                    .environmentObject(appState)
-            }
-            .onChange(of: appState.showSeedFlow) { _, showing in
-                // Keep legacy AppState flag workable without owning the new launch source.
-                if showing {
-                    appState.showSeedFlow = false
-                    openSeedFlow(.record)
-                }
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -462,14 +418,6 @@ struct SoundLibraryView: View {
                         showUploadChooser = true
                     }
 
-                    customEntryCard(
-                        title: "声音种子创建",
-                        subtitle: "点击后可选择已有素材、上传文件，或现场录音",
-                        symbol: "leaf.fill",
-                        accents: SeedSourceChoice.allCases.map(\.rawValue)
-                    ) {
-                        showSeedChooser = true
-                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -555,14 +503,6 @@ struct SoundLibraryView: View {
         } else {
             showUploadMock = true
         }
-    }
-
-    private func openSeedFlow(_ source: SeedLaunchSource) {
-        if appState.contentBackendMode == .remote && !appState.isRemoteAuthenticated {
-            showLoginHint = true
-            return
-        }
-        seedLaunch = source
     }
 
     private func beginDelete(_ asset: SoundAsset) {
@@ -673,8 +613,6 @@ struct SoundLibraryView: View {
     }
 }
 
-// MARK: - Seed source picker
-
 private struct ExistingLibraryFullList<Row: View>: View {
     let title: String
     let items: [SoundAsset]
@@ -698,57 +636,6 @@ private struct ExistingLibraryFullList<Row: View>: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("关闭", action: onClose)
-                }
-            }
-        }
-    }
-}
-
-private struct ExistingSeedSourcePicker: View {
-    let assets: [SoundAsset]
-    var onSelect: (SoundAsset) -> Void
-    var onCancel: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if assets.isEmpty {
-                    ContentUnavailableView(
-                        "暂无可选素材",
-                        systemImage: "tray",
-                        description: nil
-                    )
-                } else {
-                    List(assets) { asset in
-                        Button {
-                            onSelect(asset)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: asset.symbolName)
-                                    .foregroundStyle(DreamTheme.moonWhite)
-                                    .frame(width: 36, height: 36)
-                                    .background(Circle().fill(Color(hex: asset.avatarColor).opacity(0.85)))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(asset.name)
-                                        .foregroundStyle(DreamTheme.moonWhite)
-                                    Text("\(asset.kind.rawValue) · \(asset.durationText)")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(DreamTheme.secondaryText)
-                                }
-                                Spacer()
-                            }
-                        }
-                        .listRowBackground(Color.white.opacity(0.04))
-                    }
-                    .scrollContentBackground(.hidden)
-                }
-            }
-            .background(DreamTheme.deepBlue.ignoresSafeArea())
-            .navigationTitle("选择已有素材")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消", action: onCancel)
                 }
             }
         }

@@ -18,6 +18,9 @@ IOS_AUDIO = ROOT / "DreamWeaver/Resources/Audio"
 
 SCENE_ID = "a1111111-1111-4111-8111-111111111101"
 VOICE_TRACK_ID = "e5555555-5555-4555-8555-555555555503"
+RUNTIME_VERSION = 12
+WATER_CYCLE_SOURCE_ID = "3c6c0188-1f35-57b6-adbd-1041997e6c91"
+ROOMTONE_SOURCE_ID = "798599d3-a11c-544e-a73e-81519276cb9d"
 TRACK_MAP = {
     "3c6c0188-1f35-57b6-adbd-1041997e6c91": "e5555555-5555-4555-8555-555555555508",
     "a8f15c0f-c610-51c9-ba22-81e33c5856f6": "e5555555-5555-4555-8555-555555555509",
@@ -46,6 +49,24 @@ def normalize_number(value: float) -> float | int:
     if number.is_integer():
         return int(number)
     return number
+
+
+def runtime_radius(track_id: str, at_seconds: float, radius: float) -> float:
+    """Keep the reviewed motion while making active far layers audible.
+
+    The app's steady-state gain is derived from radius alone. The source package
+    predates that rule and placed these already-quiet assets almost at the edge.
+    Preserve the package as review evidence and apply the playback correction
+    only while building the runtime fixture.
+    """
+    value = float(radius)
+    if track_id == WATER_CYCLE_SOURCE_ID and at_seconds <= 595:
+        # Keep the final 602-620 s move to the edge as an intentional exit.
+        return min(value, 0.80)
+    if track_id == ROOMTONE_SOURCE_ID:
+        # Preserve the sparse-drip trajectory instead of collapsing every point.
+        return round(max(value - 0.16, 0.0), 6)
+    return value
 
 
 def build() -> dict[str, Any]:
@@ -99,7 +120,14 @@ def build() -> dict[str, Any]:
                 action["type"] = "set_envelope"
                 action["envelope"] = raw["volume"]
             if "track_id" in action:
-                action["track_id"] = complete_track_map[action["track_id"]]
+                source_track_id = action["track_id"]
+                if "radius" in action:
+                    action["radius"] = runtime_radius(
+                        source_track_id,
+                        float(cue["at_seconds"]),
+                        action["radius"],
+                    )
+                action["track_id"] = complete_track_map[source_track_id]
             actions.append(action)
         cues.append(
             {
@@ -111,7 +139,7 @@ def build() -> dict[str, Any]:
 
     return {
         "scene_id": SCENE_ID,
-        "version": pkg["version"],
+        "version": RUNTIME_VERSION,
         "automation_mode": pkg["automation_mode"],
         "duration_hint_seconds": int(pkg["duration_seconds"]),
         "override_policy": "per_source_manual_exit",

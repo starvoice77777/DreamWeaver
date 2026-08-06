@@ -125,30 +125,6 @@ struct SceneAudioManifest: Hashable, Codable {
     var voicePhraseResourceName: String?
 }
 
-struct SeedQualityReport: Hashable, Codable {
-    var clarity: String
-    var noiseLevel: String
-    var effectiveDurationSeconds: Int
-    var recommendation: String
-    var passed: Bool
-}
-
-enum SeedJobStatus: String, Codable, Hashable {
-    case queued
-    case processing
-    case completed
-    case failed
-}
-
-struct SeedJob: Identifiable, Hashable, Codable {
-    var id: UUID
-    var status: SeedJobStatus
-    var progress: Double
-    var message: String
-    var resultAsset: SoundAsset?
-    var previewResourceName: String?
-}
-
 struct VoiceAuthorization: Hashable, Codable {
     var confirmed: Bool
     var revocable: Bool
@@ -167,14 +143,12 @@ struct BootstrapPayload: Hashable, Codable {
 enum AnalyticsEvent: Hashable, Codable {
     case sceneListen(sceneId: UUID)
     case sessionEnded(sceneId: UUID, durationSeconds: Int)
-    case seedCreated(assetId: UUID)
     case mixEdited(sceneId: UUID)
 
     var typeName: String {
         switch self {
         case .sceneListen: return "scene_listen"
         case .sessionEnded: return "session_ended"
-        case .seedCreated: return "seed_created"
         case .mixEdited: return "mix_edited"
         }
     }

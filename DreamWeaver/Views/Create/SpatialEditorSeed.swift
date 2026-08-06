@@ -8,6 +8,7 @@ struct SpatialEditorSeed: Equatable {
     var sceneName: String
     var soundSources: [SpatialEditorSource]
     var textCues: [SpatialTextCue]
+    var durationSeconds: Double?
     var sourceSceneID: UUID?
     var sourceSceneSubtitle: String?
 
@@ -17,6 +18,7 @@ struct SpatialEditorSeed: Equatable {
         sceneName: "",
         soundSources: [],
         textCues: [],
+        durationSeconds: nil,
         sourceSceneID: nil,
         sourceSceneSubtitle: nil
     )
@@ -37,6 +39,8 @@ struct SpatialEditorSeed: Equatable {
             sources.append(
                 SpatialEditorSource(
                     materialID: matched?.id,
+                    assetID: source.assetId,
+                    resourceName: source.resourceName,
                     name: source.name,
                     iconName: source.symbolName,
                     theme: matched?.theme ?? theme(for: source),
@@ -55,6 +59,48 @@ struct SpatialEditorSeed: Equatable {
             sceneName: scene.name,
             soundSources: sources,
             textCues: [],
+            durationSeconds: nil,
+            sourceSceneID: scene.id,
+            sourceSceneSubtitle: scene.subtitle
+        )
+    }
+
+    static func from(
+        scene: DreamScene,
+        timeline: APIContentDTO.SceneTimeline
+    ) -> SpatialEditorSeed {
+        let importedSources = SceneCompositionMapper.editorSources(
+            from: timeline,
+            scene: scene
+        )
+        guard !importedSources.isEmpty else { return from(scene: scene) }
+        return SpatialEditorSeed(
+            draftID: nil,
+            privateSceneID: nil,
+            sceneName: scene.name,
+            soundSources: importedSources,
+            textCues: SceneCompositionMapper.textCues(from: timeline),
+            durationSeconds: SceneCompositionMapper.duration(for: timeline),
+            sourceSceneID: scene.id,
+            sourceSceneSubtitle: scene.subtitle
+        )
+    }
+
+    static func from(
+        scene: DreamScene,
+        composition: APIContentDTO.SceneComposition
+    ) -> SpatialEditorSeed {
+        let sources = SceneCompositionMapper.editorSources(from: composition)
+        let duration = composition.duration_seconds
+            ?? sources.map(\.audioEndTime).max()
+            ?? 120
+        return SpatialEditorSeed(
+            draftID: nil,
+            privateSceneID: nil,
+            sceneName: scene.name,
+            soundSources: sources,
+            textCues: SceneCompositionMapper.textCues(from: composition),
+            durationSeconds: duration,
             sourceSceneID: scene.id,
             sourceSceneSubtitle: scene.subtitle
         )
@@ -67,13 +113,27 @@ struct SpatialEditorSeed: Equatable {
             sceneName: draft.name,
             soundSources: draft.soundSources,
             textCues: draft.textCues,
+            durationSeconds: draft.durationSeconds,
             sourceSceneID: draft.sourceSceneId,
             sourceSceneSubtitle: draft.sourceSceneSubtitle
         )
     }
 
-    static func from(privateDetail detail: APIContentDTO.PrivateSceneDetail) -> SpatialEditorSeed {
+    static func from(
+        privateDetail detail: APIContentDTO.PrivateSceneDetail,
+        baseScene: DreamScene? = nil
+    ) -> SpatialEditorSeed {
         let composition = detail.draft_composition ?? detail.saved_composition
+        let timeline = detail.draft_timeline ?? detail.saved_timeline
+        if composition == nil, let timeline, let baseScene {
+            var imported = from(scene: baseScene, timeline: timeline)
+            imported.draftID = nil
+            imported.privateSceneID = detail.id
+            imported.sceneName = detail.name
+            imported.sourceSceneID = detail.source_scene_id
+            imported.sourceSceneSubtitle = detail.subtitle
+            return imported
+        }
         let sources: [SpatialEditorSource]
         if let composition, !composition.tracks.isEmpty {
             sources = SceneCompositionMapper.editorSources(from: composition)
@@ -92,17 +152,20 @@ struct SpatialEditorSeed: Equatable {
             sceneName: detail.name,
             soundSources: sources,
             textCues: cues,
+            durationSeconds: composition?.duration_seconds
+                ?? timeline.map { SceneCompositionMapper.duration(for: $0) }
+                ?? detail.recommended_duration_seconds.map(Double.init),
             sourceSceneID: detail.source_scene_id,
             sourceSceneSubtitle: detail.subtitle
         )
     }
 
     private static func normalizedPoint(from position: SpatialPosition) -> CGPoint {
-        // Match SpatialPosition display convention: 0 = right, π/2 = front / screen-up.
+        // Match SpatialPosition display convention: 0 = front / screen-up, π/2 = right.
         let radius = min(max(position.radius, 0), 1)
         return CGPoint(
-            x: cos(position.angle) * radius,
-            y: -sin(position.angle) * radius
+            x: sin(position.angle) * radius,
+            y: -cos(position.angle) * radius
         )
     }
 

@@ -15,6 +15,20 @@ FIRST_PHRASE_CUE_ID = uuid.UUID("108ddf75-d4f5-52b5-aba3-a357955fa3a2")
 RAIN_SOFT_ENTER_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666630")
 RAIN_SOFT_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
 RAIN_BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
+RAIN_WIND_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555502")
+HAIR_WATER_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555508")
+HAIR_ROOMTONE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
+
+
+def _position_at(body: dict, track_id: uuid.UUID, at_seconds: float) -> dict:
+    return next(
+        action
+        for cue in body["cues"]
+        if cue["at_seconds"] == at_seconds
+        for action in cue["actions"]
+        if action.get("type") == "set_position"
+        and action.get("track_id") == str(track_id)
+    )
 
 
 async def _login(client, sub: str = "timeline-user") -> dict:
@@ -32,6 +46,7 @@ async def test_scene_timeline_hair_care(client) -> None:
     body = response.json()
     assert body["scene_id"] == str(DEFAULT_SCENE_ID)
     assert body["version"] >= HAIR_CARE_TIMELINE_VERSION
+    assert body["version"] == 12
     assert body["automation_mode"] == "official_auto"
     assert body["override_policy"] == "per_source_manual_exit"
     assert body["manual_override_track_ids"] == []
@@ -64,6 +79,10 @@ async def test_scene_timeline_hair_care(client) -> None:
         a.get("type") == "set_position" for c in body["cues"] for a in c.get("actions", [])
     )
     assert not any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
+    assert _position_at(body, HAIR_WATER_TRACK_ID, 0)["radius"] == 0.8
+    assert _position_at(body, HAIR_ROOMTONE_TRACK_ID, 30)["radius"] == 0.74
+    # The final move toward the edge remains an authored exit, not an active-layer cap.
+    assert _position_at(body, HAIR_WATER_TRACK_ID, 602)["radius"] == 0.94
     # No legacy 28s repeat cadence from pre-v4 placeholder timeline.
     assert not any(c.get("repeat_every_seconds") == 28.0 for c in body["cues"])
 
@@ -74,7 +93,7 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
     assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
-    assert body["version"] == 9
+    assert body["version"] == 10
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
     assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
@@ -109,6 +128,11 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     )
     assert parasol_enter["angle"] == 0.7
     assert parasol_enter["radius"] == 0.62
+    assert _position_at(body, RAIN_SOFT_TRACK_ID, 0)["radius"] == 0.78
+    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 220)["radius"] == 0.78
+    assert _position_at(body, RAIN_WIND_TRACK_ID, 188)["radius"] == 0.77
+    # Fade-out movement remains spatially outward after the audible section.
+    assert _position_at(body, RAIN_SOFT_TRACK_ID, 560)["radius"] == 0.92
     oneshots = [
         c
         for c in body["cues"]

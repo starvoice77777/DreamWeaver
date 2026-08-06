@@ -14,6 +14,10 @@ SERVER_OUT = ROOT / "server/app/fixtures/rain_eaves_timeline_v8.json"
 IOS_OUT = ROOT / "DreamWeaver/Resources/Mock/rain_eaves_timeline_v8.json"
 
 SCENE_ID = "a1111111-1111-4111-8111-111111111102"
+RUNTIME_VERSION = 10
+FAR_RAIN_SOURCE_ID = "675d3d70-7f0b-49a1-b754-ed38d163ba41"
+BAMBOO_SOURCE_ID = "323ebc52-41ed-43b6-a097-77f55204d09e"
+WIND_SOURCE_ID = "2cc9eff1-4520-46e1-a9d2-826b3299b7b5"
 TRACK_MAP = {
     "675d3d70-7f0b-49a1-b754-ed38d163ba41": "e5555555-5555-4555-8555-555555555510",
     "819f884b-81b5-4a47-8d0d-d2fc2ee55348": "e5555555-5555-4555-8555-555555555501",
@@ -64,6 +68,21 @@ def normalize_at(at: float) -> float | int:
     return float(at)
 
 
+def runtime_radius(track_id: str, at_seconds: float, radius: float) -> float:
+    """Adapt the reviewed positions to radius-driven playback gain."""
+    value = float(radius)
+    if track_id == FAR_RAIN_SOURCE_ID and at_seconds <= 480:
+        # Its later 560-620 s outward move remains part of the fade-out.
+        return min(value, 0.78)
+    if track_id == BAMBOO_SOURCE_ID and at_seconds <= 440:
+        # Keep the 500-530 s retreat that precedes the track's exit.
+        return min(value, 0.78)
+    if track_id == WIND_SOURCE_ID:
+        # Preserve both gust trajectories, shifted inward by a fixed distance.
+        return round(max(value - 0.18, 0.0), 6)
+    return value
+
+
 def build() -> dict:
     pkg = json.loads(PKG.read_text(encoding="utf-8"))
     buckets: dict[float, list[dict]] = defaultdict(list)
@@ -79,7 +98,10 @@ def build() -> dict:
                 action["type"] = "set_envelope"
                 action["envelope"] = action.pop("volume", 0)
             if "track_id" in action:
-                action["track_id"] = remap_track(action["track_id"])
+                source_track_id = action["track_id"]
+                if "radius" in action:
+                    action["radius"] = runtime_radius(source_track_id, at, action["radius"])
+                action["track_id"] = remap_track(source_track_id)
             buckets[at].append(action)
 
     for track in pkg["tracks"]:
@@ -90,7 +112,11 @@ def build() -> dict:
                 "type": "set_position",
                 "track_id": eng_id,
                 "angle": kf["angle"],
-                "radius": kf["radius"],
+                "radius": runtime_radius(
+                    track["track_id"],
+                    at,
+                    kf["radius"],
+                ),
             }
             existing = buckets[at]
             if any(
@@ -127,7 +153,7 @@ def build() -> dict:
 
     return {
         "scene_id": SCENE_ID,
-        "version": 9,
+        "version": RUNTIME_VERSION,
         "automation_mode": "official_auto",
         "duration_hint_seconds": int(pkg.get("duration_seconds", 620)),
         "override_policy": "per_source_manual_exit",

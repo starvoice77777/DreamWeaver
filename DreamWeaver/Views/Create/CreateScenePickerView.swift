@@ -1,19 +1,48 @@
 import SwiftUI
 
-/// Scene chooser shown before opening the shared spatial editor from an existing draft.
+/// Chooses an existing scene or draft as the starting point for the root editor.
 struct CreateScenePickerView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
 
-    let onSelect: (DreamScene) -> Void
+    let drafts: [CreateSceneDraft]
+    let remoteDrafts: [APIContentDTO.PrivateSceneSummary]
+    let onSelectScene: (DreamScene) -> Void
+    let onSelectDraft: (CreateSceneDraft) -> Void
+    let onSelectRemoteDraft: (APIContentDTO.PrivateSceneSummary) -> Void
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    if !drafts.isEmpty {
+                        sectionTitle("我的草稿")
+                        ForEach(drafts) { draft in
+                            Button {
+                                onSelectDraft(draft)
+                            } label: {
+                                draftRow(draft)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if !remoteDrafts.isEmpty {
+                        sectionTitle("云端草稿")
+                        ForEach(remoteDrafts) { summary in
+                            Button {
+                                onSelectRemoteDraft(summary)
+                            } label: {
+                                remoteDraftRow(summary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    sectionTitle("已有场景")
                     ForEach(appState.scenes) { scene in
                         Button {
-                            onSelect(scene)
+                            onSelectScene(scene)
                         } label: {
                             sceneRow(scene)
                         }
@@ -25,7 +54,7 @@ struct CreateScenePickerView: View {
                 .padding(.bottom, 28)
             }
             .background(DreamTheme.backgroundGradient.ignoresSafeArea())
-            .navigationTitle("选择场景")
+            .navigationTitle("选择创建起点")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -35,6 +64,74 @@ struct CreateScenePickerView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(DreamTypography.sectionTitle)
+            .foregroundStyle(DreamTheme.warmApricot)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 8)
+    }
+
+    private func draftRow(_ draft: CreateSceneDraft) -> some View {
+        sourceRow(
+            title: draft.name,
+            subtitle: "本机草稿 · \(draft.soundSources.count) 个声源",
+            symbol: "doc.text.fill",
+            accent: DreamTheme.mistBlue
+        )
+        .accessibilityHint("继续编辑此草稿")
+    }
+
+    private func remoteDraftRow(_ summary: APIContentDTO.PrivateSceneSummary) -> some View {
+        sourceRow(
+            title: summary.name,
+            subtitle: summary.has_saved_version ? "云端草稿 · 已发布 v\(summary.saved_version)" : "云端草稿",
+            symbol: "icloud.fill",
+            accent: DreamTheme.mistBlue
+        )
+        .accessibilityHint("打开云端草稿")
+    }
+
+    private func sourceRow(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        accent: Color
+    ) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: symbol)
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(DreamTheme.moonWhite)
+                .frame(width: 56, height: 56)
+                .background(accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(DreamTypography.cardTitle)
+                    .foregroundStyle(DreamTheme.moonWhite)
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(DreamTypography.caption)
+                    .foregroundStyle(DreamTheme.secondaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(DreamTheme.tertiaryText)
+        }
+        .padding(14)
+        .dreamRefractiveLiquidGlassRounded(
+            cornerRadius: 18,
+            accent: accent,
+            intensity: 0.55,
+            interactive: true
+        )
+        .accessibilityLabel(title)
     }
 
     private func sceneRow(_ scene: DreamScene) -> some View {

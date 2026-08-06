@@ -9,6 +9,7 @@ final class AppState: ObservableObject {
     @Published var currentSceneId: UUID
     @Published var isPlaying = true
     @Published var timerOption: TimerOption = .autoStop
+    @Published private(set) var sleepTimerDurationMinutes: Int = 45
     /// Elapsed fraction 0...1 for countdown timer chips.
     @Published private(set) var timerElapsedProgress: Double = 0
     @Published var soundAssets: [SoundAsset]
@@ -20,7 +21,6 @@ final class AppState: ObservableObject {
 
     @Published var showLaunch = true
     @Published var controlsVisible = true
-    @Published var showSeedFlow = false
     @Published var showMixPalette = false
     @Published var sceneTitleVisible = true
     @Published var isTransitioningScene = false
@@ -60,8 +60,6 @@ final class AppState: ObservableObject {
     let isFirstLaunch: Bool
     let contentService: ContentService
     let libraryService: UserLibraryService
-    /// Local or remote seed pipeline (`RemoteSeedPipelineService` when content backend is remote).
-    let seedPipeline: SeedPipelineService
     let analyticsService: AnalyticsService
     let playback: LocalPlaybackService
     let authService: RemoteAuthService?
@@ -95,7 +93,6 @@ final class AppState: ObservableObject {
         let remoteUser: RemoteUserService?
         let library: UserLibraryService
         let remoteLibrary: RemoteUserLibraryService?
-        let seed: SeedPipelineService
         let analytics: AnalyticsService
         switch mode {
         case .remote:
@@ -106,7 +103,6 @@ final class AppState: ObservableObject {
             let remoteLib = RemoteUserLibraryService(client: client)
             library = remoteLib
             remoteLibrary = remoteLib
-            seed = RemoteSeedPipelineService(client: client, library: remoteLib)
             analytics = RemoteAnalyticsService(client: client)
         case .local:
             content = LocalContentService()
@@ -114,13 +110,11 @@ final class AppState: ObservableObject {
             remoteUser = nil
             library = LocalUserLibraryService()
             remoteLibrary = nil
-            seed = LocalSeedPipelineService()
             analytics = LocalAnalyticsService()
         }
         self.init(
             contentService: content,
             libraryService: library,
-            seedPipeline: seed,
             analyticsService: analytics,
             playback: LocalPlaybackService(),
             contentBackendMode: mode,
@@ -133,7 +127,6 @@ final class AppState: ObservableObject {
     init(
         contentService: ContentService,
         libraryService: UserLibraryService,
-        seedPipeline: SeedPipelineService,
         analyticsService: AnalyticsService,
         playback: LocalPlaybackService,
         contentBackendMode: ServiceBackendMode = .local,
@@ -143,7 +136,6 @@ final class AppState: ObservableObject {
     ) {
         self.contentService = contentService
         self.libraryService = libraryService
-        self.seedPipeline = seedPipeline
         self.analyticsService = analyticsService
         self.playback = playback
         self.contentBackendMode = contentBackendMode
@@ -441,6 +433,7 @@ final class AppState: ObservableObject {
         savedMixes = []
         currentSceneId = DemoIDs.hairCareScene
         timerOption = .autoStop
+        sleepTimerDurationMinutes = 45
         timerElapsedProgress = 0
         playback.cancelSleepTimer()
         isSleepTimerArmed = false
@@ -493,21 +486,53 @@ final class AppState: ObservableObject {
 
     func setTimerOption(_ option: TimerOption) {
         timerOption = option
+        if let minutes = option.minutes {
+            sleepTimerDurationMinutes = minutes
+        }
         armSelectedSleepTimer(resetProgress: true)
     }
 
+    func setSleepTimerDuration(minutes: Int) {
+        let clampedMinutes = min(max(minutes, 5), 120)
+        sleepTimerDurationMinutes = clampedMinutes
+        switch clampedMinutes {
+        case 10: timerOption = .tenMinutes
+        case 30: timerOption = .thirtyMinutes
+        case 60: timerOption = .oneHour
+        default: timerOption = .autoStop
+        }
+        armSleepTimer(
+            duration: TimeInterval(clampedMinutes * 60),
+            usesAcceleratedFade: false,
+            resetProgress: true
+        )
+    }
+
     private func armSelectedSleepTimer(resetProgress: Bool) {
+        armSleepTimer(
+            duration: timerOption.countdownSeconds,
+            usesAcceleratedFade: timerOption == .demoAccelerated,
+            resetProgress: resetProgress
+        )
+    }
+
+    private func armSleepTimer(
+        duration: TimeInterval?,
+        usesAcceleratedFade: Bool,
+        resetProgress: Bool
+    ) {
         playback.cancelSleepTimer()
         isSleepTimerArmed = false
         if resetProgress {
             timerElapsedProgress = 0
         }
 
-        guard timerOption.countdownSeconds != nil else { return }
+        guard let duration, duration > 0 else { return }
         isSleepTimerArmed = true
 
         playback.startSleepTimer(
-            option: timerOption,
+            duration: duration,
+            usesAcceleratedFade: usesAcceleratedFade,
             onTick: { [weak self] progress in
                 self?.timerElapsedProgress = progress
             },
@@ -532,7 +557,14 @@ final class AppState: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self else { return }
             let timeline: APIContentDTO.SceneTimeline?
-            if let cached = self.timelineCache[sceneId] {
+            if let composition = self.store.loadCreatedComposition(sceneId: sceneId) {
+                let createdTimeline = SceneCompositionTimelineMapper.timeline(
+                    from: composition,
+                    sceneId: sceneId
+                )
+                self.timelineCache[sceneId] = createdTimeline
+                timeline = createdTimeline
+            } else if let cached = self.timelineCache[sceneId] {
                 timeline = cached
             } else if let fetched = try? await self.contentService.fetchTimeline(sceneId: sceneId) {
                 self.timelineCache[sceneId] = fetched
@@ -1127,7 +1159,8 @@ final class AppState: ObservableObject {
         id: UUID,
         name: String,
         sourceSceneId: UUID?,
-        soundSources: [SoundSource]
+        soundSources: [SoundSource],
+        composition: APIContentDTO.SceneComposition? = nil
     ) throws -> DreamScene {
         let base = sourceSceneId.flatMap { sourceID in
             scenes.first { $0.id == sourceID }
@@ -1179,14 +1212,25 @@ final class AppState: ObservableObject {
         var createdScenes = store.loadCreatedScenes()
         createdScenes.removeAll { $0.id == id }
         createdScenes.insert(scene, at: 0)
+        let previousComposition = store.loadCreatedComposition(sceneId: id)
         do {
+            try store.saveCreatedComposition(composition, sceneId: id)
             try store.saveCreatedScenes(createdScenes)
         } catch {
+            try? store.saveCreatedComposition(previousComposition, sceneId: id)
             scenes.removeAll { $0.id == id }
             if let previousScene {
                 scenes.insert(previousScene, at: 0)
             }
             throw error
+        }
+        if let composition {
+            timelineCache[id] = SceneCompositionTimelineMapper.timeline(
+                from: composition,
+                sceneId: id
+            )
+        } else {
+            timelineCache[id] = nil
         }
         return scene
     }
@@ -1267,6 +1311,38 @@ final class AppState: ObservableObject {
         return try await remoteUserService.fetchPrivateScene(id: id)
     }
 
+    /// Create editor uses the same cached official timeline as playback so an
+    /// existing scene imports its authored clips and motion rather than a snapshot.
+    func fetchSceneTimelineForCreate(
+        sceneId: UUID
+    ) async throws -> APIContentDTO.SceneTimeline {
+        if let composition = store.loadCreatedComposition(sceneId: sceneId) {
+            let timeline = SceneCompositionTimelineMapper.timeline(
+                from: composition,
+                sceneId: sceneId
+            )
+            timelineCache[sceneId] = timeline
+            return timeline
+        }
+        if let cached = timelineCache[sceneId] { return cached }
+        let timeline = try await contentService.fetchTimeline(sceneId: sceneId)
+        timelineCache[sceneId] = timeline
+        return timeline
+    }
+
+    func storedSceneCompositionForCreate(
+        sceneId: UUID
+    ) -> APIContentDTO.SceneComposition? {
+        store.loadCreatedComposition(sceneId: sceneId)
+    }
+
+    func fetchSceneForCreate(sceneId: UUID) async throws -> DreamScene {
+        if let scene = scenes.first(where: { $0.id == sceneId }), !scene.soundSources.isEmpty {
+            return scene
+        }
+        return try await contentService.fetchScene(id: sceneId)
+    }
+
     func updateSourcePosition(id: UUID, position: SpatialPosition) {
         guard mixBoardSelection.isMine else { return }
         mutateCurrentSources { sources in
@@ -1319,7 +1395,6 @@ final class AppState: ObservableObject {
         soundAssets.insert(asset, at: 0)
         Task {
             try? await libraryService.upsert(asset)
-            try? await analyticsService.record(.seedCreated(assetId: asset.id))
         }
     }
 

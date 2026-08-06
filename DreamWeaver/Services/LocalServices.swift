@@ -147,7 +147,7 @@ final class LocalAnalyticsService: AnalyticsService {
             if !record.sleepTrend.isEmpty {
                 record.sleepTrend[record.sleepTrend.count - 1] += minutes
             }
-        case .seedCreated, .mixEdited:
+        case .mixEdited:
             record.lastUsedAt = Date()
         }
         try store.saveUsage(record)
@@ -156,79 +156,5 @@ final class LocalAnalyticsService: AnalyticsService {
     func resetDemoStats() async throws {
         record = MockDataService.makeUsageRecord()
         try store.saveUsage(record)
-    }
-}
-
-@MainActor
-final class LocalSeedPipelineService: SeedPipelineService {
-    private var jobs: [UUID: SeedJob] = [:]
-    private var authorized = false
-
-    func analyze(durationSeconds: Int) async throws -> SeedQualityReport {
-        try await Task.sleep(nanoseconds: 800_000_000)
-        return MockDataService.makeSeedQuality(durationSeconds: durationSeconds)
-    }
-
-    func authorize(confirmed: Bool) async throws {
-        guard confirmed else { throw ServiceError.unauthorized }
-        authorized = true
-    }
-
-    func startProcess(durationSeconds: Int) async throws -> SeedJob {
-        guard authorized else { throw ServiceError.unauthorized }
-        let job = SeedJob(
-            id: UUID(),
-            status: .processing,
-            progress: 0,
-            message: "正在整理声音片段",
-            resultAsset: nil,
-            previewResourceName: "voice_phrase_mom"
-        )
-        jobs[job.id] = job
-        return job
-    }
-
-    func pollJob(id: UUID) async throws -> SeedJob {
-        guard var job = jobs[id] else { throw ServiceError.notFound(id.uuidString) }
-        if job.status == .completed { return job }
-
-        let messages = ["正在整理声音片段", "正在保留声音特点", "正在准备试听版本"]
-        let next = min(job.progress + 0.08, 1.0)
-        job.progress = next
-        job.message = messages[min(Int(next * 3), messages.count - 1)]
-        if next >= 1 {
-            job.status = .completed
-            job.message = "已准备好试听版本"
-        } else {
-            job.status = .processing
-        }
-        jobs[id] = job
-        try await Task.sleep(nanoseconds: 120_000_000)
-        return job
-    }
-
-    func finalize(jobId: UUID, name: String, relation: PersonRelation) async throws -> SoundAsset {
-        guard let job = jobs[jobId], job.status == .completed else {
-            throw ServiceError.invalidState("处理尚未完成")
-        }
-        return SoundAsset(
-            id: UUID(),
-            name: name.isEmpty ? "新的声音种子" : name,
-            kind: .seed,
-            durationSeconds: 90,
-            symbolName: "leaf.fill",
-            avatarColor: 0xD79A72,
-            isFavorite: false,
-            relation: relation,
-            createdAt: Date(),
-            lastUsedAt: Date(),
-            previewResourceName: job.previewResourceName ?? "voice_phrase_mom",
-            processingStatus: .ready,
-            authorization: VoiceAuthorization(
-                confirmed: true,
-                revocable: true,
-                authorizationId: "auth-\(jobId.uuidString.prefix(8))"
-            )
-        )
     }
 }
