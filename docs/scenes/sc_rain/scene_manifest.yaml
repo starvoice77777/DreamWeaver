@@ -1,18 +1,21 @@
 scene_id: a1111111-1111-4111-8111-111111111102
 slug: sc_rain
 name: 檐下听雨
+package_version: 1.3.0
 template: environment_no_voice
 visual_style: rainEaves
 category: rainyNight
-timeline_version: 2
+timeline_version: 8
 duration_hint_seconds: 620
 override_policy: per_source_manual_exit
 phrases: []
 asset_gate: qc_pending
 notes:
-  - 协同表 v4：无文本环境型；变化间隔 ≥90s；单次 volume 变化 ≤0.08（脚本内风声短段除外，已用淡入淡出约束）
-  - 母带状态 qc_pending：可本地演示，正式上架前需循环验收与许可证 approved
-  - P1 room_wood_tone 未交付，未入库
+  - A01 远雨从 0 秒持续至 620 秒
+  - A02 檐下雨在 30 秒进入、560 秒退出
+  - A03 竹叶雨在 220 秒进入、530 秒退出
+  - A04 使用 wind_gust 单次素材，在 188 秒和 458 秒各触发一次
+  - 四条母带仍需完成手机外放、耳机空间层次与许可证人工验收
 gaps:
-  - requires_engine_crossfade=true 对 A01–A03；客户端若无交叉淡化可能有循环接点
-  - license_status 仍为 pending
+  - A01 至 A03 需要引擎按素材定义执行循环交叉淡化
+  - wind_gust 的外部来源授权仍为 pending_verification
