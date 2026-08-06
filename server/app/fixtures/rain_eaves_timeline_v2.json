@@ -12,9 +12,9 @@
       "at_seconds": 0,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.28,
+          "envelope": 0.28,
           "fade_ms": 30000
         }
       ]
@@ -32,15 +32,15 @@
           "track_id": "e5555555-5555-4555-8555-555555555501"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.42,
+          "envelope": 0.42,
           "fade_ms": 20000
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.2,
+          "envelope": 0.2,
           "fade_ms": 5000
         }
       ]
@@ -50,15 +50,15 @@
       "at_seconds": 90,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.24,
+          "envelope": 0.24,
           "fade_ms": 8000
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.42,
+          "envelope": 0.42,
           "fade_ms": 8000
         }
       ]
@@ -76,9 +76,9 @@
           "track_id": "e5555555-5555-4555-8555-555555555502"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.18,
+          "envelope": 0.18,
           "fade_ms": 4000
         }
       ]
@@ -88,9 +88,9 @@
       "at_seconds": 200,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.0,
+          "envelope": 0.0,
           "fade_ms": 12000
         },
         {
@@ -112,9 +112,9 @@
           "track_id": "e5555555-5555-4555-8555-555555555512"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555512",
-          "volume": 0.22,
+          "envelope": 0.22,
           "fade_ms": 10000
         }
       ]
@@ -124,9 +124,9 @@
       "at_seconds": 330,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.48,
+          "envelope": 0.48,
           "fade_ms": 15000
         }
       ]
@@ -136,9 +136,9 @@
       "at_seconds": 360,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.42,
+          "envelope": 0.42,
           "fade_ms": 15000
         }
       ]
@@ -156,9 +156,9 @@
           "track_id": "e5555555-5555-4555-8555-555555555502"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.16,
+          "envelope": 0.16,
           "fade_ms": 5000
         }
       ]
@@ -168,15 +168,15 @@
       "at_seconds": 470,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555502",
-          "volume": 0.0,
+          "envelope": 0.0,
           "fade_ms": 12000
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.34,
+          "envelope": 0.34,
           "fade_ms": 20000
         }
       ]
@@ -186,9 +186,9 @@
       "at_seconds": 530,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555512",
-          "volume": 0.0,
+          "envelope": 0.0,
           "fade_ms": 12000
         },
         {
@@ -196,9 +196,9 @@
           "track_id": "e5555555-5555-4555-8555-555555555512"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.26,
+          "envelope": 0.26,
           "fade_ms": 15000
         }
       ]
@@ -208,9 +208,9 @@
       "at_seconds": 560,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555501",
-          "volume": 0.0,
+          "envelope": 0.0,
           "fade_ms": 20000
         },
         {
@@ -218,9 +218,9 @@
           "track_id": "e5555555-5555-4555-8555-555555555501"
         },
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.22,
+          "envelope": 0.22,
           "fade_ms": 8000
         }
       ]
@@ -230,9 +230,9 @@
       "at_seconds": 580,
       "actions": [
         {
-          "type": "set_volume",
+          "type": "set_envelope",
           "track_id": "e5555555-5555-4555-8555-555555555510",
-          "volume": 0.0,
+          "envelope": 0.0,
           "fade_ms": 40000
         }
       ]

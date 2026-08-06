@@ -90,7 +90,7 @@ class SceneTrack(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     symbol_name: Mapped[str] = mapped_column(String(128), nullable=False)
     layer: Mapped[str] = mapped_column(String(32), nullable=False, default="environment")
-    volume: Mapped[float] = mapped_column(Float, nullable=False, default=0.7)
+    initial_envelope: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     angle: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     radius: Mapped[float] = mapped_column(Float, nullable=False, default=0.55)
     resource_key: Mapped[str | None] = mapped_column(String(256), nullable=True)

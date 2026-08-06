@@ -4,34 +4,39 @@ import Foundation
 /// Maps mix-board polar coordinates onto Apple's `AVAudioEnvironmentNode` world space.
 ///
 /// Board model (ear-height plane):
-/// - Angle 0 = right, π/2 = front (screen up), π = left, −π/2 = behind.
-/// - Radius is perceived distance; attenuation is handled by the environment node.
+/// - Angle 0 = front (screen up), π/2 = right, -π/2 = left.
+/// - Radius is the sole user-facing loudness control.
 ///
 /// Apple listener convention: +X right, +Y up, −Z forward.
 enum SpatialMixMapping {
     /// Board radius clamp (must match `SpatialPosition.from`).
-    static let minRadius = 0.22
-    static let maxRadius = 0.95
+    static let minRadius = 0.0
+    static let maxRadius = 1.0
 
-    /// User mix gain when dropping a new source (distance is not encoded in volume).
-    static let defaultMixGain = 0.72
+    /// All sources stay at this physical distance so AVFoundation only supplies
+    /// direction/HRTF. Loudness is calculated from board radius exactly once.
+    static let directionalDistanceMeters: Float = 1.0
 
-    /// Meters for the near / far edge of the mix board.
-    static let nearDistanceMeters: Float = 0.65
-    static let farDistanceMeters: Float = 4.2
+    /// Gain at the outer edge of the board. The curve is exponential so the
+    /// center stays expressive while distant sources remain audible.
+    static let farEdgeGain: Double = 0.18
 
     /// Soft send into the environment's factory reverb.
     static let sourceReverbBlend: Float = 0.14
 
     static func worldPoint(from position: SpatialPosition) -> AVAudio3DPoint {
-        let t = Float(radiusNormalized(position.radius))
-        let meters = nearDistanceMeters + (farDistanceMeters - nearDistanceMeters) * t
         let angle = Float(position.angle)
         return AVAudio3DPoint(
-            x: cos(angle) * meters,
+            x: sin(angle) * directionalDistanceMeters,
             y: 0,
-            z: -sin(angle) * meters
+            z: -cos(angle) * directionalDistanceMeters
         )
+    }
+
+    /// Deterministic user gain for a point on the mix disk.
+    /// Equal radii always return equal gains, regardless of bearing.
+    static func gain(for radius: Double) -> Double {
+        pow(farEdgeGain, radiusNormalized(radius))
     }
 
     static func configureEnvironment(_ environment: AVAudioEnvironmentNode) {
@@ -39,10 +44,10 @@ enum SpatialMixMapping {
         environment.listenerAngularOrientation = AVAudioMake3DAngularOrientation(0, 0, 0)
 
         let attenuation = environment.distanceAttenuationParameters
-        attenuation.distanceAttenuationModel = .inverse
-        attenuation.referenceDistance = nearDistanceMeters
-        attenuation.maximumDistance = farDistanceMeters + 1.8
-        attenuation.rolloffFactor = 1.2
+        attenuation.distanceAttenuationModel = .exponential
+        attenuation.referenceDistance = directionalDistanceMeters
+        attenuation.maximumDistance = directionalDistanceMeters
+        attenuation.rolloffFactor = 0
 
         environment.reverbParameters.enable = true
         environment.reverbParameters.loadFactoryReverbPreset(.smallRoom)

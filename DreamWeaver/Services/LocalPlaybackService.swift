@@ -14,7 +14,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var playbackRequested = false
     private var players: [UUID: AVAudioPlayerNode] = [:]
     private var layers: [UUID: AudioLayerKind] = [:]
-    private var baseVolumes: [UUID: Double] = [:]
+    private var automationEnvelopes: [UUID: Double] = [:]
     private var fadeMultipliers: [UUID: Float] = [:]
     private var currentSources: [UUID: SoundSource] = [:]
     private var configuredResources: [UUID: String] = [:]
@@ -33,7 +33,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
 
-    /// Fired when timeline automation mutates a source (position / enable / volume).
+    /// Fired when timeline automation mutates a source (position / enable).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
     var onTimelineSourceChange: ((UUID, SoundSource) -> Void)?
 
@@ -65,6 +65,9 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         prepareSpatialGraph()
 
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+        automationEnvelopes = Dictionary(
+            uniqueKeysWithValues: sources.map { ($0.id, $0.initialEnvelope) }
+        )
         configuredResources = desiredResourceMap(for: sources)
         let attachedTrackCount = attachAvailableTracks(sources)
 
@@ -122,29 +125,28 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         progress = 0.08
     }
 
-    func updateSource(id: UUID, volume: Double, position: SpatialPosition, enabled: Bool) {
-        guard let node = players[id] else { return }
-        let fade = fadeMultipliers[id] ?? 1
-        let gain = Float(max(volume, 0)) * fade
-        node.volume = enabled ? gain : 0
+    func updateSource(id: UUID, position: SpatialPosition, enabled: Bool) {
+        guard let node = players[id], var updated = currentSources[id] else { return }
+        updated.position = position
+        updated.isEnabled = enabled
+        currentSources[id] = updated
+        node.volume = renderedGain(for: id, source: updated)
         SpatialMixMapping.applySourceSpatialization(
             to: node,
             position: position,
             environment: environment
         )
-        baseVolumes[id] = volume
-        if let existing = currentSources[id] {
-            var updated = existing
-            updated.volume = volume
-            updated.position = position
-            updated.isEnabled = enabled
-            currentSources[id] = updated
-        }
     }
 
     func syncSources(_ sources: [SoundSource]) {
         prepareSpatialGraph()
+        let previousEnvelopes = automationEnvelopes
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+        automationEnvelopes = Dictionary(
+            uniqueKeysWithValues: sources.map {
+                ($0.id, previousEnvelopes[$0.id] ?? $0.initialEnvelope)
+            }
+        )
 
         let desiredResources = desiredResourceMap(for: sources)
         let previousResources = configuredResources
@@ -181,7 +183,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         for source in sources {
             updateSource(
                 id: source.id,
-                volume: source.volume,
                 position: source.position,
                 enabled: source.isEnabled
             )
@@ -406,18 +407,18 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     playOneShot(source: source)
                     publishTimelineSource(id)
                 }
-            case "set_volume":
-                if let id = action.track_id, let volume = action.volume {
-                    applyVolume(trackId: id, volume: volume, fadeMs: action.fade_ms, publish: true)
+            case "set_envelope":
+                if let id = action.track_id, let envelope = action.envelope {
+                    applyEnvelope(trackId: id, envelope: envelope, fadeMs: action.fade_ms)
                 }
             case "fade_out":
                 if let id = action.track_id {
-                    applyVolume(trackId: id, volume: 0, fadeMs: action.fade_ms ?? 2000, publish: true)
+                    applyEnvelope(trackId: id, envelope: 0, fadeMs: action.fade_ms ?? 2000)
                 }
             case "fade_in":
                 if let id = action.track_id {
-                    let target = currentSources[id]?.volume ?? baseVolumes[id] ?? 0.7
-                    applyVolume(trackId: id, volume: target, fadeMs: action.fade_ms ?? 2000, publish: true)
+                    let target = action.envelope ?? currentSources[id]?.initialEnvelope ?? 1
+                    applyEnvelope(trackId: id, envelope: target, fadeMs: action.fade_ms ?? 2000)
                 }
             case "set_position":
                 if let id = action.track_id,
@@ -426,7 +427,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                    var source = currentSources[id] {
                     source.position = SpatialPosition(angle: angle, radius: radius)
                     currentSources[id] = source
-                    updateSource(id: id, volume: source.volume, position: source.position, enabled: source.isEnabled)
+                    updateSource(id: id, position: source.position, enabled: source.isEnabled)
                     publishTimelineSource(id)
                 }
             case "enable":
@@ -434,7 +435,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     source.isEnabled = true
                     currentSources[id] = source
                     ensureTrackAttached(source)
-                    updateSource(id: id, volume: source.volume, position: source.position, enabled: true)
+                    updateSource(id: id, position: source.position, enabled: true)
                     if playbackRequested, let node = players[id], !node.isPlaying, layers[id] != .voice {
                         node.play()
                     }
@@ -444,7 +445,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 if let id = action.track_id, var source = currentSources[id] {
                     source.isEnabled = false
                     currentSources[id] = source
-                    updateSource(id: id, volume: source.volume, position: source.position, enabled: false)
+                    updateSource(id: id, position: source.position, enabled: false)
                     publishTimelineSource(id)
                 }
             case "play":
@@ -488,36 +489,38 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         playOneShot(source: oneshot)
     }
 
-    private func applyVolume(trackId: UUID, volume: Double, fadeMs: Int?, publish: Bool = false) {
-        guard players[trackId] != nil else { return }
-        let clamped = min(max(volume, 0), 1)
+    private func applyEnvelope(trackId: UUID, envelope: Double, fadeMs: Int?) {
+        guard let node = players[trackId], let source = currentSources[trackId] else { return }
+        let clamped = min(max(envelope, 0), 1)
         let duration = Double(fadeMs ?? 0) / 1000.0
-        // Publish target level immediately so the mix disk tracks automation intent.
-        if var source = currentSources[trackId] {
-            source.volume = clamped
-            currentSources[trackId] = source
-            if publish { publishTimelineSource(trackId) }
-        }
+        automationEnvelopes[trackId] = clamped
+        let target = renderedGain(for: trackId, source: source)
         if duration <= 0.05 {
-            baseVolumes[trackId] = clamped
-            let fade = fadeMultipliers[trackId] ?? 1
-            players[trackId]?.volume = Float(clamped) * fade
+            node.volume = target
             return
         }
         fadeTasks.append(Task { @MainActor [weak self] in
             guard let self else { return }
             let steps = 20
-            let start = Double(self.players[trackId]?.volume ?? 0)
+            let start = Double(node.volume)
             let stepTime = duration / Double(steps)
             for step in 0...steps {
                 let t = Double(step) / Double(steps)
-                let value = start + (clamped - start) * t
-                self.players[trackId]?.volume = Float(value)
+                let value = start + (Double(target) - start) * t
+                node.volume = Float(value)
                 try? await Task.sleep(nanoseconds: UInt64(stepTime * 1_000_000_000))
                 if Task.isCancelled { return }
             }
-            self.baseVolumes[trackId] = clamped
         })
+    }
+
+    /// Final player gain has exactly one user-controlled term: board radius.
+    /// The envelope is reserved for scene automation such as cue fades.
+    private func renderedGain(for id: UUID, source: SoundSource) -> Float {
+        guard source.isEnabled else { return 0 }
+        let envelope = automationEnvelopes[id] ?? source.initialEnvelope
+        let fade = Double(fadeMultipliers[id] ?? 1)
+        return Float(SpatialMixMapping.gain(for: source.position.radius) * envelope * fade)
     }
 
     @discardableResult
@@ -557,12 +560,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         } else {
             scheduleLoop(node: node, file: file)
             // Keep disabled beds attached but silent until timeline / user enables them.
-            node.volume = source.isEnabled ? Float(source.volume) : 0
+            node.volume = renderedGain(for: source.id, source: source)
         }
 
         players[source.id] = node
         layers[source.id] = source.layer
-        baseVolumes[source.id] = source.volume
+        automationEnvelopes[source.id] = automationEnvelopes[source.id] ?? source.initialEnvelope
         fadeMultipliers[source.id] = 1
         return true
     }
@@ -607,8 +610,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
               let node = players[source.id] else { return }
         do {
             let file = try AVAudioFile(forReading: url)
-            let fade = fadeMultipliers[source.id] ?? 1
-            node.volume = Float(source.volume) * fade
+            node.volume = renderedGain(for: source.id, source: source)
             SpatialMixMapping.applySourceSpatialization(
                 to: node,
                 position: source.position,
@@ -630,8 +632,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             let t = Float(1.0 - Double(step) / Double(steps))
             for id in ids {
                 fadeMultipliers[id] = t
-                if let node = players[id], let base = baseVolumes[id] {
-                    node.volume = Float(base) * t
+                if let node = players[id], let source = currentSources[id] {
+                    node.volume = renderedGain(for: id, source: source)
                 }
             }
             try? await Task.sleep(nanoseconds: UInt64(stepTime * 1_000_000_000))
@@ -652,7 +654,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
         players[id] = nil
         layers[id] = nil
-        baseVolumes[id] = nil
+        automationEnvelopes[id] = nil
         fadeMultipliers[id] = nil
     }
 

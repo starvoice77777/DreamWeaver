@@ -36,7 +36,7 @@ def cue_id_for(at: float, tag: str) -> str:
 
 
 def sort_key(action: dict) -> tuple:
-    """Loop enter: vol0 → play → fade-in. Oneshot: set volume (fade 0) before play_oneshot."""
+    """Loop enter: envelope 0 → play → fade-in; oneshots set it before playback."""
     order = {
         "set_position": 0,
         "enable": 1,
@@ -46,15 +46,15 @@ def sort_key(action: dict) -> tuple:
         "disable": 5,
     }
     t = action.get("type", "")
-    if t == "set_volume":
-        vol = float(action.get("volume") or 0)
+    if t == "set_envelope":
+        envelope = float(action.get("envelope") or 0)
         fade = int(action.get("fade_ms") or 0)
-        if vol == 0:
+        if envelope == 0:
             return (1.5, 0.0)
         # Instant level (oneshot / pre-roll) before play*; long fades after play.
         if fade <= 0:
-            return (2.5, vol)
-        return (3.5, vol)
+            return (2.5, envelope)
+        return (3.5, envelope)
     return (order.get(t, 9), 0.0)
 
 
@@ -75,6 +75,9 @@ def build() -> dict:
         bucket_tags.setdefault(at, tag)
         for raw in cue["actions"]:
             action = dict(raw)
+            if action.get("type") == "set_volume":
+                action["type"] = "set_envelope"
+                action["envelope"] = action.pop("volume", 0)
             if "track_id" in action:
                 action["track_id"] = remap_track(action["track_id"])
             buckets[at].append(action)
@@ -124,7 +127,7 @@ def build() -> dict:
 
     return {
         "scene_id": SCENE_ID,
-        "version": 8,
+        "version": 9,
         "automation_mode": "official_auto",
         "duration_hint_seconds": int(pkg.get("duration_seconds", 620)),
         "override_policy": "per_source_manual_exit",

@@ -90,7 +90,8 @@ struct AudioTrackRef: Identifiable, Hashable, Codable {
     var resourceName: String
     var layer: AudioLayerKind
     var loops: Bool
-    var defaultVolume: Double
+    /// Internal timeline automation level, not a user mix gain.
+    var initialEnvelope: Double
     var defaultPosition: SpatialPosition
     /// When true, track is required for a credible demo; missing file is reported.
     var isRequired: Bool
@@ -102,7 +103,7 @@ struct AudioTrackRef: Identifiable, Hashable, Codable {
         resourceName: String,
         layer: AudioLayerKind,
         loops: Bool = true,
-        defaultVolume: Double = 0.7,
+        initialEnvelope: Double = 1,
         defaultPosition: SpatialPosition = .default,
         isRequired: Bool = true
     ) {
@@ -112,7 +113,7 @@ struct AudioTrackRef: Identifiable, Hashable, Codable {
         self.resourceName = resourceName
         self.layer = layer
         self.loops = loops
-        self.defaultVolume = defaultVolume
+        self.initialEnvelope = initialEnvelope
         self.defaultPosition = defaultPosition
         self.isRequired = isRequired
     }

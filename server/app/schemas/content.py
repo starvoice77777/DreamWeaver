@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SpatialPositionOut(BaseModel):
@@ -18,7 +18,7 @@ class SceneTrackOut(BaseModel):
     name: str
     symbol_name: str
     layer: str
-    volume: float
+    initial_envelope: float
     position: SpatialPositionOut
     resource_key: str | None = None
     loop: bool = True
@@ -75,17 +75,27 @@ class CueActionOut(BaseModel):
 
     type: str = Field(
         description=(
-            "play_phrase | play_oneshot | play | pause | fade_in | fade_out | set_volume | "
+            "play_phrase | play_oneshot | play | pause | fade_in | fade_out | set_envelope | "
             "set_position | enable | disable | replace_source"
         )
     )
     phrase_id: uuid.UUID | None = None
     track_id: uuid.UUID | None = None
-    volume: float | None = Field(default=None, ge=0, le=1)
+    envelope: float | None = Field(default=None, ge=0, le=1)
     fade_ms: int | None = Field(default=None, ge=0)
     angle: float | None = None
     radius: float | None = Field(default=None, ge=0, le=1)
     resource_key: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_volume_action(cls, value: object) -> object:
+        if not isinstance(value, dict) or value.get("type") != "set_volume":
+            return value
+        upgraded = dict(value)
+        upgraded["type"] = "set_envelope"
+        upgraded["envelope"] = upgraded.pop("volume", None)
+        return upgraded
 
 
 class SceneCueOut(BaseModel):

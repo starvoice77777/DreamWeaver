@@ -30,10 +30,10 @@ enum MockDataService {
                 listeners: 964,
                 sources: [
                     source("风声", "wind", angle: .pi * 0.15, radius: 0.7),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.7, radius: 0.55, volume: 0.5),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.4, volume: 0.4, layer: .voice),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 1.1, radius: 0.75, volume: 0.2, enabled: false),
-                    source("钢琴", "pianokeys", angle: .pi * 1.4, radius: 0.6, volume: 0.25)
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.7, radius: 0.55, initialEnvelope: 0.5),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.4, initialEnvelope: 0.4, layer: .voice),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 1.1, radius: 0.75, initialEnvelope: 0.2, enabled: false),
+                    source("钢琴", "pianokeys", angle: .pi * 1.4, radius: 0.6, initialEnvelope: 0.25)
                 ]
             ),
             scene(
@@ -49,11 +49,11 @@ enum MockDataService {
                 listens: 36,
                 listeners: 742,
                 sources: [
-                    source("潮声", "water.waves", angle: .pi * 0.9, radius: 0.65, volume: 0.8),
-                    source("风声", "wind", angle: .pi * 0.25, radius: 0.7, volume: 0.4),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.45, volume: 0.35, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 1.3, radius: 0.55, volume: 0.2, enabled: false),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.5, radius: 0.78, volume: 0.15, enabled: false)
+                    source("潮声", "water.waves", angle: .pi * 0.9, radius: 0.65, initialEnvelope: 0.8),
+                    source("风声", "wind", angle: .pi * 0.25, radius: 0.7, initialEnvelope: 0.4),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.45, initialEnvelope: 0.35, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 1.3, radius: 0.55, initialEnvelope: 0.2, enabled: false),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.5, radius: 0.78, initialEnvelope: 0.15, enabled: false)
                 ]
             ),
             scene(
@@ -69,11 +69,11 @@ enum MockDataService {
                 listens: 12,
                 listeners: 531,
                 sources: [
-                    source("流水", "drop.fill", angle: .pi * 0.8, radius: 0.5, volume: 0.75, resourceName: "stream_nature"),
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.7, volume: 0.3),
-                    source("鸟鸣", "bird.fill", angle: -.pi * 0.5, radius: 0.6, volume: 0.2, enabled: false),
-                    source("人声", "person.wave.2.fill", angle: .pi * 1.35, radius: 0.42, volume: 0.35, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 0.45, radius: 0.72, volume: 0.22)
+                    source("流水", "drop.fill", angle: .pi * 0.8, radius: 0.5, initialEnvelope: 0.75, resourceName: "stream_nature"),
+                    source("风声", "wind", angle: .pi * 0.2, radius: 0.7, initialEnvelope: 0.3),
+                    source("鸟鸣", "bird.fill", angle: -.pi * 0.5, radius: 0.6, initialEnvelope: 0.2, enabled: false),
+                    source("人声", "person.wave.2.fill", angle: .pi * 1.35, radius: 0.42, initialEnvelope: 0.35, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 0.45, radius: 0.72, initialEnvelope: 0.22)
                 ]
             ),
             scene(
@@ -89,11 +89,11 @@ enum MockDataService {
                 listens: 18,
                 listeners: 1102,
                 sources: [
-                    source("湖面", "water.waves", angle: .pi * 0.95, radius: 0.58, volume: 0.45, resourceName: "stream_nature"),
-                    source("风声", "wind", angle: .pi * 0.18, radius: 0.68, volume: 0.25),
-                    source("钢琴", "pianokeys", angle: -.pi * 0.25, radius: 0.5, volume: 0.4),
-                    source("人声", "person.wave.2.fill", angle: .pi * 1.4, radius: 0.4, volume: 0.3, layer: .voice),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.55, radius: 0.8, volume: 0.15, enabled: false)
+                    source("湖面", "water.waves", angle: .pi * 0.95, radius: 0.58, initialEnvelope: 0.45, resourceName: "stream_nature"),
+                    source("风声", "wind", angle: .pi * 0.18, radius: 0.68, initialEnvelope: 0.25),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.25, radius: 0.5, initialEnvelope: 0.4),
+                    source("人声", "person.wave.2.fill", angle: .pi * 1.4, radius: 0.4, initialEnvelope: 0.3, layer: .voice),
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.55, radius: 0.8, initialEnvelope: 0.15, enabled: false)
                 ]
             ),
             scene(
@@ -109,11 +109,11 @@ enum MockDataService {
                 listens: 44,
                 listeners: 1588,
                 sources: [
-                    source("星声", "sparkles", angle: .pi * 0.6, radius: 0.75, volume: 0.35),
-                    source("钢琴", "pianokeys", angle: -.pi * 0.2, radius: 0.48, volume: 0.55),
-                    source("人声", "person.wave.2.fill", angle: .pi * 1.2, radius: 0.42, volume: 0.35, layer: .voice),
-                    source("风声", "wind", angle: .pi * 0.15, radius: 0.7, volume: 0.2),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.9, radius: 0.8, volume: 0.12, enabled: false)
+                    source("星声", "sparkles", angle: .pi * 0.6, radius: 0.75, initialEnvelope: 0.35),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.2, radius: 0.48, initialEnvelope: 0.55),
+                    source("人声", "person.wave.2.fill", angle: .pi * 1.2, radius: 0.42, initialEnvelope: 0.35, layer: .voice),
+                    source("风声", "wind", angle: .pi * 0.15, radius: 0.7, initialEnvelope: 0.2),
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.9, radius: 0.8, initialEnvelope: 0.12, enabled: false)
                 ]
             ),
             scene(
@@ -129,11 +129,11 @@ enum MockDataService {
                 listens: 52,
                 listeners: 2031,
                 sources: [
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.15, radius: 0.35, volume: 0.55, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 0.85, radius: 0.55, volume: 0.4),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.3, radius: 0.72, volume: 0.25),
-                    source("风声", "wind", angle: .pi * 1.3, radius: 0.7, volume: 0.15, enabled: false),
-                    source("炉火", "flame.fill", angle: .pi * 0.55, radius: 0.48, volume: 0.3)
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.15, radius: 0.35, initialEnvelope: 0.55, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 0.85, radius: 0.55, initialEnvelope: 0.4),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.3, radius: 0.72, initialEnvelope: 0.25),
+                    source("风声", "wind", angle: .pi * 1.3, radius: 0.7, initialEnvelope: 0.15, enabled: false),
+                    source("炉火", "flame.fill", angle: .pi * 0.55, radius: 0.48, initialEnvelope: 0.3)
                 ]
             ),
             scene(
@@ -149,11 +149,11 @@ enum MockDataService {
                 listens: 9,
                 listeners: 687,
                 sources: [
-                    source("雪声", "snowflake", angle: .pi * 0.7, radius: 0.65, volume: 0.5),
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.75, volume: 0.3),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.35, radius: 0.4, volume: 0.35, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 1.25, radius: 0.52, volume: 0.28),
-                    source("翻页", "book.closed.fill", angle: .pi * 0.45, radius: 0.38, volume: 0.2)
+                    source("雪声", "snowflake", angle: .pi * 0.7, radius: 0.65, initialEnvelope: 0.5),
+                    source("风声", "wind", angle: .pi * 0.2, radius: 0.75, initialEnvelope: 0.3),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.35, radius: 0.4, initialEnvelope: 0.35, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 1.25, radius: 0.52, initialEnvelope: 0.28),
+                    source("翻页", "book.closed.fill", angle: .pi * 0.45, radius: 0.38, initialEnvelope: 0.2)
                 ]
             ),
             scene(
@@ -169,11 +169,11 @@ enum MockDataService {
                 listens: 7,
                 listeners: 412,
                 sources: [
-                    source("风声", "wind", angle: .pi * 0.25, radius: 0.6, volume: 0.7),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.8, radius: 0.55, volume: 0.4),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.42, volume: 0.3, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 1.35, radius: 0.58, volume: 0.22, enabled: false),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.55, radius: 0.78, volume: 0.15, enabled: false)
+                    source("风声", "wind", angle: .pi * 0.25, radius: 0.6, initialEnvelope: 0.7),
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.8, radius: 0.55, initialEnvelope: 0.4),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.42, initialEnvelope: 0.3, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 1.35, radius: 0.58, initialEnvelope: 0.22, enabled: false),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.55, radius: 0.78, initialEnvelope: 0.15, enabled: false)
                 ]
             ),
             scene(
@@ -189,11 +189,11 @@ enum MockDataService {
                 listens: 33,
                 listeners: 895,
                 sources: [
-                    source("呼吸", "wind.circle.fill", angle: -.pi * 0.1, radius: 0.35, volume: 0.65),
-                    source("人声", "person.wave.2.fill", angle: .pi * 0.9, radius: 0.45, volume: 0.45, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 0.35, radius: 0.62, volume: 0.3),
-                    source("风声", "wind", angle: .pi * 1.3, radius: 0.72, volume: 0.25),
-                    source("潮声", "water.waves", angle: .pi * 0.65, radius: 0.8, volume: 0.18, enabled: false)
+                    source("呼吸", "wind.circle.fill", angle: -.pi * 0.1, radius: 0.35, initialEnvelope: 0.65),
+                    source("人声", "person.wave.2.fill", angle: .pi * 0.9, radius: 0.45, initialEnvelope: 0.45, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 0.35, radius: 0.62, initialEnvelope: 0.3),
+                    source("风声", "wind", angle: .pi * 1.3, radius: 0.72, initialEnvelope: 0.25),
+                    source("潮声", "water.waves", angle: .pi * 0.65, radius: 0.8, initialEnvelope: 0.18, enabled: false)
                 ]
             ),
             scene(
@@ -209,11 +209,11 @@ enum MockDataService {
                 listens: 11,
                 listeners: 623,
                 sources: [
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.6, radius: 0.55, volume: 0.7),
-                    source("风声", "wind", angle: .pi * 0.15, radius: 0.7, volume: 0.3),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.35, radius: 0.42, volume: 0.35, layer: .voice),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 1.1, radius: 0.75, volume: 0.2, enabled: false),
-                    source("钢琴", "pianokeys", angle: .pi * 1.4, radius: 0.58, volume: 0.2)
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.6, radius: 0.55, initialEnvelope: 0.7),
+                    source("风声", "wind", angle: .pi * 0.15, radius: 0.7, initialEnvelope: 0.3),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.35, radius: 0.42, initialEnvelope: 0.35, layer: .voice),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 1.1, radius: 0.75, initialEnvelope: 0.2, enabled: false),
+                    source("钢琴", "pianokeys", angle: .pi * 1.4, radius: 0.58, initialEnvelope: 0.2)
                 ]
             ),
             scene(
@@ -229,11 +229,11 @@ enum MockDataService {
                 listens: 15,
                 listeners: 1344,
                 sources: [
-                    source("炉火", "flame.fill", angle: .pi * 0.55, radius: 0.4, volume: 0.65),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.38, volume: 0.5, layer: .voice),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.95, radius: 0.72, volume: 0.3),
-                    source("钢琴", "pianokeys", angle: .pi * 0.2, radius: 0.6, volume: 0.25),
-                    source("风声", "wind", angle: .pi * 1.35, radius: 0.75, volume: 0.18, enabled: false)
+                    source("炉火", "flame.fill", angle: .pi * 0.55, radius: 0.4, initialEnvelope: 0.65),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.38, initialEnvelope: 0.5, layer: .voice),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.95, radius: 0.72, initialEnvelope: 0.3),
+                    source("钢琴", "pianokeys", angle: .pi * 0.2, radius: 0.6, initialEnvelope: 0.25),
+                    source("风声", "wind", angle: .pi * 1.35, radius: 0.75, initialEnvelope: 0.18, enabled: false)
                 ]
             ),
             scene(
@@ -249,11 +249,11 @@ enum MockDataService {
                 listens: 8,
                 listeners: 426,
                 sources: [
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.68, volume: 0.35, resourceName: "wind_realistic"),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.9, radius: 0.55, volume: 0.4, resourceName: "rain_soft"),
-                    source("潮声", "water.waves", angle: .pi * 1.25, radius: 0.72, volume: 0.3, resourceName: "stream_nature"),
-                    source("钢琴", "pianokeys", angle: -.pi * 0.35, radius: 0.48, volume: 0.28),
-                    source("人声", "person.wave.2.fill", angle: .pi * 0.55, radius: 0.4, volume: 0.25, enabled: false, layer: .voice)
+                    source("风声", "wind", angle: .pi * 0.2, radius: 0.68, initialEnvelope: 0.35, resourceName: "wind_realistic"),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 0.9, radius: 0.55, initialEnvelope: 0.4, resourceName: "rain_soft"),
+                    source("潮声", "water.waves", angle: .pi * 1.25, radius: 0.72, initialEnvelope: 0.3, resourceName: "stream_nature"),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.35, radius: 0.48, initialEnvelope: 0.28),
+                    source("人声", "person.wave.2.fill", angle: .pi * 0.55, radius: 0.4, initialEnvelope: 0.25, enabled: false, layer: .voice)
                 ]
             )
         ])
@@ -268,7 +268,7 @@ enum MockDataService {
                 name: "底噪",
                 symbolName: "wind.circle.fill",
                 isEnabled: true,
-                volume: 0.18,
+                initialEnvelope: 0.18,
                 position: SpatialPosition(angle: .pi * 1.2, radius: 0.82),
                 resourceName: "ac_hum",
                 layer: .ambience
@@ -278,7 +278,7 @@ enum MockDataService {
                 name: "水循环",
                 symbolName: "drop.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: 0.4, radius: 0.78),
                 resourceName: "hair_wash_water_cycle",
                 layer: .environment
@@ -288,7 +288,7 @@ enum MockDataService {
                 name: "打湿",
                 symbolName: "drop.triangle.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.85, radius: 0.55),
                 resourceName: "hair_wash_wet",
                 layer: .trigger
@@ -298,7 +298,7 @@ enum MockDataService {
                 name: "起泡",
                 symbolName: "bubbles.and.sparkles",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.5, radius: 0.45),
                 resourceName: "hair_wash_foam_start",
                 layer: .trigger
@@ -308,7 +308,7 @@ enum MockDataService {
                 name: "泡沫揉洗",
                 symbolName: "hand.raised.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.9, radius: 0.48),
                 resourceName: "hair_wash_foam_rub",
                 layer: .ambience
@@ -318,7 +318,7 @@ enum MockDataService {
                 name: "头皮按摩",
                 symbolName: "hand.point.up.left.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.5, radius: 0.42),
                 resourceName: "hair_wash_scalp_foam",
                 layer: .ambience
@@ -328,7 +328,7 @@ enum MockDataService {
                 name: "冲洗",
                 symbolName: "shower.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.7, radius: 0.58),
                 resourceName: "hair_wash_rinse",
                 layer: .trigger
@@ -338,7 +338,7 @@ enum MockDataService {
                 name: "指腹按压",
                 symbolName: "hand.tap.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.5, radius: 0.4),
                 resourceName: "hair_wash_finger_massage",
                 layer: .ambience
@@ -348,7 +348,7 @@ enum MockDataService {
                 name: "毛巾",
                 symbolName: "rectangle.fill",
                 isEnabled: true,
-                volume: 0.01,
+                initialEnvelope: 0.01,
                 position: SpatialPosition(angle: .pi * 0.55, radius: 0.5),
                 resourceName: "hair_towel",
                 layer: .trigger
@@ -358,7 +358,7 @@ enum MockDataService {
                 name: "轻声陪伴",
                 symbolName: "person.wave.2.fill",
                 isEnabled: true,
-                volume: 0.48,
+                initialEnvelope: 0.48,
                 position: SpatialPosition(angle: -.pi * 0.25, radius: 0.36),
                 assetId: DemoIDs.seedMom,
                 resourceName: "voice_phrase_mom",
@@ -375,7 +375,7 @@ enum MockDataService {
                     resourceName: resource,
                     layer: s.layer,
                     loops: s.layer == .environment || s.layer == .ambience,
-                    defaultVolume: s.volume,
+                    initialEnvelope: s.initialEnvelope,
                     defaultPosition: s.position,
                     isRequired: s.layer == .ambience || s.layer == .voice
                 )
@@ -409,7 +409,7 @@ enum MockDataService {
                 name: "远雨",
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
-                volume: 0.22,
+                initialEnvelope: 0.22,
                 position: SpatialPosition(angle: -0.35, radius: 0.85),
                 resourceName: "rain_soft",
                 layer: .environment
@@ -419,7 +419,7 @@ enum MockDataService {
                 name: "檐下雨",
                 symbolName: "cloud.rain.fill",
                 isEnabled: false,
-                volume: 0.0,
+                initialEnvelope: 0.0,
                 position: SpatialPosition(angle: 0.7, radius: 0.62),
                 resourceName: "rain_parasol",
                 layer: .ambience
@@ -429,7 +429,7 @@ enum MockDataService {
                 name: "竹叶雨",
                 symbolName: "leaf.fill",
                 isEnabled: false,
-                volume: 0.0,
+                initialEnvelope: 0.0,
                 position: SpatialPosition(angle: -1.2, radius: 0.88),
                 resourceName: "rain_bamboo_leaf",
                 layer: .ambience
@@ -439,7 +439,7 @@ enum MockDataService {
                 name: "阵风",
                 symbolName: "wind",
                 isEnabled: false,
-                volume: 0.0,
+                initialEnvelope: 0.0,
                 position: SpatialPosition(angle: -2.4, radius: 0.95),
                 resourceName: "wind_gust",
                 layer: .trigger
@@ -455,7 +455,7 @@ enum MockDataService {
                     resourceName: resource,
                     layer: s.layer,
                     loops: s.layer != .trigger,
-                    defaultVolume: s.volume,
+                    initialEnvelope: s.initialEnvelope,
                     defaultPosition: s.position,
                     isRequired: s.id == DemoIDs.sourceRainSoftFar
                 )
@@ -598,10 +598,10 @@ enum MockDataService {
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("水循环", "drop.fill", angle: 0.4, radius: 0.55, volume: 0.32, resourceName: "hair_wash_water_cycle"),
-                    source("泡沫揉洗", "hand.raised.fill", angle: .pi * 0.9, radius: 0.48, volume: 0.3, resourceName: "hair_wash_foam_rub", layer: .ambience),
-                    source("底噪", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, volume: 0.18, resourceName: "ac_hum", layer: .ambience),
-                    source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, volume: 0.48, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
+                    source("水循环", "drop.fill", angle: 0.4, radius: 0.55, initialEnvelope: 0.32, resourceName: "hair_wash_water_cycle"),
+                    source("泡沫揉洗", "hand.raised.fill", angle: .pi * 0.9, radius: 0.48, initialEnvelope: 0.3, resourceName: "hair_wash_foam_rub", layer: .ambience),
+                    source("底噪", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, initialEnvelope: 0.18, resourceName: "ac_hum", layer: .ambience),
+                    source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, initialEnvelope: 0.48, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
                 ],
                 sceneId: DemoIDs.hairCareScene,
                 styleHint: SceneVisualStyle.hairCare.rawValue
@@ -613,10 +613,10 @@ enum MockDataService {
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("远雨", "cloud.drizzle.fill", angle: -0.35, radius: 0.85, volume: 0.22, resourceName: "rain_soft", layer: .environment),
-                    source("檐下雨", "cloud.rain.fill", angle: 0.7, radius: 0.62, volume: 0.4, resourceName: "rain_parasol", layer: .ambience),
-                    source("竹叶雨", "leaf.fill", angle: -1.2, radius: 0.88, volume: 0.27, resourceName: "rain_bamboo_leaf", layer: .ambience),
-                    source("阵风", "wind", angle: -2.4, radius: 0.95, volume: 0.20, resourceName: "wind_gust", layer: .trigger)
+                    source("远雨", "cloud.drizzle.fill", angle: -0.35, radius: 0.85, initialEnvelope: 0.22, resourceName: "rain_soft", layer: .environment),
+                    source("檐下雨", "cloud.rain.fill", angle: 0.7, radius: 0.62, initialEnvelope: 0.4, resourceName: "rain_parasol", layer: .ambience),
+                    source("竹叶雨", "leaf.fill", angle: -1.2, radius: 0.88, initialEnvelope: 0.27, resourceName: "rain_bamboo_leaf", layer: .ambience),
+                    source("阵风", "wind", angle: -2.4, radius: 0.95, initialEnvelope: 0.20, resourceName: "wind_gust", layer: .trigger)
                 ],
                 sceneId: DemoIDs.rainEavesScene,
                 styleHint: SceneVisualStyle.rainEaves.rawValue
@@ -628,10 +628,10 @@ enum MockDataService {
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.55, radius: 0.48, volume: 0.7),
-                    source("风声", "wind", angle: .pi * 0.15, radius: 0.72, volume: 0.32),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.36, volume: 0.42, layer: .voice),
-                    source("钢琴", "pianokeys", angle: .pi * 1.2, radius: 0.68, volume: 0.2)
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.55, radius: 0.48, initialEnvelope: 0.7),
+                    source("风声", "wind", angle: .pi * 0.15, radius: 0.72, initialEnvelope: 0.32),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.36, initialEnvelope: 0.42, layer: .voice),
+                    source("钢琴", "pianokeys", angle: .pi * 1.2, radius: 0.68, initialEnvelope: 0.2)
                 ],
                 sceneId: DemoIDs.firefliesScene,
                 styleHint: SceneVisualStyle.fireflies.rawValue
@@ -643,10 +643,10 @@ enum MockDataService {
                 authorType: .community,
                 authorName: "晚风拾句",
                 sources: [
-                    source("潮声", "water.waves", angle: .pi * 0.85, radius: 0.4, volume: 0.78),
-                    source("潮声", "water.waves", angle: -.pi * 0.2, radius: 0.82, volume: 0.3),
-                    source("风声", "wind", angle: .pi * 0.3, radius: 0.7, volume: 0.35),
-                    source("人声", "person.wave.2.fill", angle: .pi * 1.4, radius: 0.42, volume: 0.38, layer: .voice)
+                    source("潮声", "water.waves", angle: .pi * 0.85, radius: 0.4, initialEnvelope: 0.78),
+                    source("潮声", "water.waves", angle: -.pi * 0.2, radius: 0.82, initialEnvelope: 0.3),
+                    source("风声", "wind", angle: .pi * 0.3, radius: 0.7, initialEnvelope: 0.35),
+                    source("人声", "person.wave.2.fill", angle: .pi * 1.4, radius: 0.42, initialEnvelope: 0.38, layer: .voice)
                 ],
                 sceneId: DemoIDs.mistTideScene,
                 styleHint: SceneVisualStyle.mistTide.rawValue
@@ -658,10 +658,10 @@ enum MockDataService {
                 authorType: .community,
                 authorName: "小满夜读",
                 sources: [
-                    source("炉火", "flame.fill", angle: .pi * 0.5, radius: 0.32, volume: 0.72),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.2, radius: 0.36, volume: 0.55, layer: .voice),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 1.0, radius: 0.76, volume: 0.34),
-                    source("钢琴", "pianokeys", angle: .pi * 0.15, radius: 0.58, volume: 0.26)
+                    source("炉火", "flame.fill", angle: .pi * 0.5, radius: 0.32, initialEnvelope: 0.72),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.2, radius: 0.36, initialEnvelope: 0.55, layer: .voice),
+                    source("雨声", "cloud.rain.fill", angle: .pi * 1.0, radius: 0.76, initialEnvelope: 0.34),
+                    source("钢琴", "pianokeys", angle: .pi * 0.15, radius: 0.58, initialEnvelope: 0.26)
                 ],
                 sceneId: DemoIDs.fireplaceScene,
                 styleHint: SceneVisualStyle.fireplaceWhisper.rawValue
@@ -673,10 +673,10 @@ enum MockDataService {
                 authorType: .community,
                 authorName: "北岸",
                 sources: [
-                    source("钢琴", "pianokeys", angle: -.pi * 0.1, radius: 0.3, volume: 0.68),
-                    source("风声", "wind", angle: .pi * 0.4, radius: 0.74, volume: 0.28),
-                    source("人声", "person.wave.2.fill", angle: .pi * 1.15, radius: 0.5, volume: 0.32, layer: .voice),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.75, radius: 0.8, volume: 0.18)
+                    source("钢琴", "pianokeys", angle: -.pi * 0.1, radius: 0.3, initialEnvelope: 0.68),
+                    source("风声", "wind", angle: .pi * 0.4, radius: 0.74, initialEnvelope: 0.28),
+                    source("人声", "person.wave.2.fill", angle: .pi * 1.15, radius: 0.5, initialEnvelope: 0.32, layer: .voice),
+                    source("虫鸣", "leaf.fill", angle: .pi * 0.75, radius: 0.8, initialEnvelope: 0.18)
                 ],
                 sceneId: DemoIDs.starRiverScene,
                 styleHint: SceneVisualStyle.starRiver.rawValue
@@ -688,8 +688,8 @@ enum MockDataService {
                 authorType: .community,
                 authorName: "安然",
                 sources: [
-                    source("风声", "wind", angle: .pi * 0.25, radius: 0.55, volume: 0.45),
-                    source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.4, volume: 0.5, layer: .voice)
+                    source("风声", "wind", angle: .pi * 0.25, radius: 0.55, initialEnvelope: 0.45),
+                    source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.4, initialEnvelope: 0.5, layer: .voice)
                 ],
                 sceneId: DemoIDs.cloudBreathScene,
                 styleHint: SceneVisualStyle.cloudBreath.rawValue
@@ -758,7 +758,7 @@ enum MockDataService {
         _ symbol: String,
         angle: Double,
         radius: Double,
-        volume: Double = 0.7,
+        initialEnvelope: Double = 0.7,
         enabled: Bool = true,
         resourceName: String? = nil,
         layer: AudioLayerKind = .environment,
@@ -768,7 +768,7 @@ enum MockDataService {
             name: name,
             symbolName: symbol,
             isEnabled: enabled,
-            volume: volume,
+            initialEnvelope: initialEnvelope,
             position: SpatialPosition(angle: angle, radius: radius),
             assetId: assetId,
             resourceName: resourceName,

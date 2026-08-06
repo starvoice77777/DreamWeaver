@@ -158,18 +158,18 @@ struct SoundMixCircleEditor: View {
         return nodeChrome(
             symbol: source.symbolName,
             name: source.name,
-            volume: source.volume
+            gain: SpatialMixMapping.gain(for: source.position.radius)
         )
         .position(home)
         .accessibilityLabel("\(source.name)，空间位置展示")
         .accessibilityHint("播放时不可调整位置")
     }
 
-    private func nodeChrome(symbol: String, name: String, volume: Double) -> some View {
-        let scale = 0.78 + volume * 0.5
+    private func nodeChrome(symbol: String, name: String, gain: Double) -> some View {
+        let scale = 0.78 + gain * 0.5
         let iconSize: CGFloat = 14 * scale
         let side: CGFloat = 50 * scale
-        let textOpacity = 0.55 + volume * 0.4
+        let textOpacity = 0.55 + gain * 0.4
 
         return VStack(spacing: 2) {
             Image(systemName: symbol)
@@ -182,7 +182,7 @@ struct SoundMixCircleEditor: View {
         .frame(width: side, height: side)
         .dreamSpatialLiquidGlassCircle(
             accent: appState.currentScene.palette.accentColor,
-            intensity: 0.55 + volume * 0.45,
+            intensity: 0.55 + gain * 0.45,
             interactive: false
         )
     }

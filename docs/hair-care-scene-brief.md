@@ -9,7 +9,7 @@
 |----|------|
 | 总时长 | `duration_hint_seconds = 620`（约 10:20） |
 | 轨清单 | 底噪 `ac_hum` + A01/A02/A03/A04/A05/A07/A10/A11 对应短键；主流程**不用** A08/A09 |
-| 时间线 | version **4**：多句 `play_phrase` + 分层 `set_volume` / `fade_out` / `set_position` / `play_oneshot` |
+| 时间线 | version **5**：多句 `play_phrase` + 分层 `set_envelope` / `fade_out` / `set_position` / `play_oneshot` |
 | 人声 | 表内每句文本已写入 `phrases[].text`；音频暂统一绑 `voice_phrase_mom`（占位） |
 | 退出 | A01 渐弱至静音（约 10:12–10:20），与 PDF 一致 |
 
@@ -37,7 +37,7 @@
 | 缺口 | 影响 |
 |------|------|
 | **人声成品全部「未有」** | 无法验收真实台词听感；只能先占位。 |
-| **绝对音量未落到 0–1 / LUFS** | dB 相对人声有用，但仍需工程自行换算为客户端 `volume`。 |
+| **绝对音量未落到 0–1 / LUFS** | dB 相对人声有用，但仍需工程自行换算为素材响度基准；用户听感由圆盘半径决定。 |
 | **空间只有定性描述** | 「右侧偏远约 20%」未给稳定的 `angle`/`radius` 数值表，实现会有主观偏差。 |
 | **oneshot vs loop 切换规则偏软** | A01 / A01-L 等需工程猜何时切；最好直接给 cue 动作类型。 |
 | **fade_ms / ducking 未结构化** | 「人声出现时其他层暂降约 4 dB」未写成可解析事件。 |
@@ -79,7 +79,7 @@ gaps:
 
 ### C. `timeline.json` — 与客户端契约一致（见 `docs/scene-timeline-contract.md`）
 
-直接交付可校验的 `SceneTimeline`：`phrases[]` + `cues[]`（含 `play_phrase` / `play_oneshot` / `set_volume` / `set_position` / `fade_*`），并带：
+直接交付可校验的 `SceneTimeline`：`phrases[]` + `cues[]`（含 `play_phrase` / `play_oneshot` / `set_envelope` / `set_position` / `fade_*`），并带：
 
 - 稳定 UUID（phrase / cue / track）
 - `review_status`（人声授权）

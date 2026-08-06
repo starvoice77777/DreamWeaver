@@ -78,13 +78,9 @@ def _validate_keyframe(
 
     angle = _as_float(raw.get("angle"), "angle", track_id=track_id, keyframe_index=index)
     radius = _as_float(raw.get("radius"), "radius", track_id=track_id, keyframe_index=index)
-    volume = _as_float(raw.get("volume"), "volume", track_id=track_id, keyframe_index=index)
     if radius < 0 or radius > 1:
         _fail("radius must be in [0, 1]", track_id=track_id, keyframe_index=index)
-    if volume < 0 or volume > 1:
-        _fail("volume must be in [0, 1]", track_id=track_id, keyframe_index=index)
-
-    return {"t": t, "angle": angle, "radius": radius, "volume": volume}
+    return {"t": t, "angle": angle, "radius": radius}
 
 
 def _validate_track(raw: Any, index: int) -> dict[str, Any]:

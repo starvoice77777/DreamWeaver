@@ -116,14 +116,14 @@ enum SceneCompositionMapper {
                 defaultPosition: source.defaultPosition
             )
             let radius = min(max(hypot(point.x, point.y), 0), 1)
-            let angle = atan2(-point.y, point.x)
+            let angle = atan2(point.x, -point.y)
             let inWindow = time >= source.audioStartTime && time < source.audioEndTime
             return SoundSource(
                 id: source.id,
                 name: source.name,
                 symbolName: source.iconName,
                 isEnabled: inWindow,
-                volume: inWindow ? 0.55 : 0,
+                initialEnvelope: inWindow ? 1 : 0,
                 position: SpatialPosition(angle: angle, radius: radius),
                 resourceName: key,
                 // Preview uses continuous players; official `.voice` oneshots need a timeline.
@@ -213,8 +213,7 @@ enum SceneCompositionMapper {
                 APIContentDTO.CompositionKeyframe(
                     t: t,
                     angle: polar.angle,
-                    radius: polar.radius,
-                    volume: 0.5
+                    radius: polar.radius
                 )
             )
             lastT = t
@@ -226,23 +225,22 @@ enum SceneCompositionMapper {
                 APIContentDTO.CompositionKeyframe(
                     t: start,
                     angle: polar.angle,
-                    radius: polar.radius,
-                    volume: 0.5
+                    radius: polar.radius
                 )
             ]
         }
         return frames
     }
 
-    /// Canvas coords match Create seed: x = cos(angle)*r, y = -sin(angle)*r.
+    /// Canvas coords match the shared API contract: 0 is front / screen-up.
     private static func polar(from point: CGPoint) -> (angle: Double, radius: Double) {
         let radius = min(max(hypot(point.x, point.y), 0), 1)
-        let angle = atan2(-point.y, point.x)
+        let angle = atan2(point.x, -point.y)
         return (angle, radius)
     }
 
     private static func point(angle: Double, radius: Double) -> CGPoint {
         let r = min(max(radius, 0), 1)
-        return CGPoint(x: cos(angle) * r, y: -sin(angle) * r)
+        return CGPoint(x: sin(angle) * r, y: -cos(angle) * r)
     }
 }

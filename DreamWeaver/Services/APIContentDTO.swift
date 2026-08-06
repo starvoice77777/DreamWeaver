@@ -19,11 +19,31 @@ enum APIContentDTO {
         let name: String
         let symbol_name: String
         let layer: String
-        let volume: Double
+        let initial_envelope: Double
         let position: SpatialPosition
         let resource_key: String?
         let loop: Bool?
         let enabled_by_default: Bool?
+
+        private enum CodingKeys: String, CodingKey {
+            case id, name, symbol_name, layer, initial_envelope, volume
+            case position, resource_key, loop, enabled_by_default
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            name = try container.decode(String.self, forKey: .name)
+            symbol_name = try container.decode(String.self, forKey: .symbol_name)
+            layer = try container.decode(String.self, forKey: .layer)
+            initial_envelope = try container.decodeIfPresent(Double.self, forKey: .initial_envelope)
+                ?? container.decodeIfPresent(Double.self, forKey: .volume)
+                ?? 1
+            position = try container.decode(SpatialPosition.self, forKey: .position)
+            resource_key = try container.decodeIfPresent(String.self, forKey: .resource_key)
+            loop = try container.decodeIfPresent(Bool.self, forKey: .loop)
+            enabled_by_default = try container.decodeIfPresent(Bool.self, forKey: .enabled_by_default)
+        }
     }
 
     struct SceneSummary: Decodable {
@@ -78,11 +98,61 @@ enum APIContentDTO {
         let type: String
         let phrase_id: UUID?
         let track_id: UUID?
-        let volume: Double?
+        let envelope: Double?
         let fade_ms: Int?
         let angle: Double?
         let radius: Double?
         let resource_key: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case type, phrase_id, track_id, envelope, volume, fade_ms, angle, radius, resource_key
+        }
+
+        init(
+            type: String,
+            phrase_id: UUID? = nil,
+            track_id: UUID? = nil,
+            envelope: Double? = nil,
+            fade_ms: Int? = nil,
+            angle: Double? = nil,
+            radius: Double? = nil,
+            resource_key: String? = nil
+        ) {
+            self.type = type == "set_volume" ? "set_envelope" : type
+            self.phrase_id = phrase_id
+            self.track_id = track_id
+            self.envelope = envelope
+            self.fade_ms = fade_ms
+            self.angle = angle
+            self.radius = radius
+            self.resource_key = resource_key
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let rawType = try container.decode(String.self, forKey: .type)
+            type = rawType == "set_volume" ? "set_envelope" : rawType
+            phrase_id = try container.decodeIfPresent(UUID.self, forKey: .phrase_id)
+            track_id = try container.decodeIfPresent(UUID.self, forKey: .track_id)
+            envelope = try container.decodeIfPresent(Double.self, forKey: .envelope)
+                ?? container.decodeIfPresent(Double.self, forKey: .volume)
+            fade_ms = try container.decodeIfPresent(Int.self, forKey: .fade_ms)
+            angle = try container.decodeIfPresent(Double.self, forKey: .angle)
+            radius = try container.decodeIfPresent(Double.self, forKey: .radius)
+            resource_key = try container.decodeIfPresent(String.self, forKey: .resource_key)
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(type, forKey: .type)
+            try container.encodeIfPresent(phrase_id, forKey: .phrase_id)
+            try container.encodeIfPresent(track_id, forKey: .track_id)
+            try container.encodeIfPresent(envelope, forKey: .envelope)
+            try container.encodeIfPresent(fade_ms, forKey: .fade_ms)
+            try container.encodeIfPresent(angle, forKey: .angle)
+            try container.encodeIfPresent(radius, forKey: .radius)
+            try container.encodeIfPresent(resource_key, forKey: .resource_key)
+        }
     }
 
     struct Cue: Codable, Hashable, Identifiable {
@@ -118,7 +188,7 @@ enum APIContentDTO {
         let name: String
         let symbolName: String?
         let symbol_name: String?
-        let volume: Double?
+        let initialEnvelope: Double?
         let resourceName: String?
         let resource_name: String?
         let layer: String?
@@ -277,7 +347,6 @@ enum APIContentDTO {
         let t: Double
         let angle: Double
         let radius: Double
-        let volume: Double
     }
 
     struct PrivateSceneCreate: Encodable {
@@ -304,7 +373,7 @@ enum APIContentDTO {
         let name: String
         let symbolName: String
         let layer: String
-        let volume: Double
+        let initialEnvelope: Double
         let position: SpatialPosition
         let resourceName: String?
         let isEnabled: Bool
@@ -443,7 +512,7 @@ enum APIContentMapper {
                     resourceName: track.resource_key ?? "",
                     layer: audioLayer(track.layer),
                     loops: track.loop ?? true,
-                    defaultVolume: track.volume,
+                    initialEnvelope: track.initial_envelope,
                     defaultPosition: SpatialPosition(
                         angle: track.position.angle,
                         radius: track.position.radius
@@ -543,7 +612,7 @@ enum APIContentMapper {
             name: source.name,
             symbolName: source.symbolName,
             layer: source.layer.rawValue,
-            volume: source.volume,
+            initialEnvelope: source.initialEnvelope,
             position: APIContentDTO.SpatialPosition(
                 angle: source.position.angle,
                 radius: source.position.radius
@@ -652,7 +721,7 @@ enum APIContentMapper {
             name: track.name,
             symbolName: track.symbol_name,
             isEnabled: track.enabled_by_default ?? true,
-            volume: track.volume,
+            initialEnvelope: track.initial_envelope,
             position: SpatialPosition(angle: track.position.angle, radius: track.position.radius),
             assetId: nil,
             resourceName: track.resource_key,
@@ -674,7 +743,7 @@ enum APIContentMapper {
             name: source.name,
             symbolName: symbol,
             isEnabled: source.isEnabled ?? true,
-            volume: source.volume ?? 0.7,
+            initialEnvelope: source.initialEnvelope ?? 1,
             position: position,
             resourceName: resource,
             layer: layer

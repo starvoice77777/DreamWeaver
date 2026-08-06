@@ -48,7 +48,7 @@ protocol PlaybackService: AnyObject {
     func play()
     func pause()
     func stop()
-    func updateSource(id: UUID, volume: Double, position: SpatialPosition, enabled: Bool)
+    func updateSource(id: UUID, position: SpatialPosition, enabled: Bool)
     func syncSources(_ sources: [SoundSource])
     /// Mark a track as user-edited so timeline automation skips it.
     func markManualOverride(trackId: UUID)

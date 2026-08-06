@@ -20,8 +20,8 @@ def _valid_composition(*, end_seconds: float = 120.0, keyframes: list[dict] | No
                 "source_duration_seconds": 30.0,
                 "keyframes": keyframes
                 or [
-                    {"t": 0.0, "angle": 0.5, "radius": 0.8, "volume": 0.4},
-                    {"t": end_seconds / 2, "angle": 2.0, "radius": 0.35, "volume": 0.5},
+                    {"t": 0.0, "angle": 0.5, "radius": 0.8},
+                    {"t": end_seconds / 2, "angle": 2.0, "radius": 0.35},
                 ],
             }
         ],
@@ -51,8 +51,8 @@ def test_validate_composition_rejects_non_increasing_keyframes() -> None:
 
     doc = _valid_composition(
         keyframes=[
-            {"t": 0.0, "angle": 0.0, "radius": 0.5, "volume": 0.5},
-            {"t": 0.0, "angle": 1.0, "radius": 0.5, "volume": 0.5},
+            {"t": 0.0, "angle": 0.0, "radius": 0.5},
+            {"t": 0.0, "angle": 1.0, "radius": 0.5},
         ]
     )
     try:
@@ -107,8 +107,8 @@ async def test_compositions_validate_endpoint(client) -> None:
         json={
             "composition": _valid_composition(
                 keyframes=[
-                    {"t": 10.0, "angle": 0.0, "radius": 0.5, "volume": 0.5},
-                    {"t": 5.0, "angle": 1.0, "radius": 0.5, "volume": 0.5},
+                    {"t": 10.0, "angle": 0.0, "radius": 0.5},
+                    {"t": 5.0, "angle": 1.0, "radius": 0.5},
                 ]
             )
         },
@@ -163,7 +163,7 @@ async def test_private_scene_draft_and_save_composition(client) -> None:
                         "start_seconds": 0,
                         "end_seconds": 10,
                         "keyframes": [
-                            {"t": 20.0, "angle": 0.0, "radius": 0.5, "volume": 0.5},
+                            {"t": 20.0, "angle": 0.0, "radius": 0.5},
                         ],
                     }
                 ],

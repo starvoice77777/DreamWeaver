@@ -21,8 +21,8 @@ from app.schemas.content import (
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
-HAIR_CARE_TIMELINE_VERSION = 4
-RAIN_EAVES_TIMELINE_VERSION = 8
+HAIR_CARE_TIMELINE_VERSION = 5
+RAIN_EAVES_TIMELINE_VERSION = 9
 _HAIR_FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
 )
@@ -161,7 +161,7 @@ def build_official_timeline_payload(scene: Scene) -> dict:
 
 
 async def ensure_official_timelines(session: AsyncSession) -> None:
-    """Insert missing timelines; upgrade hairCare / rainEaves when behind fixture version."""
+    """Insert missing timelines and refresh changed official fixture contracts."""
     from sqlalchemy.orm import selectinload
 
     result = await session.scalars(
