@@ -413,10 +413,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 phrase.voice_binding.track_id.map { (phrase.id, $0) }
             }
         )
-        let controlledIDs = Set((timeline?.cues ?? []).flatMap(\.actions).compactMap { action in
-            guard activationTypes.contains(action.type) else { return nil }
-            return action.track_id ?? action.phrase_id.flatMap { phraseTracks[$0] }
-        })
+        let controlledIDs: Set<UUID> = Set(
+            (timeline?.cues ?? []).flatMap(\.actions).compactMap { action -> UUID? in
+                guard activationTypes.contains(action.type) else { return nil }
+                return action.track_id ?? action.phrase_id.flatMap { phraseTracks[$0] }
+            }
+        )
         for id in controlledIDs {
             guard var source = currentSources[id] else { continue }
             source.isEnabled = false
