@@ -53,7 +53,7 @@ def scene_to_detail(scene: Scene) -> SceneDetailOut:
             name=track.name,
             symbol_name=track.symbol_name,
             layer=track.layer,
-            volume=track.volume,
+            initial_envelope=track.initial_envelope,
             position=SpatialPositionOut(angle=track.angle, radius=track.radius),
             resource_key=track.resource_key,
             loop=track.loop,

@@ -468,7 +468,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 defaultPosition: editorSource.defaultPosition
             )
             let radius = min(max(Double(hypot(point.x, point.y)), 0), 1)
-            let angle = atan2(Double(-point.y), Double(point.x))
+            let angle = atan2(Double(point.x), Double(-point.y))
             let layer: AudioLayerKind = {
                 if editorSource.isVoice { return .voice }
                 if let layer = baseSource?.layer { return layer }
@@ -488,7 +488,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 name: editorSource.name,
                 symbolName: editorSource.iconName,
                 isEnabled: true,
-                volume: max(baseSource?.volume ?? 0.55, 0.1),
+                initialEnvelope: 1,
                 position: SpatialPosition(angle: angle, radius: radius),
                 assetId: baseSource?.assetId,
                 resourceName: resourceName,
@@ -611,7 +611,6 @@ final class SpatialTimelineViewModel: ObservableObject {
             for source in sources {
                 previewPlayback.updateSource(
                     id: source.id,
-                    volume: source.volume,
                     position: source.position,
                     enabled: source.isEnabled
                 )

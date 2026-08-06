@@ -60,7 +60,7 @@ Schema：`1`
 ### PlaybackService
 - `load(scene:sources:)`
 - `play()` / `pause()` / `stop()`
-- `updateSource(id:volume:pan:enabled:)`
+- `updateSource(id:position:enabled:)`
 - `preview(assetId:resourceName:)`
 - `startSleepTimer(option:accelerated:)`
 - `performLayeredFade(phases:)`

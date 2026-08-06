@@ -572,7 +572,6 @@ final class AppState: ObservableObject {
         guard let source = currentScene.soundSources.first(where: { $0.id == id }) else { return }
         playback.updateSource(
             id: source.id,
-            volume: source.volume,
             position: source.position,
             enabled: source.isEnabled
         )
@@ -596,7 +595,6 @@ final class AppState: ObservableObject {
                         sources[i].position = source.position
                     }
                     sources[i].isEnabled = source.isEnabled
-                    sources[i].volume = source.volume
                     if sources[i].resourceName == nil {
                         sources[i].resourceName = source.resourceName
                     }
@@ -890,22 +888,8 @@ final class AppState: ObservableObject {
 
     // MARK: - Sound mix
 
-    func updateSourceVolume(id: UUID, volume: Double) {
-        guard mixBoardSelection.isMine else { return }
-        mutateCurrentSources { sources in
-            if let i = sources.firstIndex(where: { $0.id == id }) {
-                sources[i].volume = volume
-            }
-        }
-        syncPersonalMixFromScene()
-        pushSourceToPlayback(id: id)
-        noteManualMixOverride(trackId: id)
-        markMixInteraction()
-    }
-
     func updateSourcePlacement(id: UUID, position: SpatialPosition) {
         guard mixBoardSelection.isMine else { return }
-        // Distance attenuation comes from AVAudioEnvironmentNode; keep mix gain as-is.
         mutateCurrentSources { sources in
             if let i = sources.firstIndex(where: { $0.id == id }) {
                 sources[i].position = position
@@ -917,11 +901,6 @@ final class AppState: ObservableObject {
         noteManualMixOverride(trackId: id)
         markMixInteraction()
         Task { try? await analyticsService.record(.mixEdited(sceneId: currentSceneId)) }
-    }
-
-    /// Default mix gain for newly dropped sources (distance is spatialized separately).
-    static func volume(fromRadius _: Double) -> Double {
-        SpatialMixMapping.defaultMixGain
     }
 
     func toggleSource(id: UUID) {
@@ -1075,7 +1054,7 @@ final class AppState: ObservableObject {
                 name: source.name,
                 symbolName: source.symbolName,
                 isEnabled: forceEnabled ? true : source.isEnabled,
-                volume: source.volume,
+                initialEnvelope: source.initialEnvelope,
                 position: position,
                 assetId: source.assetId,
                 resourceName: source.resourceName,
@@ -1105,7 +1084,7 @@ final class AppState: ObservableObject {
                 symbolName: overlay.symbolName,
                 // Keep catalog enable flags so timeline can reveal / hide chips over time.
                 isEnabled: track.isEnabled,
-                volume: overlay.volume,
+                initialEnvelope: track.initialEnvelope,
                 position: position,
                 assetId: overlay.assetId ?? track.assetId,
                 resourceName: track.resourceName,
@@ -1162,7 +1141,7 @@ final class AppState: ObservableObject {
                 resourceName: resourceName,
                 layer: source.layer,
                 loops: source.layer != .voice && source.layer != .trigger,
-                defaultVolume: source.volume,
+                initialEnvelope: source.initialEnvelope,
                 defaultPosition: source.position,
                 isRequired: false
             )

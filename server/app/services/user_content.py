@@ -220,7 +220,7 @@ def _tracks_as_sources(scene: Scene) -> list[dict]:
             "name": track.name,
             "symbolName": track.symbol_name,
             "layer": track.layer,
-            "volume": track.volume,
+            "initialEnvelope": track.initial_envelope,
             "position": {"angle": track.angle, "radius": track.radius},
             "resourceName": track.resource_key,
             "isEnabled": track.enabled_by_default,

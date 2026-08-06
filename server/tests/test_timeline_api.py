@@ -67,7 +67,7 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
     assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
-    assert body["version"] == 8
+    assert body["version"] == 9
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
     assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
@@ -81,17 +81,17 @@ async def test_scene_timeline_rain_eaves(client) -> None:
         for c in body["cues"]
         for a in c.get("actions", [])
     )
-    assert any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
+    assert any(a["type"] == "set_envelope" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "set_position" for c in body["cues"] for a in c["actions"])
     # Package sc_rain_v1 v8: soft fade-in 0.22; parasol enters farther; A04 wind_gust oneshots
-    soft_vols = [
-        a["volume"]
+    soft_envelopes = [
+        a["envelope"]
         for c in body["cues"]
         for a in c.get("actions", [])
-        if a.get("type") == "set_volume" and a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
+        if a.get("type") == "set_envelope" and a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
     ]
-    assert 0.22 in soft_vols
+    assert 0.22 in soft_envelopes
     parasol_enter = next(
         a
         for c in body["cues"]

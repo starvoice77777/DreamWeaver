@@ -5,7 +5,9 @@ struct SoundSource: Identifiable, Hashable, Codable {
     var name: String
     var symbolName: String
     var isEnabled: Bool
-    var volume: Double
+    /// Internal scene automation level. User-controlled loudness is derived
+    /// solely from `position.radius`.
+    var initialEnvelope: Double
     var position: SpatialPosition
     var assetId: UUID?
     /// Bundle resource name without forcing extension resolution in UI.
@@ -17,7 +19,7 @@ struct SoundSource: Identifiable, Hashable, Codable {
         name: String,
         symbolName: String,
         isEnabled: Bool = true,
-        volume: Double = 0.7,
+        initialEnvelope: Double = 1,
         position: SpatialPosition = .default,
         assetId: UUID? = nil,
         resourceName: String? = nil,
@@ -27,7 +29,7 @@ struct SoundSource: Identifiable, Hashable, Codable {
         self.name = name
         self.symbolName = symbolName
         self.isEnabled = isEnabled
-        self.volume = volume
+        self.initialEnvelope = min(max(initialEnvelope, 0), 1)
         self.position = position
         self.assetId = assetId
         self.resourceName = resourceName
@@ -35,7 +37,7 @@ struct SoundSource: Identifiable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, symbolName, isEnabled, volume, position, assetId, resourceName, layer
+        case id, name, symbolName, isEnabled, initialEnvelope, position, assetId, resourceName, layer
     }
 
     init(from decoder: Decoder) throws {
@@ -44,7 +46,9 @@ struct SoundSource: Identifiable, Hashable, Codable {
         name = try c.decode(String.self, forKey: .name)
         symbolName = try c.decode(String.self, forKey: .symbolName)
         isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        volume = try c.decodeIfPresent(Double.self, forKey: .volume) ?? 0.7
+        // Legacy `volume` fields are ignored by this decoder. Old personal
+        // mixes therefore adopt the new radius-driven loudness model.
+        initialEnvelope = try c.decodeIfPresent(Double.self, forKey: .initialEnvelope) ?? 1
         position = try c.decodeIfPresent(SpatialPosition.self, forKey: .position) ?? .default
         assetId = try c.decodeIfPresent(UUID.self, forKey: .assetId)
         resourceName = try c.decodeIfPresent(String.self, forKey: .resourceName)

@@ -81,7 +81,7 @@
 | `play_oneshot` | 从头播放指定轨一次（动作/触感触发音；不循环） |
 | `play` / `pause` | 启停轨 |
 | `fade_in` / `fade_out` | 淡入淡出（`fade_ms`） |
-| `set_volume` | 目标音量（`volume` + 可选 `fade_ms`） |
+| `set_envelope` | 内部自动包络（`envelope` + 可选 `fade_ms`）；不是用户混音控制 |
 | `set_position` | 空间位置（`angle` / `radius`；客户端可映射为 `move`） |
 | `enable` / `disable` | 启用/禁用轨 |
 | `replace_source` | 换源（`resource_key` / `asset_id`） |
@@ -104,7 +104,7 @@
 
 ## 4. 官方种子
 
-- 「洗头陪伴」：脚本 **v4**（约 620s），见 `docs/hair-care-scene-brief.md` 与 `hair_care_timeline_v4.json`；多句 `play_phrase` + 分层 `play_oneshot` / `set_volume` / `set_position`（人声母带未齐前用 `voice_phrase_mom` 占位）。
+- 「洗头陪伴」：脚本 **v4**（约 620s），见 `docs/hair-care-scene-brief.md` 与 `hair_care_timeline_v4.json`；多句 `play_phrase` + 分层 `play_oneshot` / `set_envelope` / `set_position`（人声母带未齐前用 `voice_phrase_mom` 占位）。
 - 「檐下听雨」：`rain_eaves_timeline_v8`（约 620s，`phrases: []`；对齐素材包 sc_rain_v1 v8；远雨 / 近雨 / 竹叶雨分层 cue + `wind_gust` `play_oneshot` @ 188s/458s；空间关键帧展开为 `set_position`）。
 - 其他含 voice 轨的场景：最小首句 + 28s 重复。
 - 无 voice 轨：空 `phrases` / `cues`，仍返回合法文档壳。

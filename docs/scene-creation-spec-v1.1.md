@@ -113,7 +113,7 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 1. 先写“短句 + 长留白”稿，任意 30 秒最多 1 句；成品短句建议 5–12 秒。
 2. 每句建立独立 `phrase_id`，记录文本、真实音频时长、`review_status` 与 `voice_binding`。
 3. 人声只能使用 `official_resource`、`system` 或已授权的 `authorized_asset`。
-4. 每句人声开始时，必须用明确的 `set_volume` cue 使环境轨 duck；句尾真实时长 + 300ms 后恢复。
+4. 每句人声开始时，必须用明确的 `set_envelope` cue 使环境轨 duck；句尾真实时长 + 300ms 后恢复。
 5. 喷雾、毛巾、按压等动作为 `play_oneshot`；不循环。
 6. 人声未交付时，`asset_status` 必须为 `planned` / `ref`，占位资源仅供演示。
 
@@ -123,8 +123,8 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 
 1. `phrases` 固定为 `[]`，不绑定 voice 轨。
 2. 使用 2–3 条轨：底层环境、主特征环境、可选缓慢变化轨。
-3. 时间线可使用 `play`、`set_volume`、`set_position`、`fade_in`、`fade_out`。
-4. 变化间隔至少 90 秒，单次 `volume` 变化不超过 0.08；不得使用突然事件、音乐、雷声、鸟叫或快速绕头。
+3. 时间线可使用 `play`、`set_envelope`、`set_position`、`fade_in`、`fade_out`。
+4. 变化间隔至少 90 秒，单次自动 `envelope` 变化不超过 0.08；不得使用突然事件、音乐、雷声、鸟叫或快速绕头。
 5. 结尾只可整体淡出，或平滑接入用户已选底噪；不得硬停。
 
 ---
@@ -144,8 +144,10 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 | --- | --- | --- |
 | `angle` | `-π…π`，单位为**弧度** | `0` 正前，`-π/2` 左侧，`π/2` 右侧，`±π` 后方 |
 | `radius` | `0…1` | `0` 近，`1` 远 |
-| `volume` | `0…1` | 客户端最终播放增益 |
-| `fade_ms` | 正整数毫秒 | 淡入、淡出、音量变化的过渡时间 |
+| `initial_envelope` | `0…1` | 仅供官方时间轴的初始自动包络；不作为用户混音字段 |
+| `fade_ms` | 正整数毫秒 | 淡入、淡出、自动包络变化的过渡时间 |
+
+用户可感知的响度只由 `radius` 计算：`gain = 0.18 ^ radius`。因此同一半径必有相同用户增益；`initial_envelope` 与 `set_envelope` 仅用于官方脚本的暂态淡入、淡出和 ducking。
 
 面向人填写的协同表可以用“左侧 / 右前 / 偏远”或角度制；**导入 JSON 前由产品/后端换算成弧度**，JSON 中不得写 `90`、`180` 等度数。
 
@@ -158,7 +160,7 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 | `play_phrase` | `phrase_id`、`track_id` |
 | `play_oneshot` | `track_id` |
 | `play` / `pause` | `track_id` |
-| `set_volume` | `track_id`、`volume`、`fade_ms` |
+| `set_envelope` | `track_id`、`envelope`、`fade_ms` |
 | `set_position` | `track_id`、`angle`（弧度）、`radius` |
 | `fade_in` / `fade_out` | `track_id`、`fade_ms` |
 | `enable` / `disable` | `track_id` |
@@ -186,7 +188,7 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 
 ### 8.3 音量、动态与声学质量规范
 
-**处理原则：先统一素材自身响度，再用 `timeline.json` 的 `volume` 完成场景层级。** 不允许用“把某条轨调到 0.95、另一条调到 0.06”补救来源响度失衡。
+**处理原则：先统一素材自身响度；用户听感音量由圆盘 `radius` 决定，`timeline.json` 只可用自动 `envelope` 做渐变。** 不允许用极端自动包络补救来源响度失衡。
 
 | 类型 | 交付综合响度 | 真峰值 | 动态 / 细节要求 | 默认工程音量起点 |
 | --- | --- | --- | --- |
@@ -249,7 +251,7 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 
 1. `timeline.json` 通过 `timeline-contract-v1` schema 校验。
 2. 全部 cue / phrase 引用的 `track_id` 存在于 `tracks.csv`。
-3. `angle` 是弧度且在 `-π…π`，`radius`、`volume`、`fade_ms` 合法。
+3. `angle` 是弧度且在 `-π…π`，`radius`、`envelope`、`fade_ms` 合法。
 4. 正式场景引用的轨均为 `asset_status=master` 且 `license_status=approved`。
 5. `loop=true` 的轨已验收循环，或有 `requires_engine_crossfade=true`。
 

@@ -165,9 +165,8 @@ async def test_patch_favorite_and_delete_impact(client) -> None:
                         "name": "引用音",
                         "symbolName": "waveform",
                         "assetId": asset_id,
-                        "volume": 0.5,
                     },
-                    {"name": "无关音", "symbolName": "drop", "volume": 0.3},
+                    {"name": "无关音", "symbolName": "drop"},
                 ],
             },
         )

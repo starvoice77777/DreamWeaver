@@ -48,8 +48,8 @@
       "end_seconds": 120.0,
       "source_duration_seconds": 30.0,
       "keyframes": [
-        { "t": 0.0, "angle": 0.5, "radius": 0.8, "volume": 0.4 },
-        { "t": 60.0, "angle": 2.0, "radius": 0.35, "volume": 0.5 }
+        { "t": 0.0, "angle": 0.5, "radius": 0.8 },
+        { "t": 60.0, "angle": 2.0, "radius": 0.35 }
       ]
     }
   ]
@@ -70,7 +70,7 @@
 | `start_seconds` / `end_seconds` | 轨在场景轴上的起止；须 `end > start` |
 | `source_duration_seconds` | 素材原始时长（可选，UI 展示） |
 | `keyframes[].t` | 相对场景开始的秒；落在 `[start_seconds, end_seconds]` |
-| `angle` / `radius` / `volume` | 空间与音量；`radius`/`volume` ∈ `[0,1]` |
+| `angle` / `radius` | 空间位置；`radius` ∈ `[0,1]`，并直接决定用户可感知的响度 |
 
 ## 4. 校验规则（服务端）
 
@@ -79,7 +79,7 @@
 3. 每轨：`id` 合法 UUID；`end_seconds > start_seconds`；`start_seconds ≥ 0`。
 4. `asset_id` 与 `resource_key` 不能同时为空。
 5. 关键帧：至少 1 个；按 `t` **严格升序**（相等则 400）；每个 `t` ∈ `[start, end]`。
-6. `radius`、`volume` ∈ `[0, 1]`；`angle` 为有限浮点。
+6. `radius` ∈ `[0, 1]`；`angle` 为有限浮点。
 7. 校验成功后写回 `duration_seconds = max(end_seconds)`。
 8. **不做**路径禁区 / 中心穿越几何校验（产品已取消）。
 
@@ -101,10 +101,9 @@
 
 - `u = (t - t_i) / (t_{i+1} - t_i)`
 - `radius = lerp(r_i, r_{i+1}, u)`
-- `volume = lerp(v_i, v_{i+1}, u)`
 - `angle = angle_i + shortest_delta(angle_i, angle_{i+1}) * u`
 
-允许路径经过圆心（`radius → 0`）。结果映射现有 `SoundSource.position`。建议 30–60 Hz 采样，**不写回库**。
+允许路径经过圆心（`radius → 0`）。响度由每个采样点的半径直接计算；结果映射现有 `SoundSource.position`。建议 30–60 Hz 采样，**不写回库**。
 
 ## 6. 客户端约定（一期 UX，已与前端对齐）
 
