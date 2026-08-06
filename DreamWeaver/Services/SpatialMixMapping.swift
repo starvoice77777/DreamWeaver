@@ -17,9 +17,13 @@ enum SpatialMixMapping {
     /// direction/HRTF. Loudness is calculated from board radius exactly once.
     static let directionalDistanceMeters: Float = 1.0
 
-    /// Gain at the outer edge of the board. The curve is exponential so the
-    /// center stays expressive while distant sources remain audible.
-    static let farEdgeGain: Double = 0.18
+    /// Gain at the outer edge of the board. At -40 dB it is effectively silent,
+    /// so removing a source just beyond the disk does not create an audible jump.
+    static let farEdgeGain: Double = 0.01
+
+    /// Shapes the radial fade while preserving useful resolution near the listener.
+    /// Values above 1 make the outer part of the disk fall away more quickly.
+    static let radialFalloffExponent: Double = 1.5
 
     /// Soft send into the environment's factory reverb.
     static let sourceReverbBlend: Float = 0.14
@@ -36,7 +40,9 @@ enum SpatialMixMapping {
     /// Deterministic user gain for a point on the mix disk.
     /// Equal radii always return equal gains, regardless of bearing.
     static func gain(for radius: Double) -> Double {
-        pow(farEdgeGain, radiusNormalized(radius))
+        let remainingDistance = 1 - radiusNormalized(radius)
+        return farEdgeGain
+            + (1 - farEdgeGain) * pow(remainingDistance, radialFalloffExponent)
     }
 
     static func configureEnvironment(_ environment: AVAudioEnvironmentNode) {
