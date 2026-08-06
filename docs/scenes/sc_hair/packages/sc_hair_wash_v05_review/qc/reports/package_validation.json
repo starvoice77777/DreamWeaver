@@ -1,0 +1,242 @@
+{
+  "package": "D:\\文档\\DreamWeaver\\sc_hair_wash_v05_review",
+  "scene_id": "sc_hair_wash_v05",
+  "passed": true,
+  "errors": [],
+  "warnings": [],
+  "checked_tracks": 29,
+  "checked_audio": [
+    {
+      "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+      "file": "dw_ref_env_hair_wash_water_cycle_loop_sc_hair_far_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 48.75
+    },
+    {
+      "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+      "file": "dw_ref_env_hair_wash_wet_oneshot_sc_hair_wet_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 29.975
+    },
+    {
+      "track_id": "94054d67-d558-5f60-90b4-5370ec3b73fc",
+      "file": "dw_ref_trg_hair_wash_foam_start_oneshot_sc_hair_near_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.4
+    },
+    {
+      "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+      "file": "dw_ref_amb_hair_wash_foam_rub_loop_sc_hair_near_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 108.75
+    },
+    {
+      "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+      "file": "dw_ref_amb_hair_wash_scalp_foam_loop_sc_hair_near_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 108.75
+    },
+    {
+      "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+      "file": "dw_ref_env_hair_wash_rinse_oneshot_sc_hair_wet_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 44.975
+    },
+    {
+      "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+      "file": "dw_ref_amb_hair_wash_finger_massage_loop_sc_hair_near_v03_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 134.75
+    },
+    {
+      "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+      "file": "dw_ref_trg_hair_towel_press_oneshot_sc_hair_soft_v05_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 6.0
+    },
+    {
+      "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+      "file": "dw_ref_amb_water_drip_sparse_oneshot_sc_room_far_v01_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 25.0
+    },
+    {
+      "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9",
+      "file": "dw_ref_vox_hair_wash_phrase_01_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.1
+    },
+    {
+      "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c",
+      "file": "dw_ref_vox_hair_wash_phrase_02_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 2.6
+    },
+    {
+      "track_id": "23526a62-70ed-52ec-8117-be50dcb45942",
+      "file": "dw_ref_vox_hair_wash_phrase_03_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 2.95
+    },
+    {
+      "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7",
+      "file": "dw_ref_vox_hair_wash_phrase_04_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.55
+    },
+    {
+      "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18",
+      "file": "dw_ref_vox_hair_wash_phrase_05_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.15
+    },
+    {
+      "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76",
+      "file": "dw_ref_vox_hair_wash_phrase_06_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.4
+    },
+    {
+      "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2",
+      "file": "dw_ref_vox_hair_wash_phrase_07_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.15
+    },
+    {
+      "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb",
+      "file": "dw_ref_vox_hair_wash_phrase_08_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.05
+    },
+    {
+      "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804",
+      "file": "dw_ref_vox_hair_wash_phrase_09_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.05
+    },
+    {
+      "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf",
+      "file": "dw_ref_vox_hair_wash_phrase_10_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.7
+    },
+    {
+      "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15",
+      "file": "dw_ref_vox_hair_wash_phrase_11_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.95
+    },
+    {
+      "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf",
+      "file": "dw_ref_vox_hair_wash_phrase_12_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.65
+    },
+    {
+      "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e",
+      "file": "dw_ref_vox_hair_wash_phrase_13_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.98
+    },
+    {
+      "track_id": "74461357-965f-5fd7-80ef-f19bdff00356",
+      "file": "dw_ref_vox_hair_wash_phrase_14_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.87
+    },
+    {
+      "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3",
+      "file": "dw_ref_vox_hair_wash_phrase_15_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.88
+    },
+    {
+      "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a",
+      "file": "dw_ref_vox_hair_wash_phrase_16_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 4.15
+    },
+    {
+      "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee",
+      "file": "dw_ref_vox_hair_wash_phrase_17_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.7
+    },
+    {
+      "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef",
+      "file": "dw_ref_vox_hair_wash_phrase_18_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 2.32
+    },
+    {
+      "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c",
+      "file": "dw_ref_vox_hair_wash_phrase_19_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 3.3
+    },
+    {
+      "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141",
+      "file": "dw_ref_vox_hair_wash_phrase_20_oneshot_sc_hair_center_v02_t01.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "codec_name": "pcm_s16le",
+      "duration": 7.55
+    }
+  ]
+}

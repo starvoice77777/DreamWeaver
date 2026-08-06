@@ -260,26 +260,26 @@ enum MockDataService {
     }
 
     private static func hairCareScene() -> DreamScene {
-        // Tracks follow 洗头场景_文本与声音时间戳协同表 v4. Start quiet;
+        // Tracks follow sc_hair_wash_v05 timeline v11.
         // SceneTimelineScheduler raises/fades layers per cue.
         let sources: [SoundSource] = [
             SoundSource(
                 id: DemoIDs.sourceAC,
-                name: "底噪",
-                symbolName: "wind.circle.fill",
+                name: "水滴房间底噪",
+                symbolName: "drop.circle.fill",
                 isEnabled: true,
-                initialEnvelope: 0.18,
-                position: SpatialPosition(angle: .pi * 1.2, radius: 0.82),
-                resourceName: "ac_hum",
-                layer: .ambience
+                initialEnvelope: 0.22,
+                position: SpatialPosition(angle: -0.62, radius: 0.9),
+                resourceName: "water_drip_roomtone",
+                layer: .trigger
             ),
             SoundSource(
                 id: DemoIDs.sourceHairWaterCycle,
                 name: "水循环",
                 symbolName: "drop.fill",
                 isEnabled: true,
-                initialEnvelope: 0.01,
-                position: SpatialPosition(angle: 0.4, radius: 0.78),
+                initialEnvelope: 0.2,
+                position: SpatialPosition(angle: 0.18, radius: 0.92),
                 resourceName: "hair_wash_water_cycle",
                 layer: .environment
             ),
@@ -288,8 +288,8 @@ enum MockDataService {
                 name: "打湿",
                 symbolName: "drop.triangle.fill",
                 isEnabled: true,
-                initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.85, radius: 0.55),
+                initialEnvelope: 0.33,
+                position: SpatialPosition(angle: 0.0, radius: 0.66),
                 resourceName: "hair_wash_wet",
                 layer: .trigger
             ),
@@ -298,8 +298,8 @@ enum MockDataService {
                 name: "起泡",
                 symbolName: "bubbles.and.sparkles",
                 isEnabled: true,
-                initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.5, radius: 0.45),
+                initialEnvelope: 0.45,
+                position: SpatialPosition(angle: -0.35, radius: 0.32),
                 resourceName: "hair_wash_foam_start",
                 layer: .trigger
             ),
@@ -309,7 +309,7 @@ enum MockDataService {
                 symbolName: "hand.raised.fill",
                 isEnabled: true,
                 initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.9, radius: 0.48),
+                position: SpatialPosition(angle: -0.28, radius: 0.42),
                 resourceName: "hair_wash_foam_rub",
                 layer: .ambience
             ),
@@ -319,7 +319,7 @@ enum MockDataService {
                 symbolName: "hand.point.up.left.fill",
                 isEnabled: true,
                 initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.5, radius: 0.42),
+                position: SpatialPosition(angle: 0.25, radius: 0.39),
                 resourceName: "hair_wash_scalp_foam",
                 layer: .ambience
             ),
@@ -328,8 +328,8 @@ enum MockDataService {
                 name: "冲洗",
                 symbolName: "shower.fill",
                 isEnabled: true,
-                initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.7, radius: 0.58),
+                initialEnvelope: 0.36,
+                position: SpatialPosition(angle: 0.45, radius: 0.68),
                 resourceName: "hair_wash_rinse",
                 layer: .trigger
             ),
@@ -339,7 +339,7 @@ enum MockDataService {
                 symbolName: "hand.tap.fill",
                 isEnabled: true,
                 initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.5, radius: 0.4),
+                position: SpatialPosition(angle: 0.32, radius: 0.34),
                 resourceName: "hair_wash_finger_massage",
                 layer: .ambience
             ),
@@ -348,8 +348,8 @@ enum MockDataService {
                 name: "毛巾",
                 symbolName: "rectangle.fill",
                 isEnabled: true,
-                initialEnvelope: 0.01,
-                position: SpatialPosition(angle: .pi * 0.55, radius: 0.5),
+                initialEnvelope: 0.43,
+                position: SpatialPosition(angle: -0.55, radius: 0.34),
                 resourceName: "hair_towel",
                 layer: .trigger
             ),
@@ -358,10 +358,10 @@ enum MockDataService {
                 name: "轻声陪伴",
                 symbolName: "person.wave.2.fill",
                 isEnabled: true,
-                initialEnvelope: 0.48,
-                position: SpatialPosition(angle: -.pi * 0.25, radius: 0.36),
+                initialEnvelope: 0.68,
+                position: SpatialPosition(angle: 0.0, radius: 0.38),
                 assetId: DemoIDs.seedMom,
-                resourceName: "voice_phrase_mom",
+                resourceName: "voice_phrase_01",
                 layer: .voice
             )
         ]
@@ -380,13 +380,13 @@ enum MockDataService {
                     isRequired: s.layer == .ambience || s.layer == .voice
                 )
             },
-            voicePhraseResourceName: "voice_phrase_mom"
+            voicePhraseResourceName: "voice_phrase_01"
         )
         return DreamScene(
             id: DemoIDs.hairCareScene,
             name: "洗头陪伴",
             subtitle: "温水、轻声，还有熟悉的陪伴。",
-            description: "约 10 分 20 秒的温和洗头实景演绎：文本提示 + 水流/泡沫/冲洗/毛巾分层时间线。手机外放即可成立。人声短句待正式录制前暂用占位音频。",
+            description: "约 10 分 20 秒的温和洗头实景演绎：20 句轻声提示与水流、泡沫、冲洗、毛巾等分层时间线。当前为 v05 审核预设，供联调与演示使用。",
             category: .companion,
             tags: ["洗头", "陪伴"],
             palette: ScenePalette(top: 0x1A2438, mid: 0x2E4058, bottom: 0x141820, accent: 0xA8C8E0),

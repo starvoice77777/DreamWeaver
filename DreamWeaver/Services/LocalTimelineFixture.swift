@@ -3,7 +3,7 @@ import Foundation
 /// Local / remote-aligned timeline fixtures (Stage 6).
 enum LocalTimelineFixture {
     static func timeline(for sceneId: UUID) -> APIContentDTO.SceneTimeline {
-        if sceneId == DemoIDs.hairCareScene, let scripted = loadHairCareV4() {
+        if sceneId == DemoIDs.hairCareScene, let scripted = loadHairCareV11() {
             return scripted
         }
         if sceneId == DemoIDs.rainEavesScene, let scripted = loadRainEavesV8() {
@@ -29,19 +29,19 @@ enum LocalTimelineFixture {
         }
     }
 
-    private static func loadHairCareV4() -> APIContentDTO.SceneTimeline? {
+    private static func loadHairCareV11() -> APIContentDTO.SceneTimeline? {
         guard let url = Bundle.main.url(
-            forResource: "hair_care_timeline_v4",
+            forResource: "hair_care_timeline_v11",
             withExtension: "json",
             subdirectory: "Mock"
-        ) ?? Bundle.main.url(forResource: "hair_care_timeline_v4", withExtension: "json") else {
+        ) ?? Bundle.main.url(forResource: "hair_care_timeline_v11", withExtension: "json") else {
             return nil
         }
         do {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(APIContentDTO.SceneTimeline.self, from: data)
         } catch {
-            assertionFailure("hair_care_timeline_v4 decode failed: \(error)")
+            assertionFailure("hair_care_timeline_v11 decode failed: \(error)")
             return nil
         }
     }

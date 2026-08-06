@@ -1,0 +1,30 @@
+﻿resource_key,source_type,owner_or_provider,license_status,allowed_usage,export_allowed,notes
+hair_wash_water_cycle,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_wet,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_foam_start,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_foam_rub,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_scalp_foam,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_rinse,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_wash_finger_massage,legacy_reference,legacy project reference; provenance pending,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+hair_towel,downloaded_reference,aigei_com derived composite,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+water_drip_roomtone,downloaded_reference,aigei_com water drip source,pending,internal_review_only,false,不得进入正式 Bundle，待补来源凭证与授权范围
+voice_phrase_01,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_02,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_03,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_04,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_05,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_06,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_07,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_08,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_09,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_10,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_11,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_12,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_13,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_14,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_15,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_16,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_17,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_18,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_19,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
+voice_phrase_20,provided_recording_reference,8月5日 (1).wav; ownership/official status pending,pending,internal_review_only,false,原声直切；声线授权和官方资源资格未确认，不得分发
