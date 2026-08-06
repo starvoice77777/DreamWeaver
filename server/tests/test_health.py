@@ -1,5 +1,6 @@
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
 from app.main import create_app
 
 
@@ -14,7 +15,7 @@ async def test_health() -> None:
     assert response.json() == {
         "status": "ok",
         "service": "dreamweaver-api",
-        "environment": "development",
+        "environment": get_settings().environment,
     }
 
 
