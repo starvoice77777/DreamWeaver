@@ -18,26 +18,30 @@ final class RemoteContentService: ContentService {
 
     func fetchScenes() async throws -> [DreamScene] {
         let summaries: [APIContentDTO.SceneSummary] = try await client.get("/v1/scenes", authorized: false)
-        return try await withThrowingTaskGroup(of: DreamScene.self) { group in
+        let detailsByID = try await withThrowingTaskGroup(
+            of: APIContentDTO.SceneDetail.self
+        ) { group in
             for summary in summaries {
-                group.addTask { [client] in
-                    let detail: APIContentDTO.SceneDetail = try await client.get(
-                        "/v1/scenes/\(summary.id.uuidString)",
+                let sceneID = summary.id
+                group.addTask { [client, sceneID] in
+                    try await client.get(
+                        "/v1/scenes/\(sceneID.uuidString)",
                         authorized: false
                     )
-                    return APIContentMapper.dreamScene(from: detail)
                 }
             }
-            var scenes: [DreamScene] = []
-            scenes.reserveCapacity(summaries.count)
-            for try await scene in group {
-                scenes.append(scene)
+            var details: [UUID: APIContentDTO.SceneDetail] = [:]
+            details.reserveCapacity(summaries.count)
+            for try await detail in group {
+                details[detail.id] = detail
             }
-            // Keep server sort_order by rematching summary order.
-            let byId = Dictionary(uniqueKeysWithValues: scenes.map { ($0.id, $0) })
-            let ordered = summaries.compactMap { byId[$0.id] }
-            return MockDataService.markTopFrequentScenes(ordered)
+            return details
         }
+        // Map UI models on MainActor and keep server sort_order from summaries.
+        let ordered = summaries.compactMap { detailsByID[$0.id] }.map(
+            APIContentMapper.dreamScene(from:)
+        )
+        return MockDataService.markTopFrequentScenes(ordered)
     }
 
     func fetchScene(id: UUID) async throws -> DreamScene {

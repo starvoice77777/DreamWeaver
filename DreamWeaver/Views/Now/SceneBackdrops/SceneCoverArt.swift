@@ -63,8 +63,6 @@ enum SceneCoverArt {
             return ("summer_insects_bg", "Scenes/SummerInsects", "summer_insects_bg.jpg")
         case .rainEaves:
             return ("rain_eaves_bg", "Scenes/RainEaves", "bg.jpg")
-        default:
-            return nil
         }
     }
 

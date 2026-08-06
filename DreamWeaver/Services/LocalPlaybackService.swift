@@ -1,5 +1,5 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import Combine
 
 /// Multi-track local playback with Apple `AVAudioEnvironmentNode` spatialization.
@@ -413,10 +413,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 phrase.voice_binding.track_id.map { (phrase.id, $0) }
             }
         )
-        let controlledIDs = Set((timeline?.cues ?? []).flatMap(\.actions).compactMap { action in
-            guard activationTypes.contains(action.type) else { return nil }
-            return action.track_id ?? action.phrase_id.flatMap { phraseTracks[$0] }
-        })
+        let controlledIDs: Set<UUID> = Set(
+            (timeline?.cues ?? []).flatMap(\.actions).compactMap { action -> UUID? in
+                guard activationTypes.contains(action.type) else { return nil }
+                return action.track_id ?? action.phrase_id.flatMap { phraseTracks[$0] }
+            }
+        )
         for id in controlledIDs {
             guard var source = currentSources[id] else { continue }
             source.isEnabled = false
@@ -556,8 +558,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             node.volume = target
             return
         }
-        fadeTasks.append(Task { @MainActor [weak self] in
-            guard let self else { return }
+        fadeTasks.append(Task { @MainActor in
             let steps = 20
             let start = Double(node.volume)
             let stepTime = duration / Double(steps)
@@ -630,7 +631,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             // Oneshot layers stay silent until a timeline cue fires play_phrase / play_oneshot.
             node.volume = 0
         } else {
-            scheduleLoop(node: node, file: file)
+            scheduleLoop(node: node, file: file, sourceID: source.id)
             // Keep disabled beds attached but silent until timeline / user enables them.
             node.volume = renderedGain(for: source.id, source: source)
         }
@@ -653,23 +654,31 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
     }
 
-    private func scheduleLoop(node: AVAudioPlayerNode, file: AVAudioFile) {
-        scheduleFileLoop(node: node, file: file)
+    private func scheduleLoop(node: AVAudioPlayerNode, file: AVAudioFile, sourceID: UUID) {
+        scheduleFileLoop(node: node, file: file, sourceID: sourceID)
     }
 
-    private func scheduleFileLoop(node: AVAudioPlayerNode, file: AVAudioFile) {
-        node.scheduleFile(file, at: nil, completionHandler: { [weak self, weak node] in
-            Task { @MainActor in
-                guard let self, let node, self.isPlaying, self.players.contains(where: { $0.value === node }) else { return }
-                // Re-open file for next loop to avoid consuming the same AVAudioFile offset.
-                if let name = self.resourceName(for: node),
-                   let url = Self.url(forResource: name),
-                   let next = try? AVAudioFile(forReading: url) {
-                    self.scheduleFileLoop(node: node, file: next)
-                    if !node.isPlaying { node.play() }
-                }
+    private func scheduleFileLoop(node: AVAudioPlayerNode, file: AVAudioFile, sourceID: UUID) {
+        node.scheduleFile(file, at: nil, completionHandler: { [weak self, sourceID] in
+            guard let service = self else { return }
+            Task { @MainActor [service, sourceID] in
+                service.continueFileLoop(sourceID: sourceID)
             }
         })
+    }
+
+    private func continueFileLoop(sourceID: UUID) {
+        guard isPlaying,
+              let node = players[sourceID] else {
+            return
+        }
+        // Re-open file for next loop to avoid consuming the same AVAudioFile offset.
+        if let name = resourceName(for: node),
+           let url = Self.url(forResource: name),
+           let next = try? AVAudioFile(forReading: url) {
+            scheduleFileLoop(node: node, file: next, sourceID: sourceID)
+            if !node.isPlaying { node.play() }
+        }
     }
 
     private func resourceName(for node: AVAudioPlayerNode) -> String? {
@@ -696,12 +705,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                 file,
                 at: nil,
                 completionCallbackType: .dataPlayedBack
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self,
-                          self.oneShotPlaybackTokens[sourceID] == playbackToken else { return }
-                    self.oneShotPlaybackTokens[sourceID] = nil
-                    self.setTimelineSourceEnabled(sourceID, enabled: false)
+            ) { [weak self, sourceID, playbackToken] _ in
+                guard let service = self else { return }
+                Task { @MainActor [service, sourceID, playbackToken] in
+                    guard service.oneShotPlaybackTokens[sourceID] == playbackToken else { return }
+                    service.oneShotPlaybackTokens[sourceID] = nil
+                    service.setTimelineSourceEnabled(sourceID, enabled: false)
                 }
             }
             node.play()

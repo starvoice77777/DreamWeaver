@@ -69,8 +69,6 @@ extension SceneVisualStyle {
             return .fireplaceWhisper
         case .summerInsects:
             return .summerInsects
-        default:
-            return .canvasMotif
         }
     }
 }

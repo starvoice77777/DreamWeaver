@@ -2,19 +2,19 @@ import Foundation
 
 /// Snake_case DTOs matching FastAPI `/v1` JSON. Mapped into app models.
 enum APIContentDTO {
-    struct SpatialPosition: Codable {
+    nonisolated struct SpatialPosition: Codable, Sendable {
         let angle: Double
         let radius: Double
     }
 
-    struct Palette: Decodable {
+    nonisolated struct Palette: Decodable, Sendable {
         let top: UInt32
         let mid: UInt32
         let bottom: UInt32
         let accent: UInt32
     }
 
-    struct Track: Decodable {
+    nonisolated struct Track: Decodable, Sendable {
         let id: UUID
         let name: String
         let symbol_name: String
@@ -61,7 +61,7 @@ enum APIContentDTO {
         let sort_order: Int?
     }
 
-    struct SceneDetail: Decodable {
+    nonisolated struct SceneDetail: Decodable, Sendable {
         let id: UUID
         let name: String
         let subtitle: String
