@@ -364,7 +364,7 @@ struct NowControlsOverlay: View {
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(
                             appState.currentScene.isFavorite
-                                ? DreamTheme.warmApricot
+                                ? appState.currentScene.palette.accentColor
                                 : DreamTheme.moonWhite.opacity(0.75)
                         )
                         .frame(width: 44, height: 44)
@@ -383,6 +383,7 @@ struct NowControlsOverlay: View {
 }
 
 private struct PlaybackProgressSlider: View {
+    @EnvironmentObject private var appState: AppState
     @Binding var value: Double
     var onEditingChanged: (Bool) -> Void
 
@@ -393,35 +394,65 @@ private struct PlaybackProgressSlider: View {
             let width = max(proxy.size.width, 1)
             let clampedValue = min(max(value, 0), 1)
             let fillWidth = width * clampedValue
-            let trackHeight: CGFloat = isDragging ? 11 : 8
+            let waveformHeight: CGFloat = isDragging ? 26 : 22
+            let waveformBarCount = max(15, min(42, Int(width / 5.8)))
+            let waveformSlotWidth = width / CGFloat(waveformBarCount)
+            let sceneAccent = appState.currentScene.palette.accentColor
+            let markWidth: CGFloat = isDragging ? 24 : 21
+            let markHeight: CGFloat = isDragging ? 41 : 36
+            // The logo's left edge tracks progress until its centre reaches
+            // the waveform's right boundary; progress itself still reaches 100%.
+            let markCenterX = min(
+                max(fillWidth + markWidth / 2, markWidth / 2),
+                width
+            )
 
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(isDragging ? 0.18 : 0.11))
-                    .overlay {
-                        Capsule()
-                            .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
-                    }
+            ZStack {
+                ForEach(0..<waveformBarCount, id: \.self) { index in
+                    let barCenterX = waveformSlotWidth * (CGFloat(index) + 0.5)
+                    let isPlayed = barCenterX <= fillWidth
 
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                DreamTheme.mistBlue.opacity(0.82),
-                                DreamTheme.warmApricot.opacity(0.94),
-                                DreamTheme.moonWhite.opacity(0.96)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                    Capsule()
+                        .fill(
+                            isPlayed
+                                ? LinearGradient(
+                                    colors: [
+                                        sceneAccent.opacity(0.74),
+                                        sceneAccent,
+                                        sceneAccent.opacity(0.88)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                : LinearGradient(
+                                    colors: [
+                                        DreamTheme.moonWhite.opacity(isDragging ? 0.38 : 0.26),
+                                        DreamTheme.moonWhite.opacity(isDragging ? 0.23 : 0.14)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
                         )
-                    )
-                    .frame(width: max(fillWidth, clampedValue > 0 ? trackHeight : 0))
-                    .shadow(
-                        color: DreamTheme.warmApricot.opacity(isDragging ? 0.22 : 0),
-                        radius: isDragging ? 5 : 0
-                    )
+                        .frame(
+                            width: max(1.5, waveformSlotWidth * 0.42),
+                            height: waveformHeight * waveformAmplitude(at: index)
+                        )
+                        .position(x: barCenterX, y: waveformHeight / 2)
+                        .shadow(
+                            color: isPlayed ? sceneAccent.opacity(isDragging ? 0.34 : 0.16) : .clear,
+                            radius: isDragging ? 3 : 0
+                        )
+                }
+
+                DreamWeaverProgressMark(
+                    accent: sceneAccent,
+                    isDragging: isDragging
+                )
+                .frame(width: markWidth, height: markHeight)
+                .position(x: markCenterX, y: waveformHeight / 2)
+                .accessibilityHidden(true)
             }
-            .frame(height: trackHeight)
+            .frame(width: width, height: waveformHeight)
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .animation(.spring(response: 0.22, dampingFraction: 0.82), value: isDragging)
@@ -456,6 +487,53 @@ private struct PlaybackProgressSlider: View {
             }
             onEditingChanged(false)
         }
+    }
+
+    private func waveformAmplitude(at index: Int) -> CGFloat {
+        let pattern: [CGFloat] = [
+            0.44, 0.78, 0.37, 0.27, 0.55, 0.32, 0.92, 0.41,
+            0.30, 0.68, 0.35, 0.26, 0.84, 0.48, 0.33, 0.58,
+            0.88, 0.46, 0.29, 0.72, 0.40, 0.31, 0.62, 0.38
+        ]
+        return pattern[index % pattern.count]
+    }
+}
+
+/// The progress position uses the same three-stroke DreamWeaver mark as the
+/// launch screen, replacing a generic slider thumb with a branded waypoint.
+private struct DreamWeaverProgressMark: View {
+    let accent: Color
+    let isDragging: Bool
+
+    var body: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.moonWhite,
+                                accent.opacity(0.96),
+                                DreamTheme.moonWhite.opacity(0.92)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: isDragging ? 1.7 : 1.45,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .shadow(
+            color: accent.opacity(isDragging ? 0.34 : 0.22),
+            radius: isDragging ? 2.5 : 1.5,
+            y: 1
+        )
+        .scaleEffect(isDragging ? 1.08 : 1)
+        .animation(.spring(response: 0.22, dampingFraction: 0.78), value: isDragging)
     }
 }
 

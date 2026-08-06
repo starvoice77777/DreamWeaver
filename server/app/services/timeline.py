@@ -23,8 +23,12 @@ AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 HAIR_CARE_TIMELINE_VERSION = 4
 RAIN_EAVES_TIMELINE_VERSION = 8
-_HAIR_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
-_RAIN_FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v8.json"
+_HAIR_FIXTURE_PATH = (
+    Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v4.json"
+)
+_RAIN_FIXTURE_PATH = (
+    Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v8.json"
+)
 
 
 def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
@@ -75,7 +79,8 @@ def _empty_document() -> tuple[list[dict], list[dict]]:
 def build_official_timeline_payload(scene: Scene) -> dict:
     duration = scene.recommended_duration_seconds or 2700
     if scene.visual_style == "hairCare":
-        # Fixture is authoritative (script length + cues); do not override with stale scene duration.
+        # Fixture is authoritative (script length + cues); do not override
+        # with stale scene duration.
         payload = _load_hair_care_fixture()
         return {
             "version": payload["version"],

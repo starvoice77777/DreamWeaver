@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sleep Background Scene Generator"
+  short_description: "Generate calm, reusable sleep-scene backgrounds"
+  default_prompt: "Use $sleep-background-scene-generator to create a calm sleep background scene with a mobile-ready composition."

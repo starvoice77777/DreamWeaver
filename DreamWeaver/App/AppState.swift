@@ -73,7 +73,6 @@ final class AppState: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private let store = DemoPersistenceStore.shared
-    private var hideControlsTask: Task<Void, Never>?
     private var hideTitleTask: Task<Void, Never>?
     private var hideMixPaletteTask: Task<Void, Never>?
     private var sessionStartedAt: Date?
@@ -175,12 +174,13 @@ final class AppState: ObservableObject {
             sessionUserId = UUID(uuidString: idString)
         }
 
-        scenes = MockDataService.makeScenes()
+        let initialScenes = MockDataService.makeScenes()
+        scenes = initialScenes
         soundAssets = MockDataService.makeSoundAssets()
         usageRecord = MockDataService.makeUsageRecord()
         mixPresets = MockDataService.makeMixPresets()
         mixBoardSelection = .mine
-        currentSceneId = DemoIDs.hairCareScene
+        currentSceneId = initialScenes.randomElement()?.id ?? DemoIDs.hairCareScene
 
         if let mixStore = store.loadPersonalMix() {
             for (key, value) in mixStore.byScene {
@@ -277,16 +277,10 @@ final class AppState: ObservableObject {
                 lastServiceMessage = "混音预设加载失败：\(error.localizedDescription)"
             }
 
-            if let lastIdString = defaults.string(forKey: "dw.lastSceneId"),
-               let lastId = UUID(uuidString: lastIdString),
-               loadedScenes.contains(where: { $0.id == lastId }) {
-                currentSceneId = lastId
-            } else if loadedScenes.contains(where: { $0.id == DemoIDs.hairCareScene }) {
-                currentSceneId = DemoIDs.hairCareScene
-            } else if let defaultScene = loadedScenes.first(where: { $0.name == MockDataService.defaultSceneName }) {
-                currentSceneId = defaultScene.id
-            } else if let first = loadedScenes.first {
-                currentSceneId = first.id
+            // Every cold launch starts from a fresh random scene. Deliberately
+            // ignore the previously played scene and any remote default.
+            if let randomScene = loadedScenes.randomElement() {
+                currentSceneId = randomScene.id
             }
 
             // Drop / repair stale personal mixes that no longer share official track IDs.
@@ -428,10 +422,6 @@ final class AppState: ObservableObject {
         if let v = settings.dark_mode_forced { darkModeForced = v }
         if let v = settings.audio_quality { audioQuality = v }
         if let v = settings.notifications_enabled { notificationsEnabled = v }
-        if let sceneId = settings.default_scene_id,
-           scenes.contains(where: { $0.id == sceneId }) {
-            currentSceneId = sceneId
-        }
         // Mirror hydrated remote prefs into UserDefaults without a remote PUT loop.
         persistSettingsLocally()
     }
@@ -450,7 +440,6 @@ final class AppState: ObservableObject {
         personalMixByScene = [:]
         savedMixes = []
         currentSceneId = DemoIDs.hairCareScene
-        defaults.set(DemoIDs.hairCareScene.uuidString, forKey: "dw.lastSceneId")
         timerOption = .autoStop
         timerElapsedProgress = 0
         playback.cancelSleepTimer()
@@ -476,7 +465,6 @@ final class AppState: ObservableObject {
             showLaunch = false
         }
         showSceneTitleTemporarily()
-        scheduleHideControls()
         if autoPlayEnabled {
             playback.play()
             isPlaying = playback.isPlaying
@@ -633,10 +621,7 @@ final class AppState: ObservableObject {
 
     func toggleControlsVisibility() {
         setControlsVisible(!controlsVisible)
-        if controlsVisible {
-            scheduleHideControls()
-        } else {
-            hideControlsTask?.cancel()
+        if !controlsVisible {
             hideMixPaletteTask?.cancel()
         }
     }
@@ -645,17 +630,6 @@ final class AppState: ObservableObject {
         setControlsVisible(true)
         if showMixPalette {
             scheduleHideMixPalette()
-        } else {
-            scheduleHideControls()
-        }
-    }
-
-    func scheduleHideControls() {
-        hideControlsTask?.cancel()
-        hideControlsTask = Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            guard !Task.isCancelled, !showMixPalette, !userIsInteracting else { return }
-            setControlsVisible(false)
         }
     }
 
@@ -667,8 +641,6 @@ final class AppState: ObservableObject {
             userIsInteracting = false
             if showMixPalette {
                 scheduleHideMixPalette()
-            } else {
-                scheduleHideControls()
             }
         }
     }
@@ -697,7 +669,6 @@ final class AppState: ObservableObject {
     func beginMixDrag() {
         isMixDragging = true
         hideMixPaletteTask?.cancel()
-        hideControlsTask?.cancel()
         guard !(showMixPalette && controlsVisible) else { return }
         withAnimation(DreamTheme.chromeVisibilityAnimation) {
             showMixPalette = true
@@ -725,12 +696,10 @@ final class AppState: ObservableObject {
         withAnimation(DreamTheme.chromeVisibilityAnimation) {
             showMixPalette = false
         }
-        scheduleHideControls()
     }
 
     func scheduleHideMixPalette() {
         hideMixPaletteTask?.cancel()
-        hideControlsTask?.cancel()
         guard !isMixDragging else { return }
         hideMixPaletteTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -738,7 +707,6 @@ final class AppState: ObservableObject {
             withAnimation(DreamTheme.chromeVisibilityAnimation) {
                 showMixPalette = false
             }
-            scheduleHideControls()
         }
     }
 
@@ -751,8 +719,6 @@ final class AppState: ObservableObject {
             if !isMixDragging {
                 scheduleHideMixPalette()
             }
-        } else {
-            scheduleHideControls()
         }
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -761,8 +727,6 @@ final class AppState: ObservableObject {
                 if !isMixDragging {
                     scheduleHideMixPalette()
                 }
-            } else {
-                scheduleHideControls()
             }
         }
     }
@@ -830,7 +794,6 @@ final class AppState: ObservableObject {
             sceneTitleVisible = false
         }
         showSceneTitleTemporarily()
-        scheduleHideControls()
     }
 
     /// Consumed by Now mix chrome when scene id changes mid-swipe.
@@ -845,7 +808,6 @@ final class AppState: ObservableObject {
 
     private func applySceneSwitch(sceneId: UUID, ensureNowTab: Bool) {
         currentSceneId = sceneId
-        defaults.set(sceneId.uuidString, forKey: "dw.lastSceneId")
         playbackProgress = 0.08
         mixBoardSelection = .mine
         if let personal = personalMixByScene[sceneId] {
@@ -1421,7 +1383,6 @@ final class AppState: ObservableObject {
         defaults.set(nickname, forKey: "dw.nickname")
         defaults.set(isAppleSignedIn, forKey: "dw.appleSignIn")
         defaults.set(isMember, forKey: "dw.member")
-        defaults.set(currentSceneId.uuidString, forKey: "dw.lastSceneId")
     }
 
     /// Debounce slider / multi-toggle bursts so the last snapshot wins on the server.
@@ -1459,8 +1420,7 @@ final class AppState: ObservableObject {
                     animation_intensity: animationIntensity,
                     dark_mode_forced: darkModeForced,
                     audio_quality: audioQuality,
-                    notifications_enabled: notificationsEnabled,
-                    default_scene_id: currentSceneId
+                    notifications_enabled: notificationsEnabled
                 )
             )
         } catch {

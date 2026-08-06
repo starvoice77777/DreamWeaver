@@ -12,26 +12,32 @@ struct LaunchDreamView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.black
+        let colors = LaunchSceneColors(scenePalette: appState.currentScene.palette)
 
-            DreamWeaverDrawnMark(progress: logoProgress)
+        ZStack {
+            colors.backgroundGradient
+
+            DreamWeaverDrawnMark(progress: logoProgress, colors: colors)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .animation(.easeInOut(duration: 0.45), value: appState.currentScene.palette)
         .opacity(overallOpacity)
         .ignoresSafeArea()
         .onAppear(perform: runLaunchSequence)
     }
 
     private func runLaunchSequence() {
-        let drawingDuration: Double = reduceMotion ? 0 : 1.65
-        let holdDuration: Double = reduceMotion ? 0.28 : 0.62
-        let dissolveDuration: Double = reduceMotion ? 0.20 : 0.72
+        // The three equal writing windows share a 1.2-second master timeline;
+        // the mark applies its own gentle ease-in/ease-out so every stroke
+        // still feels hand-drawn.
+        let drawingDuration: Double = reduceMotion ? 0 : 1.2
+        let holdDuration: Double = reduceMotion ? 0.28 : 0.56
+        let dissolveDuration: Double = reduceMotion ? 0.20 : 0.68
 
         if reduceMotion {
             logoProgress = 1
         } else {
-            withAnimation(.timingCurve(0.22, 0.74, 0.26, 1, duration: drawingDuration)) {
+            withAnimation(.linear(duration: drawingDuration)) {
                 logoProgress = 1
             }
         }
@@ -47,8 +53,87 @@ struct LaunchDreamView: View {
     }
 }
 
+/// Extracts the lightest and darkest representative tones from the scene that
+/// is already rendered beneath the launch overlay. This also covers scenes
+/// delivered by the backend without maintaining a style-specific color table.
+private struct LaunchSceneColors {
+    let darkHex: UInt32
+    let lightHex: UInt32
+
+    init(scenePalette: ScenePalette) {
+        let backgroundTones = [scenePalette.top, scenePalette.mid, scenePalette.bottom]
+        let dark = backgroundTones.min {
+            Self.relativeLuminance($0) < Self.relativeLuminance($1)
+        } ?? scenePalette.bottom
+
+        let extractedLight = (backgroundTones + [scenePalette.accent]).max {
+            Self.relativeLuminance($0) < Self.relativeLuminance($1)
+        } ?? scenePalette.accent
+
+        darkHex = dark
+        // Preserve the extracted hue while guaranteeing that the drawn mark
+        // remains legible for low-contrast palettes supplied by remote scenes.
+        lightHex = Self.relativeLuminance(extractedLight) - Self.relativeLuminance(dark) < 0.16
+            ? Self.blend(extractedLight, with: 0xFFFFFF, amount: 0.42)
+            : extractedLight
+    }
+
+    var darkColor: Color { Color(hex: darkHex) }
+    var lightColor: Color { Color(hex: lightHex) }
+
+    var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                darkColor,
+                Color(hex: Self.blend(darkHex, with: lightHex, amount: 0.10)),
+                darkColor
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var markGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(hex: Self.blend(lightHex, with: 0xFFFFFF, amount: 0.12)),
+                lightColor,
+                Color(hex: Self.blend(lightHex, with: darkHex, amount: 0.18)),
+                lightColor
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private static func relativeLuminance(_ hex: UInt32) -> Double {
+        func linearized(_ component: UInt32) -> Double {
+            let value = Double(component) / 255
+            return value <= 0.04045
+                ? value / 12.92
+                : pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        let red = linearized((hex >> 16) & 0xFF)
+        let green = linearized((hex >> 8) & 0xFF)
+        let blue = linearized(hex & 0xFF)
+        return red * 0.2126 + green * 0.7152 + blue * 0.0722
+    }
+
+    private static func blend(_ source: UInt32, with target: UInt32, amount: Double) -> UInt32 {
+        func component(_ shift: UInt32) -> UInt32 {
+            let sourceValue = Double((source >> shift) & 0xFF)
+            let targetValue = Double((target >> shift) & 0xFF)
+            return UInt32((sourceValue + (targetValue - sourceValue) * amount).rounded())
+        }
+
+        return (component(16) << 16) | (component(8) << 8) | component(0)
+    }
+}
+
 private struct DreamWeaverDrawnMark: View {
     let progress: CGFloat
+    let colors: LaunchSceneColors
 
     var body: some View {
         GeometryReader { proxy in
@@ -66,7 +151,7 @@ private struct DreamWeaverDrawnMark: View {
                     DreamWeaverMarkPath(stroke: stroke)
                         .trim(from: 0, to: completion)
                         .stroke(
-                            Color(red: 0.85, green: 0.68, blue: 0.43).opacity(0.32),
+                            colors.lightColor.opacity(0.32),
                             style: StrokeStyle(
                                 lineWidth: lineWidth * 1.16,
                                 lineCap: .round,
@@ -78,7 +163,7 @@ private struct DreamWeaverDrawnMark: View {
                     DreamWeaverMarkPath(stroke: stroke)
                         .trim(from: 0, to: completion)
                         .stroke(
-                            goldGradient,
+                            colors.markGradient,
                             style: StrokeStyle(
                                 lineWidth: lineWidth,
                                 lineCap: .round,
@@ -93,47 +178,35 @@ private struct DreamWeaverDrawnMark: View {
         .accessibilityLabel("DreamWeaver")
     }
 
-    private var goldGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 0.73, green: 0.55, blue: 0.33),
-                Color(red: 0.94, green: 0.80, blue: 0.59),
-                Color(red: 0.80, green: 0.60, blue: 0.36),
-                Color(red: 0.91, green: 0.74, blue: 0.51)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
     private func strokeCompletion(for stroke: DreamWeaverMarkStroke) -> CGFloat {
         let window = stroke.revealWindow
-        return min(
+        let linearCompletion = min(
             max((progress - window.lowerBound) / (window.upperBound - window.lowerBound), 0),
             1
         )
+        // Smoothstep gives each Z a comfortable pen-down and pen-lift without
+        // changing its duration relative to the other two marks.
+        return linearCompletion * linearCompletion * (3 - 2 * linearCompletion)
     }
 }
 
-private enum DreamWeaverMarkStroke: CaseIterable, Hashable, Identifiable {
-    case upperSweep
-    case upperReturn
-    case middleSweep
-    case lowerSweep
+enum DreamWeaverMarkStroke: CaseIterable, Hashable, Identifiable {
+    case upperZ
+    case middleZ
+    case lowerZ
 
     var id: Self { self }
 
     var revealWindow: ClosedRange<CGFloat> {
         switch self {
-        case .upperSweep: 0.00...0.31
-        case .upperReturn: 0.18...0.48
-        case .middleSweep: 0.38...0.73
-        case .lowerSweep: 0.65...1.00
+        case .upperZ: 0...(1 / 3)
+        case .middleZ: (1 / 3)...(2 / 3)
+        case .lowerZ: (2 / 3)...1
         }
     }
 }
 
-private struct DreamWeaverMarkPath: Shape {
+struct DreamWeaverMarkPath: Shape {
     let stroke: DreamWeaverMarkStroke
 
     func path(in rect: CGRect) -> Path {
@@ -147,19 +220,16 @@ private struct DreamWeaverMarkPath: Shape {
         var path = Path()
 
         switch stroke {
-        case .upperSweep:
+        case .upperZ:
             path.move(to: point(35, 161))
             path.addCurve(
                 to: point(257, 21),
                 control1: point(51, 116),
                 control2: point(137, 42)
             )
-
-        case .upperReturn:
-            path.move(to: point(225, 55))
             path.addCurve(
                 to: point(112, 157),
-                control1: point(195, 75),
+                control1: point(235, 48),
                 control2: point(126, 127)
             )
             path.addCurve(
@@ -168,7 +238,7 @@ private struct DreamWeaverMarkPath: Shape {
                 control2: point(149, 162)
             )
 
-        case .middleSweep:
+        case .middleZ:
             path.move(to: point(25, 225))
             path.addCurve(
                 to: point(168, 210),
@@ -186,7 +256,7 @@ private struct DreamWeaverMarkPath: Shape {
                 control2: point(117, 341)
             )
 
-        case .lowerSweep:
+        case .lowerZ:
             path.move(to: point(76, 394))
             path.addCurve(
                 to: point(184, 393),

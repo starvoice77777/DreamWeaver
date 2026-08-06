@@ -107,7 +107,12 @@ async def test_complete_without_object_fails(client) -> None:
         set_object_storage(None)
 
 
-async def _create_ready_asset(client, headers: dict[str, str], memory: InMemoryObjectStorage, name: str = "素材") -> dict:
+async def _create_ready_asset(
+    client,
+    headers: dict[str, str],
+    memory: InMemoryObjectStorage,
+    name: str = "素材",
+) -> dict:
     created = await client.post(
         "/v1/uploads",
         headers=headers,

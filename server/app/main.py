@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response
 from fastapi.responses import JSONResponse
@@ -51,7 +52,7 @@ def create_app() -> FastAPI:
         response_model=None,
     )
     async def ready(
-        session: AsyncSession = Depends(get_db_session),
+        session: Annotated[AsyncSession, Depends(get_db_session)],
     ) -> JSONResponse | dict[str, str]:
         checks: dict[str, str] = {
             "service": "dreamweaver-api",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,9 +14,12 @@ from app.services.seed_catalog import reseed_official_catalog
 router = APIRouter(tags=["admin"])
 
 
-@router.post("/admin/reseed-catalog", summary="Upsert official scenes/tracks/presets (non-production)")
+@router.post(
+    "/admin/reseed-catalog",
+    summary="Upsert official scenes/tracks/presets (non-production)",
+)
 async def reseed_catalog(
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> dict[str, object]:
     settings = get_settings()
     if settings.is_production:

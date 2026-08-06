@@ -1,0 +1,27 @@
+{
+  "sourceWidth": 1254,
+  "sourceHeight": 1254,
+  "parts": [
+    {
+      "name": "top",
+      "left": 422,
+      "top": 268,
+      "width": 362,
+      "height": 237
+    },
+    {
+      "name": "middle",
+      "left": 401,
+      "top": 506,
+      "width": 244,
+      "height": 271
+    },
+    {
+      "name": "bottom",
+      "left": 456,
+      "top": 738,
+      "width": 398,
+      "height": 237
+    }
+  ]
+}

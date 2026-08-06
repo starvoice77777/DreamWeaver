@@ -61,7 +61,9 @@ class SceneTimeline(Base):
         index=True,
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    automation_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="official_auto")
+    automation_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="official_auto"
+    )
     duration_hint_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     override_policy: Mapped[str] = mapped_column(
         String(64), nullable=False, default="per_source_manual_exit"

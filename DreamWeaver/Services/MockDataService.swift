@@ -10,7 +10,6 @@ enum MockDataService {
         "今晚，为你留了一片安静。"
     ]
 
-    static let defaultSceneName = "洗头陪伴"
     static let frequentSceneLimit = 6
 
     static func makeScenes() -> [DreamScene] {

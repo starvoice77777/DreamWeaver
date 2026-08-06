@@ -40,7 +40,10 @@ class JsonFormatter(logging.Formatter):
 
 def configure_logging(*, level: int = logging.INFO) -> None:
     root = logging.getLogger()
-    if any(isinstance(h, logging.StreamHandler) and getattr(h, "_dw_json", False) for h in root.handlers):
+    if any(
+        isinstance(handler, logging.StreamHandler) and getattr(handler, "_dw_json", False)
+        for handler in root.handlers
+    ):
         root.setLevel(level)
         return
 

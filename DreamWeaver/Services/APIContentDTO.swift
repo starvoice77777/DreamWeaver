@@ -147,7 +147,6 @@ enum APIContentDTO {
         var dark_mode_forced: Bool?
         var audio_quality: String?
         var notifications_enabled: Bool?
-        var default_scene_id: UUID?
     }
 
     struct UsageSummary: Decodable {

@@ -64,7 +64,10 @@ def official_scene_specs() -> list[dict]:
             "id": DEFAULT_SCENE_ID,
             "name": "洗头陪伴",
             "subtitle": "温水、轻声，还有熟悉的陪伴。",
-            "description": "约 10 分 20 秒的温和洗头实景演绎：文本提示与水流/泡沫/冲洗/毛巾分层时间线。",
+            "description": (
+                "约 10 分 20 秒的温和洗头实景演绎："
+                "文本提示与水流/泡沫/冲洗/毛巾分层时间线。"
+            ),
             "category": "companion",
             "tags": ["陪伴", "生活", "洗头"],
             "palette": _palette(0x1B2A3A, 0x2F4458, 0x1A1412, 0xE0B089),

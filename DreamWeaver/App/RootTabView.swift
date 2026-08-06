@@ -81,10 +81,6 @@ struct DreamTabBar: View {
 
     private var tabs: [AppTab] { AppTab.allCases }
 
-    private var createIndex: CGFloat {
-        CGFloat(tabs.firstIndex(of: .create) ?? 2)
-    }
-
     /// Continuous 0…n-1 progress used by the lens and icon fills while dragging.
     private var selectionProgress: CGFloat {
         if let dragProgress {
@@ -93,14 +89,8 @@ struct DreamTabBar: View {
         return CGFloat(tabs.firstIndex(of: selected) ?? 0)
     }
 
-    /// 0…1 proximity to the create slot — drives plus grow during continuous drag.
-    private var createGrow: CGFloat {
-        let distance = abs(selectionProgress - createIndex)
-        return max(0, 1 - distance)
-    }
-
     private var selectionDiameter: CGFloat {
-        barHeight - 8 + 4 * createGrow
+        barHeight - 8
     }
 
     var body: some View {
@@ -127,10 +117,8 @@ struct DreamTabBar: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .dreamRefractiveLiquidGlassCapsule(
-            accent: createGrow > 0.55
-                ? DreamTheme.warmApricot
-                : appState.currentScene.palette.accentColor,
-            intensity: 0.84 + 0.10 * createGrow,
+            accent: appState.currentScene.palette.accentColor,
+            intensity: 0.84,
             interactive: true
         )
         .highPriorityGesture(tabDragGesture)
@@ -146,20 +134,12 @@ struct DreamTabBar: View {
         let segmentWidth = size.width / count
         let lensX = segmentWidth * (selectionProgress + 0.5)
         let diameter = min(selectionDiameter, size.height - 4)
-        let fillOpacity = createGrow > 0.55
-            ? 0.10 + 0.08 * createGrow
-            : 0.09
-        let fillColor = createGrow > 0.55
-            ? DreamTheme.warmApricot.opacity(fillOpacity)
-            : DreamTheme.moonWhite.opacity(fillOpacity)
 
         return Circle()
-            .fill(fillColor)
+            .fill(DreamTheme.moonWhite.opacity(0.09))
             .frame(width: diameter, height: diameter)
             .dreamSpatialLiquidGlassCircle(
-                accent: createGrow > 0.55
-                    ? DreamTheme.warmApricot
-                    : appState.currentScene.palette.accentColor,
+                accent: appState.currentScene.palette.accentColor,
                 intensity: 0.92
             )
             .position(x: lensX, y: size.height / 2)
@@ -174,65 +154,36 @@ struct DreamTabBar: View {
     @ViewBuilder
     private func tabButton(_ tab: AppTab, index: Int) -> some View {
         let isCommittedSelection = selected == tab
-        let isCreate = tab.isElevatedCenter
         let fill = iconFillMetrics(for: index)
 
-        if isCreate {
-            Button {
-                guard !isTrackingDrag else { return }
-                select(tab)
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(
-                        DreamTheme.moonWhite.opacity(0.68 + 0.32 * createGrow)
-                    )
-                    .scaleEffect(1.0 + 0.22 * createGrow)
-                    .animation(
-                        isTrackingDrag
-                            ? .interactiveSpring(response: 0.2, dampingFraction: 0.86)
-                            : .spring(response: 0.34, dampingFraction: 0.70),
-                        value: createGrow
-                    )
-                    .frame(width: 36, height: 36)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: barHeight)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(CreatePlusGrowButtonStyle(baseGrow: createGrow))
-            .allowsHitTesting(!isTrackingDrag)
-            .accessibilityLabel(tab.title)
-            .accessibilityHint("创建或保存个人场景")
-            .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
-        } else {
-            Button {
-                guard !isTrackingDrag else { return }
-                select(tab)
-            } label: {
-                ZStack {
-                    Image(systemName: tab.systemImageOutline)
-                        .foregroundStyle(DreamTheme.mistBlue.opacity(0.38))
+        Button {
+            guard !isTrackingDrag else { return }
+            select(tab)
+        } label: {
+            ZStack {
+                Image(systemName: tab.systemImageOutline)
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.60))
 
-                    Image(systemName: tab.systemImageFill)
-                        .foregroundStyle(DreamTheme.moonWhite.opacity(0.96))
-                        .mask {
-                            Rectangle()
-                                .frame(width: fill.width, height: 32)
-                                .offset(x: fill.offset)
-                        }
-                }
-                .font(.system(size: 22, weight: .medium))
-                .scaleEffect(0.94 + fill.fraction * 0.18)
-                .frame(width: 36, height: 36)
-                .frame(maxWidth: .infinity)
-                .frame(height: barHeight)
-                .contentShape(Rectangle())
+                Image(systemName: tab.systemImageFill)
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.98))
+                    .mask {
+                        Rectangle()
+                            .frame(width: fill.width, height: 32)
+                            .offset(x: fill.offset)
+                    }
             }
-            .buttonStyle(.plain)
-            .allowsHitTesting(!isTrackingDrag)
-            .accessibilityLabel(tab.title)
-            .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
+            .font(.system(size: 22, weight: .medium))
+            .scaleEffect(0.94 + fill.fraction * 0.18)
+            .frame(width: 36, height: 36)
+            .frame(maxWidth: .infinity)
+            .frame(height: barHeight)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .allowsHitTesting(!isTrackingDrag)
+        .accessibilityLabel(tab.title)
+        .accessibilityHint(tab == .create ? "创建或保存个人场景" : "切换到\(tab.title)")
+        .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
     }
 
     private var tabDragGesture: some Gesture {
@@ -296,11 +247,6 @@ struct DreamTabBar: View {
                 : (0, 0, 0)
         }
 
-        // Create uses proximity grow, not partial fill.
-        if tabs[index].isElevatedCenter {
-            return (0, 0, 0)
-        }
-
         let segmentWidth = barWidth / CGFloat(tabs.count)
         let lensHalfWidth = selectionDiameter / 2
         let iconHalfWidth = iconWidth / 2
@@ -323,20 +269,6 @@ struct DreamTabBar: View {
             dragProgress = nil
             selected = tab
         }
-    }
-}
-
-/// Extra press pop on top of continuous drag proximity grow.
-private struct CreatePlusGrowButtonStyle: ButtonStyle {
-    var baseGrow: CGFloat
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 1.12 : 1.0)
-            .animation(
-                .spring(response: 0.26, dampingFraction: 0.58),
-                value: configuration.isPressed
-            )
     }
 }
 

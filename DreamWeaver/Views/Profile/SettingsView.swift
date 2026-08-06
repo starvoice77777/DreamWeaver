@@ -66,10 +66,6 @@ struct SettingsView: View {
             }
 
             Section("播放") {
-                NavigationLink("默认进入场景") {
-                    DefaultScenePicker()
-                        .environmentObject(appState)
-                }
                 Toggle("自动播放", isOn: $appState.autoPlayEnabled)
                 Toggle("后台播放", isOn: $appState.backgroundPlayEnabled)
                 Toggle("锁屏播放", isOn: $appState.lockScreenPlayEnabled)
@@ -182,35 +178,6 @@ struct SettingsView: View {
             await APIClient.shared.setBaseURL(url)
         }
         appState.lastServiceMessage = "已保存远程基址 \(trimmed)。若刚切换远程模式，请完全退出 App 后重开。"
-    }
-}
-
-struct DefaultScenePicker: View {
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        List {
-            ForEach(appState.scenes) { scene in
-                Button {
-                    appState.enterDream(sceneId: scene.id)
-                    appState.persistSettings()
-                } label: {
-                    HStack {
-                        Text(scene.name)
-                            .foregroundStyle(DreamTheme.moonWhite)
-                        Spacer()
-                        if appState.currentSceneId == scene.id {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(DreamTheme.warmApricot)
-                        }
-                    }
-                }
-                .listRowBackground(Color.white.opacity(0.05))
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .background(DreamTheme.deepBlue.ignoresSafeArea())
-        .navigationTitle("默认进入场景")
     }
 }
 

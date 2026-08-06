@@ -43,7 +43,13 @@ def _fail(
     )
 
 
-def _as_float(value: Any, field: str, *, track_id: str | None = None, keyframe_index: int | None = None) -> float:
+def _as_float(
+    value: Any,
+    field: str,
+    *,
+    track_id: str | None = None,
+    keyframe_index: int | None = None,
+) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         _fail(f"{field} must be a number", track_id=track_id, keyframe_index=keyframe_index)
     number = float(value)

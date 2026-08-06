@@ -6,7 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 EventType = Literal["scene_listen", "session_ended", "seed_created", "mix_edited"]
 
 

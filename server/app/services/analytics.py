@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ async def get_or_create_summary(session: AsyncSession, user: User) -> UsageSumma
         total_minutes=0,
         week_minutes=0,
         usual_bedtime=DEFAULT_BEDTIME,
-        last_used_at=datetime.now(timezone.utc),
+        last_used_at=datetime.now(UTC),
         sleep_trend=list(DEFAULT_TREND),
     )
     session.add(row)
@@ -97,9 +97,9 @@ async def ingest_events(
                 skipped += 1
                 continue
 
-        occurred = item.occurred_at or datetime.now(timezone.utc)
+        occurred = item.occurred_at or datetime.now(UTC)
         if occurred.tzinfo is None:
-            occurred = occurred.replace(tzinfo=timezone.utc)
+            occurred = occurred.replace(tzinfo=UTC)
 
         session.add(
             AnalyticsEvent(

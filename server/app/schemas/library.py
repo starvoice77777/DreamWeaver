@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, Field
 
-
 ALLOWED_EXTENSIONS = {"m4a", "mp3", "wav", "caf"}
 ALLOWED_CONTENT_TYPES = {
     "audio/mp4",

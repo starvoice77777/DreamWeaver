@@ -5,12 +5,7 @@ final class LocalContentService: ContentService {
     private let store = DemoPersistenceStore.shared
 
     func loadBootstrap() async throws -> BootstrapPayload {
-        var payload = MockDataService.makeBootstrap()
-        if let last = UserDefaults.standard.string(forKey: "dw.lastSceneId"),
-           let id = UUID(uuidString: last) {
-            payload.recommendedSceneId = id
-        }
-        return payload
+        MockDataService.makeBootstrap()
     }
 
     func fetchScenes() async throws -> [DreamScene] {

@@ -1,0 +1,22 @@
+{
+  "name": "logo-to-sleep-emoji",
+  "version": "1.0.0",
+  "description": "My Remotion video",
+  "repository": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@remotion/cli": "4.0.506",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.506"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}

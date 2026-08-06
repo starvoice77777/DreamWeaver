@@ -175,10 +175,13 @@ async def complete_upload(
             status_code=400,
             detail="Uploaded size does not match declared byte_size",
         )
-    if stat.content_type and stat.content_type.lower() not in ALLOWED_CONTENT_TYPES:
-        # Some clients omit or alter Content-Type; prefer declared when storage has none.
-        if row.content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(status_code=400, detail="Uploaded content_type not allowed")
+    # Some clients omit or alter Content-Type; prefer declared when storage has none.
+    if (
+        stat.content_type
+        and stat.content_type.lower() not in ALLOWED_CONTENT_TYPES
+        and row.content_type not in ALLOWED_CONTENT_TYPES
+    ):
+        raise HTTPException(status_code=400, detail="Uploaded content_type not allowed")
 
     asset = UserSoundAsset(
         owner_user_id=user.id,

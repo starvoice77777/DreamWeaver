@@ -22,8 +22,8 @@ from app.schemas.content import (
     UserSettingsOut,
     UserSettingsUpdate,
 )
-from app.services.content import list_scenes
 from app.services.composition import CompositionValidationError, validate_composition
+from app.services.content import list_scenes
 from app.services.seed_catalog import DEFAULT_SCENE_ID, ensure_official_catalog
 
 
@@ -31,7 +31,10 @@ def _validated_composition_or_http(document: dict) -> dict:
     try:
         return validate_composition(document)
     except CompositionValidationError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=exc.as_detail()) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=exc.as_detail(),
+        ) from exc
 
 
 DEFAULT_PALETTE = {

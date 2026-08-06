@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -9,6 +10,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.analytics import AnalyticsEvent, UsageSummary
+    from app.models.audit import AuditEvent
 
 JSONType = JSON().with_variant(JSONB(), "postgresql")
 
@@ -33,13 +38,13 @@ class User(Base):
     settings: Mapped[UserSettings | None] = relationship(back_populates="user", uselist=False)
     scene_states: Mapped[list[UserSceneState]] = relationship(back_populates="user")
     private_scenes: Mapped[list[PrivateScene]] = relationship(back_populates="owner")
-    analytics_events: Mapped[list["AnalyticsEvent"]] = relationship(
+    analytics_events: Mapped[list[AnalyticsEvent]] = relationship(
         "AnalyticsEvent", back_populates="user"
     )
-    usage_summary: Mapped["UsageSummary | None"] = relationship(
+    usage_summary: Mapped[UsageSummary | None] = relationship(
         "UsageSummary", back_populates="user", uselist=False
     )
-    audit_events: Mapped[list["AuditEvent"]] = relationship(
+    audit_events: Mapped[list[AuditEvent]] = relationship(
         "AuditEvent", back_populates="user"
     )
 

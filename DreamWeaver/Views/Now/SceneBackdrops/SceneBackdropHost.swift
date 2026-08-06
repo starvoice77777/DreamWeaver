@@ -52,7 +52,11 @@ struct SceneBackdropHost: View {
             case .starRiver:
                 StarRiverBackdrop(intensity: intensity)
             case .wheatWind:
-                WheatWindBackdrop(intensity: intensity)
+                WheatWindBackdrop(
+                    intensity: intensity,
+                    isPlaying: isPlaying,
+                    reduceMotion: reduceMotion
+                )
             case .moonLake:
                 MoonLakeBackdrop(intensity: intensity)
             case .warmLamp:

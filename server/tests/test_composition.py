@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import uuid
-
 TRACK_ID = "e5555555-5555-4555-8555-555555555510"
 
 

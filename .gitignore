@@ -22,3 +22,6 @@ server/.env
 
 # Local backend services
 infra/.data/
+
+# Local JavaScript package-manager cache
+.pnpm-store/

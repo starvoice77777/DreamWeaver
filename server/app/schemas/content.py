@@ -91,7 +91,8 @@ class CueActionOut(BaseModel):
 class SceneCueOut(BaseModel):
     id: uuid.UUID
     at_seconds: float | None = Field(
-        default=None, description="Wall-clock offset from scene start; mutually exclusive with progress"
+        default=None,
+        description="Wall-clock offset from scene start; mutually exclusive with progress",
     )
     progress: float | None = Field(
         default=None, ge=0, le=1, description="Normalized session/text progress 0…1"

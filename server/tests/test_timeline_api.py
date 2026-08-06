@@ -110,7 +110,12 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert len(oneshots) == 2
     assert {c["at_seconds"] for c in oneshots} == {188, 458}
     # Spatial keyframes expanded from package position_keyframes
-    assert len([c for c in body["cues"] if any(a["type"] == "set_position" for a in c["actions"])]) >= 10
+    positioned_cues = [
+        cue
+        for cue in body["cues"]
+        if any(action["type"] == "set_position" for action in cue["actions"])
+    ]
+    assert len(positioned_cues) >= 10
 
 
 async def test_scene_timeline_missing_scene(client) -> None:
