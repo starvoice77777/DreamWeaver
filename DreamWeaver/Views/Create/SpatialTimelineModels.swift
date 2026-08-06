@@ -252,6 +252,9 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
     /// Playback range is independent from spatial positioning points.
     var audioStartTime: Double
     var audioDuration: Double
+    /// Preserves whether the imported clip is a continuous bed or a one-shot.
+    /// Optional keeps drafts created before official-timeline import decodable.
+    var isLooping: Bool?
     var isVoice: Bool
 
     var themeColor: Color { theme.color }
@@ -270,6 +273,7 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
         motionClips: [SpatialMotionClip] = [],
         audioStartTime: Double = 0,
         audioDuration: Double = 120,
+        isLooping: Bool? = nil,
         isVoice: Bool = false
     ) {
         self.id = id
@@ -284,6 +288,7 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
         self.motionClips = motionClips.isEmpty ? nil : motionClips.sorted { $0.startTime < $1.startTime }
         self.audioStartTime = max(0, audioStartTime)
         self.audioDuration = max(1, audioDuration)
+        self.isLooping = isLooping
         self.isVoice = isVoice
     }
 }

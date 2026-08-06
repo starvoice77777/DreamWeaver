@@ -24,6 +24,7 @@ final class DemoPersistenceStore {
         static let personalMix = "dw.demo.v1.personalMix"
         static let favorites = "dw.demo.v1.favoriteSceneIds"
         static let createdScenes = "dw.demo.v1.createdScenes"
+        static let createdCompositions = "dw.demo.v1.createdCompositions"
     }
 
     struct ScenesOverlay: Codable {
@@ -87,6 +88,22 @@ final class DemoPersistenceStore {
         load(Key.createdScenes) ?? []
     }
 
+    func saveCreatedComposition(
+        _ composition: APIContentDTO.SceneComposition?,
+        sceneId: UUID
+    ) throws {
+        var byScene: [String: APIContentDTO.SceneComposition] =
+            load(Key.createdCompositions) ?? [:]
+        byScene[sceneId.uuidString] = composition
+        try save(byScene, key: Key.createdCompositions)
+    }
+
+    func loadCreatedComposition(sceneId: UUID) -> APIContentDTO.SceneComposition? {
+        let byScene: [String: APIContentDTO.SceneComposition] =
+            load(Key.createdCompositions) ?? [:]
+        return byScene[sceneId.uuidString]
+    }
+
     func resetAllDemoKeys() {
         [
             Key.scenesOverlay,
@@ -94,7 +111,8 @@ final class DemoPersistenceStore {
             Key.usage,
             Key.personalMix,
             Key.favorites,
-            Key.createdScenes
+            Key.createdScenes,
+            Key.createdCompositions
         ].forEach {
             defaults.removeObject(forKey: $0)
         }

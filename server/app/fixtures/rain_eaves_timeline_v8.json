@@ -1,6 +1,6 @@
 {
   "scene_id": "a1111111-1111-4111-8111-111111111102",
-  "version": 9,
+  "version": 10,
   "automation_mode": "official_auto",
   "duration_hint_seconds": 620,
   "override_policy": "per_source_manual_exit",
@@ -15,7 +15,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555510",
           "angle": -0.35,
-          "radius": 0.85
+          "radius": 0.78
         },
         {
           "type": "enable",
@@ -103,7 +103,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": -2.4,
-          "radius": 0.95
+          "radius": 0.77
         },
         {
           "type": "enable",
@@ -129,7 +129,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": -2.05,
-          "radius": 0.84
+          "radius": 0.66
         }
       ]
     },
@@ -141,7 +141,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": -1.75,
-          "radius": 0.9
+          "radius": 0.72
         }
       ]
     },
@@ -153,7 +153,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": -1.6,
-          "radius": 0.98
+          "radius": 0.8
         }
       ]
     },
@@ -165,7 +165,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555512",
           "angle": -1.2,
-          "radius": 0.88
+          "radius": 0.78
         },
         {
           "type": "enable",
@@ -275,7 +275,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": 2.55,
-          "radius": 0.96
+          "radius": 0.78
         },
         {
           "type": "enable",
@@ -301,7 +301,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": 2.25,
-          "radius": 0.86
+          "radius": 0.68
         }
       ]
     },
@@ -313,7 +313,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": 2.65,
-          "radius": 0.94
+          "radius": 0.76
         }
       ]
     },
@@ -325,7 +325,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555502",
           "angle": 2.8,
-          "radius": 0.99
+          "radius": 0.81
         }
       ]
     },
@@ -349,7 +349,7 @@
           "type": "set_position",
           "track_id": "e5555555-5555-4555-8555-555555555510",
           "angle": -0.35,
-          "radius": 0.85
+          "radius": 0.78
         }
       ]
     },

@@ -57,7 +57,7 @@ struct CreateHubView: View {
                 remoteDrafts: remoteOnlySummaries,
                 onSelectScene: { scene in
                     isScenePickerPresented = false
-                    openEditor(with: .from(scene: scene))
+                    Task { await openExistingScene(scene) }
                 },
                 onSelectDraft: { draft in
                     isScenePickerPresented = false
@@ -119,7 +119,7 @@ struct CreateHubView: View {
         }
         .overlay {
             if isOpeningRemoteDraft {
-                ProgressView("打开云端草稿…")
+                ProgressView("正在导入场景…")
                     .padding(20)
                     .dreamRefractiveLiquidGlassRounded(
                         cornerRadius: 18,
@@ -151,12 +151,35 @@ struct CreateHubView: View {
         return appState.privateSceneSummaries.filter { !localPrivateIds.contains($0.id) }
     }
 
+    private func openExistingScene(_ scene: DreamScene) async {
+        isOpeningRemoteDraft = true
+        defer { isOpeningRemoteDraft = false }
+        if let composition = appState.storedSceneCompositionForCreate(sceneId: scene.id) {
+            openEditor(with: .from(scene: scene, composition: composition))
+            return
+        }
+        do {
+            let timeline = try await appState.fetchSceneTimelineForCreate(sceneId: scene.id)
+            openEditor(with: .from(scene: scene, timeline: timeline))
+        } catch {
+            // A scene without an authored timeline remains usable as a static template.
+            appState.lastServiceMessage = "时间线导入失败，已打开静态声源：\(error.localizedDescription)"
+            openEditor(with: .from(scene: scene))
+        }
+    }
+
     private func openRemoteSummary(_ summary: APIContentDTO.PrivateSceneSummary) async {
         isOpeningRemoteDraft = true
         defer { isOpeningRemoteDraft = false }
         do {
             let detail = try await appState.fetchPrivateSceneDetail(id: summary.id)
-            var seed = SpatialEditorSeed.from(privateDetail: detail)
+            let baseScene: DreamScene?
+            if let sourceSceneID = detail.source_scene_id {
+                baseScene = try? await appState.fetchSceneForCreate(sceneId: sourceSceneID)
+            } else {
+                baseScene = nil
+            }
+            var seed = SpatialEditorSeed.from(privateDetail: detail, baseScene: baseScene)
             // Keep a stable local draft id if we already mirrored this private scene.
             if let local = draftStore.drafts.first(where: { $0.privateSceneId == summary.id }) {
                 seed.draftID = local.id

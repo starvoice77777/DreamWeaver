@@ -557,7 +557,14 @@ final class AppState: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self else { return }
             let timeline: APIContentDTO.SceneTimeline?
-            if let cached = self.timelineCache[sceneId] {
+            if let composition = self.store.loadCreatedComposition(sceneId: sceneId) {
+                let createdTimeline = SceneCompositionTimelineMapper.timeline(
+                    from: composition,
+                    sceneId: sceneId
+                )
+                self.timelineCache[sceneId] = createdTimeline
+                timeline = createdTimeline
+            } else if let cached = self.timelineCache[sceneId] {
                 timeline = cached
             } else if let fetched = try? await self.contentService.fetchTimeline(sceneId: sceneId) {
                 self.timelineCache[sceneId] = fetched
@@ -1152,7 +1159,8 @@ final class AppState: ObservableObject {
         id: UUID,
         name: String,
         sourceSceneId: UUID?,
-        soundSources: [SoundSource]
+        soundSources: [SoundSource],
+        composition: APIContentDTO.SceneComposition? = nil
     ) throws -> DreamScene {
         let base = sourceSceneId.flatMap { sourceID in
             scenes.first { $0.id == sourceID }
@@ -1204,14 +1212,25 @@ final class AppState: ObservableObject {
         var createdScenes = store.loadCreatedScenes()
         createdScenes.removeAll { $0.id == id }
         createdScenes.insert(scene, at: 0)
+        let previousComposition = store.loadCreatedComposition(sceneId: id)
         do {
+            try store.saveCreatedComposition(composition, sceneId: id)
             try store.saveCreatedScenes(createdScenes)
         } catch {
+            try? store.saveCreatedComposition(previousComposition, sceneId: id)
             scenes.removeAll { $0.id == id }
             if let previousScene {
                 scenes.insert(previousScene, at: 0)
             }
             throw error
+        }
+        if let composition {
+            timelineCache[id] = SceneCompositionTimelineMapper.timeline(
+                from: composition,
+                sceneId: id
+            )
+        } else {
+            timelineCache[id] = nil
         }
         return scene
     }
@@ -1290,6 +1309,38 @@ final class AppState: ObservableObject {
             throw ServiceError.unauthorized
         }
         return try await remoteUserService.fetchPrivateScene(id: id)
+    }
+
+    /// Create editor uses the same cached official timeline as playback so an
+    /// existing scene imports its authored clips and motion rather than a snapshot.
+    func fetchSceneTimelineForCreate(
+        sceneId: UUID
+    ) async throws -> APIContentDTO.SceneTimeline {
+        if let composition = store.loadCreatedComposition(sceneId: sceneId) {
+            let timeline = SceneCompositionTimelineMapper.timeline(
+                from: composition,
+                sceneId: sceneId
+            )
+            timelineCache[sceneId] = timeline
+            return timeline
+        }
+        if let cached = timelineCache[sceneId] { return cached }
+        let timeline = try await contentService.fetchTimeline(sceneId: sceneId)
+        timelineCache[sceneId] = timeline
+        return timeline
+    }
+
+    func storedSceneCompositionForCreate(
+        sceneId: UUID
+    ) -> APIContentDTO.SceneComposition? {
+        store.loadCreatedComposition(sceneId: sceneId)
+    }
+
+    func fetchSceneForCreate(sceneId: UUID) async throws -> DreamScene {
+        if let scene = scenes.first(where: { $0.id == sceneId }), !scene.soundSources.isEmpty {
+            return scene
+        }
+        return try await contentService.fetchScene(id: sceneId)
     }
 
     func updateSourcePosition(id: UUID, position: SpatialPosition) {

@@ -11,6 +11,8 @@ struct CreateSceneDraft: Identifiable, Codable, Equatable {
     var sourceSceneSubtitle: String?
     var soundSources: [SpatialEditorSource]
     var textCues: [SpatialTextCue]
+    /// Optional for backward compatibility with locally saved v1 drafts.
+    var durationSeconds: Double? = nil
     var updatedAt: Date
 }
 

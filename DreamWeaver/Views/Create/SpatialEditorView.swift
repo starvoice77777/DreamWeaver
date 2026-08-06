@@ -241,7 +241,8 @@ struct SpatialEditorView: View {
                 id: viewModel.personalSceneID,
                 name: viewModel.displaySceneName,
                 sourceSceneId: viewModel.sourceSceneID,
-                soundSources: viewModel.makeSoundSources(baseScene: baseScene)
+                soundSources: viewModel.makeSoundSources(baseScene: baseScene),
+                composition: viewModel.makeCompositionDocument()
             )
             // Personal scene is published to the library; drop the draft entry.
             CreateDraftStore.shared.delete(id: viewModel.draftID)

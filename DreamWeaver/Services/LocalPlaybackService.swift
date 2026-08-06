@@ -19,6 +19,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var currentSources: [UUID: SoundSource] = [:]
     private var configuredResources: [UUID: String] = [:]
     private var resourceByNode: [ObjectIdentifier: String] = [:]
+    private var oneShotPlaybackTokens: [UUID: UUID] = [:]
 
     private var progressTimer: Timer?
     private var sleepTimer: Timer?
@@ -52,9 +53,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         // engine is running can leave AVAudioEngine with an invalid graph.
         stopInternal(keepEngine: false)
         lastErrorMessage = nil
-        activeTimeline = timeline
-        phraseById = Dictionary(uniqueKeysWithValues: (timeline?.phrases ?? []).map { ($0.id, $0) })
-
         do {
             try configureSession()
         } catch {
@@ -65,13 +63,21 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         prepareSpatialGraph()
 
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
-        automationEnvelopes = Dictionary(
-            uniqueKeysWithValues: sources.map { ($0.id, $0.initialEnvelope) }
+        let resolvedTimeline = resolvedTimeline(timeline)
+        activeTimeline = resolvedTimeline
+        phraseById = Dictionary(
+            uniqueKeysWithValues: (resolvedTimeline?.phrases ?? []).map { ($0.id, $0) }
         )
-        configuredResources = desiredResourceMap(for: sources)
-        let attachedTrackCount = attachAvailableTracks(sources)
+        let initiallyHiddenTrackIDs = prepareInitialTimelineVisibility(resolvedTimeline)
+        let preparedSources = sources.map { currentSources[$0.id] ?? $0 }
+        automationEnvelopes = Dictionary(
+            uniqueKeysWithValues: preparedSources.map { ($0.id, $0.initialEnvelope) }
+        )
+        configuredResources = desiredResourceMap(for: preparedSources)
+        let attachedTrackCount = attachAvailableTracks(preparedSources)
 
-        configureTimelineScheduler(timeline)
+        configureTimelineScheduler(resolvedTimeline)
+        initiallyHiddenTrackIDs.forEach(publishTimelineSource)
 
         guard attachedTrackCount > 0 else {
             isPlaying = false
@@ -100,7 +106,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             return
         }
         isPlaying = true
-        for (id, node) in players where layers[id] != .voice {
+        for (id, node) in players
+        where layers[id] != .voice && currentSources[id]?.isEnabled == true {
             if !node.isPlaying { node.play() }
         }
         timelineScheduler.start()
@@ -157,8 +164,6 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             guard source.resourceName != nil else { return false }
             return previousResources[source.id] != source.resourceName
         }
-        let engineWasRunning = engine.isRunning
-        var newlyAttachedIds: [UUID] = []
         var failures: [String] = []
 
         // AVAudioEngine supports changing player-node connections while the
@@ -169,9 +174,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
         for source in addedOrReplacedSources {
             do {
-                if try attach(source: source) {
-                    newlyAttachedIds.append(source.id)
-                } else {
+                let attached = try attach(source: source)
+                if !attached {
                     failures.append(source.name)
                 }
             } catch {
@@ -205,8 +209,12 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             try startEngineIfNeeded()
             isPlaying = true
 
-            let idsToStart = engineWasRunning ? newlyAttachedIds : Array(players.keys)
-            for id in idsToStart where layers[id] != .voice {
+            // Start every newly-visible bed, not just newly-attached nodes. Create
+            // preview keeps future clips attached and muted; when the playhead
+            // enters their window their resource map is unchanged, so limiting
+            // this to `newlyAttachedIds` left those clips permanently silent.
+            for id in players.keys
+            where layers[id] != .voice && currentSources[id]?.isEnabled == true {
                 if let node = players[id], !node.isPlaying {
                     node.play()
                 }
@@ -380,36 +388,81 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         })
     }
 
-    private func configureTimelineScheduler(_ timeline: APIContentDTO.SceneTimeline?) {
+    private func resolvedTimeline(
+        _ timeline: APIContentDTO.SceneTimeline?
+    ) -> APIContentDTO.SceneTimeline? {
         // When caller passes nil, use hair-care-compatible local fixture if a voice track is present.
-        let resolved: APIContentDTO.SceneTimeline?
         if let timeline {
-            resolved = timeline
-        } else if currentSources.values.contains(where: { $0.layer == .voice }) {
-            resolved = LocalTimelineFixture.timeline(for: DemoIDs.hairCareScene)
-            phraseById = Dictionary(uniqueKeysWithValues: (resolved?.phrases ?? []).map { ($0.id, $0) })
-        } else {
-            resolved = nil
+            return timeline
         }
-        activeTimeline = resolved
+        if currentSources.values.contains(where: { $0.layer == .voice }) {
+            return LocalTimelineFixture.timeline(for: DemoIDs.hairCareScene)
+        }
+        return nil
+    }
 
-        timelineScheduler.configure(timeline: resolved, overrides: []) { [weak self] actions in
+    /// Timeline-controlled tracks start outside the scene and enter only when
+    /// their first enable/play action fires. This keeps the mix disk aligned
+    /// with the authored lifecycle even when catalog defaults are all enabled.
+    private func prepareInitialTimelineVisibility(
+        _ timeline: APIContentDTO.SceneTimeline?
+    ) -> [UUID] {
+        let activationTypes: Set<String> = ["enable", "play", "play_oneshot", "play_phrase"]
+        let phraseTracks = Dictionary(
+            uniqueKeysWithValues: (timeline?.phrases ?? []).compactMap { phrase in
+                phrase.voice_binding.track_id.map { (phrase.id, $0) }
+            }
+        )
+        let controlledIDs = Set((timeline?.cues ?? []).flatMap(\.actions).compactMap { action in
+            guard activationTypes.contains(action.type) else { return nil }
+            return action.track_id ?? action.phrase_id.flatMap { phraseTracks[$0] }
+        })
+        for id in controlledIDs {
+            guard var source = currentSources[id] else { continue }
+            source.isEnabled = false
+            currentSources[id] = source
+        }
+        return Array(controlledIDs)
+    }
+
+    private func configureTimelineScheduler(_ timeline: APIContentDTO.SceneTimeline?) {
+        timelineScheduler.configure(timeline: timeline, overrides: []) { [weak self] actions in
             self?.executeTimelineActions(actions)
         }
     }
 
     private func executeTimelineActions(_ actions: [APIContentDTO.CueAction]) {
+        // Some authored cues enable a track before setting its envelope to zero.
+        // Prime zero envelopes first to prevent a one-frame audible flash.
+        let activatingTrackIDs = Set(actions.compactMap { action -> UUID? in
+            ["enable", "play", "play_oneshot", "play_phrase"].contains(action.type)
+                ? action.track_id
+                : nil
+        })
+        var primedZeroEnvelopeTrackIDs: Set<UUID> = []
+        for action in actions
+        where action.type == "set_envelope"
+            && (action.envelope ?? 1) <= 0
+            && (action.fade_ms ?? 0) <= 50 {
+            if let id = action.track_id, activatingTrackIDs.contains(id) {
+                applyEnvelope(trackId: id, envelope: 0, fadeMs: 0)
+                primedZeroEnvelopeTrackIDs.insert(id)
+            }
+        }
         for action in actions {
             switch action.type {
             case "play_phrase":
                 playPhraseAction(action)
             case "play_oneshot":
+                if let id = action.track_id {
+                    setTimelineSourceEnabled(id, enabled: true)
+                }
                 if let id = action.track_id, let source = currentSources[id] {
                     playOneShot(source: source)
-                    publishTimelineSource(id)
                 }
             case "set_envelope":
                 if let id = action.track_id, let envelope = action.envelope {
+                    if envelope <= 0, primedZeroEnvelopeTrackIDs.contains(id) { continue }
                     applyEnvelope(trackId: id, envelope: envelope, fadeMs: action.fade_ms)
                 }
             case "fade_out":
@@ -432,25 +485,17 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
                     publishTimelineSource(id)
                 }
             case "enable":
-                if let id = action.track_id, var source = currentSources[id] {
-                    source.isEnabled = true
-                    currentSources[id] = source
-                    ensureTrackAttached(source)
-                    updateSource(id: id, position: source.position, enabled: true)
-                    if playbackRequested, let node = players[id], !node.isPlaying, layers[id] != .voice {
-                        node.play()
-                    }
-                    publishTimelineSource(id)
+                if let id = action.track_id {
+                    setTimelineSourceEnabled(id, enabled: true)
                 }
             case "disable":
-                if let id = action.track_id, var source = currentSources[id] {
-                    source.isEnabled = false
-                    currentSources[id] = source
-                    updateSource(id: id, position: source.position, enabled: false)
-                    publishTimelineSource(id)
+                if let id = action.track_id {
+                    oneShotPlaybackTokens[id] = nil
+                    setTimelineSourceEnabled(id, enabled: false)
                 }
             case "play":
                 if let id = action.track_id {
+                    setTimelineSourceEnabled(id, enabled: true)
                     if players[id] == nil, let source = currentSources[id] {
                         ensureTrackAttached(source)
                     }
@@ -461,6 +506,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             case "pause":
                 if let id = action.track_id {
                     players[id]?.pause()
+                    setTimelineSourceEnabled(id, enabled: false)
                 }
             default:
                 break
@@ -473,13 +519,23 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         onTimelineSourceChange?(id, source)
     }
 
+    private func setTimelineSourceEnabled(_ id: UUID, enabled: Bool) {
+        guard var source = currentSources[id] else { return }
+        source.isEnabled = enabled
+        currentSources[id] = source
+        if enabled {
+            ensureTrackAttached(source)
+        }
+        updateSource(id: id, position: source.position, enabled: enabled)
+        publishTimelineSource(id)
+    }
+
     private func playPhraseAction(_ action: APIContentDTO.CueAction) {
         let trackId = action.track_id
             ?? action.phrase_id.flatMap { phraseById[$0]?.voice_binding.track_id }
-        guard let trackId,
-              let source = currentSources[trackId],
-              source.layer == .voice,
-              source.isEnabled else { return }
+        guard let trackId else { return }
+        setTimelineSourceEnabled(trackId, enabled: true)
+        guard let source = currentSources[trackId], source.layer == .voice else { return }
 
         var oneshot = source
         if let phraseId = action.phrase_id,
@@ -515,13 +571,28 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         })
     }
 
-    /// Final player gain has exactly one user-controlled term: board radius.
-    /// The envelope is reserved for scene automation such as cue fades.
+    /// Final player gain has exactly one steady-state loudness term: board radius.
+    /// Legacy presets authored envelope baselines below 1 (for example 0.22).
+    /// Normalize against that baseline so it represents “fully active”; values
+    /// below the baseline still preserve authored fades and temporary ducking.
     private func renderedGain(for id: UUID, source: SoundSource) -> Float {
         guard source.isEnabled else { return 0 }
         let envelope = automationEnvelopes[id] ?? source.initialEnvelope
+        let baseline = source.initialEnvelope
+        let automationMultiplier: Double
+        if envelope <= 0 {
+            automationMultiplier = 0
+        } else if baseline > 0 {
+            automationMultiplier = min(max(envelope / baseline, 0), 1)
+        } else {
+            automationMultiplier = 1
+        }
         let fade = Double(fadeMultipliers[id] ?? 1)
-        return Float(SpatialMixMapping.gain(for: source.position.radius) * envelope * fade)
+        return Float(
+            SpatialMixMapping.gain(for: source.position.radius)
+                * automationMultiplier
+                * fade
+        )
     }
 
     @discardableResult
@@ -611,14 +682,28 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
               let node = players[source.id] else { return }
         do {
             let file = try AVAudioFile(forReading: url)
-            node.volume = renderedGain(for: source.id, source: source)
+            let sourceID = source.id
+            let playbackToken = UUID()
+            oneShotPlaybackTokens[sourceID] = playbackToken
+            node.volume = renderedGain(for: sourceID, source: source)
             SpatialMixMapping.applySourceSpatialization(
                 to: node,
                 position: source.position,
                 environment: environment
             )
             node.stop()
-            node.scheduleFile(file, at: nil, completionHandler: nil)
+            node.scheduleFile(
+                file,
+                at: nil,
+                completionCallbackType: .dataPlayedBack
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self,
+                          self.oneShotPlaybackTokens[sourceID] == playbackToken else { return }
+                    self.oneShotPlaybackTokens[sourceID] = nil
+                    self.setTimelineSourceEnabled(sourceID, enabled: false)
+                }
+            }
             node.play()
         } catch {
             lastErrorMessage = error.localizedDescription
@@ -667,6 +752,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         timelineScheduler.stop()
         activeTimeline = nil
         phraseById = [:]
+        oneShotPlaybackTokens = [:]
         progressTimer?.invalidate()
         progressTimer = nil
         cancelSleepTimer()
@@ -724,7 +810,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     static func url(forResource name: String) -> URL? {
-        let ns = name as NSString
+        // Older remote rows and saved compositions may still reference the
+        // silent placeholder. Resolve them to the first mastered phrase so an
+        // existing user's scene does not remain permanently mute after upgrade.
+        let resolvedName = name == "voice_phrase_mom" ? "voice_phrase_01" : name
+        let ns = resolvedName as NSString
         let base = ns.deletingPathExtension
         let ext = ns.pathExtension
         let candidates: [(String, String?)]

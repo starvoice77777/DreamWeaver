@@ -269,7 +269,7 @@ enum MockDataService {
                 symbolName: "drop.circle.fill",
                 isEnabled: true,
                 initialEnvelope: 0.22,
-                position: SpatialPosition(angle: -0.62, radius: 0.9),
+                position: SpatialPosition(angle: -0.62, radius: 0.74),
                 resourceName: "water_drip_roomtone",
                 layer: .trigger
             ),
@@ -279,7 +279,7 @@ enum MockDataService {
                 symbolName: "drop.fill",
                 isEnabled: true,
                 initialEnvelope: 0.2,
-                position: SpatialPosition(angle: 0.18, radius: 0.92),
+                position: SpatialPosition(angle: 0.18, radius: 0.80),
                 resourceName: "hair_wash_water_cycle",
                 layer: .environment
             ),
@@ -410,7 +410,7 @@ enum MockDataService {
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
                 initialEnvelope: 0.22,
-                position: SpatialPosition(angle: -0.35, radius: 0.85),
+                position: SpatialPosition(angle: -0.35, radius: 0.78),
                 resourceName: "rain_soft",
                 layer: .environment
             ),
@@ -430,7 +430,7 @@ enum MockDataService {
                 symbolName: "leaf.fill",
                 isEnabled: false,
                 initialEnvelope: 0.0,
-                position: SpatialPosition(angle: -1.2, radius: 0.88),
+                position: SpatialPosition(angle: -1.2, radius: 0.78),
                 resourceName: "rain_bamboo_leaf",
                 layer: .ambience
             ),
@@ -440,7 +440,7 @@ enum MockDataService {
                 symbolName: "wind",
                 isEnabled: false,
                 initialEnvelope: 0.0,
-                position: SpatialPosition(angle: -2.4, radius: 0.95),
+                position: SpatialPosition(angle: -2.4, radius: 0.77),
                 resourceName: "wind_gust",
                 layer: .trigger
             )
@@ -534,7 +534,7 @@ enum MockDataService {
                 relation: .family,
                 createdAt: now.addingTimeInterval(-86400 * 12),
                 lastUsedAt: now.addingTimeInterval(-3600),
-                previewResourceName: "voice_phrase_mom",
+                previewResourceName: "voice_phrase_01",
                 processingStatus: .ready,
                 authorization: VoiceAuthorization(confirmed: true, revocable: true, authorizationId: "auth-mom-demo")
             ),
@@ -549,7 +549,7 @@ enum MockDataService {
                 relation: .friend,
                 createdAt: now.addingTimeInterval(-86400 * 8),
                 lastUsedAt: nil,
-                previewResourceName: "voice_phrase_mom",
+                previewResourceName: "voice_phrase_01",
                 processingStatus: .ready,
                 authorization: VoiceAuthorization(confirmed: true, revocable: true, authorizationId: "auth-friend-demo")
             ),
@@ -564,7 +564,7 @@ enum MockDataService {
                 relation: .partner,
                 createdAt: now.addingTimeInterval(-86400 * 20),
                 lastUsedAt: now.addingTimeInterval(-1800),
-                previewResourceName: "voice_phrase_mom",
+                previewResourceName: "voice_phrase_01",
                 processingStatus: .ready,
                 authorization: VoiceAuthorization(confirmed: true, revocable: true, authorizationId: "auth-partner-demo")
             ),
@@ -600,8 +600,8 @@ enum MockDataService {
                 sources: [
                     source("水循环", "drop.fill", angle: 0.4, radius: 0.55, initialEnvelope: 0.32, resourceName: "hair_wash_water_cycle"),
                     source("泡沫揉洗", "hand.raised.fill", angle: .pi * 0.9, radius: 0.48, initialEnvelope: 0.3, resourceName: "hair_wash_foam_rub", layer: .ambience),
-                    source("底噪", "wind.circle.fill", angle: .pi * 1.2, radius: 0.82, initialEnvelope: 0.18, resourceName: "ac_hum", layer: .ambience),
-                    source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, initialEnvelope: 0.48, resourceName: "voice_phrase_mom", layer: .voice, assetId: DemoIDs.seedMom)
+                    source("水滴房间底噪", "drop.circle.fill", angle: .pi * 1.2, radius: 0.74, initialEnvelope: 0.18, resourceName: "water_drip_roomtone", layer: .ambience),
+                    source("轻声陪伴", "person.wave.2.fill", angle: -.pi * 0.25, radius: 0.36, initialEnvelope: 0.48, resourceName: "voice_phrase_01", layer: .voice, assetId: DemoIDs.seedMom)
                 ],
                 sceneId: DemoIDs.hairCareScene,
                 styleHint: SceneVisualStyle.hairCare.rawValue
@@ -613,10 +613,10 @@ enum MockDataService {
                 authorType: .official,
                 authorName: "织梦",
                 sources: [
-                    source("远雨", "cloud.drizzle.fill", angle: -0.35, radius: 0.85, initialEnvelope: 0.22, resourceName: "rain_soft", layer: .environment),
+                    source("远雨", "cloud.drizzle.fill", angle: -0.35, radius: 0.78, initialEnvelope: 0.22, resourceName: "rain_soft", layer: .environment),
                     source("檐下雨", "cloud.rain.fill", angle: 0.7, radius: 0.62, initialEnvelope: 0.4, resourceName: "rain_parasol", layer: .ambience),
-                    source("竹叶雨", "leaf.fill", angle: -1.2, radius: 0.88, initialEnvelope: 0.27, resourceName: "rain_bamboo_leaf", layer: .ambience),
-                    source("阵风", "wind", angle: -2.4, radius: 0.95, initialEnvelope: 0.20, resourceName: "wind_gust", layer: .trigger)
+                    source("竹叶雨", "leaf.fill", angle: -1.2, radius: 0.78, initialEnvelope: 0.27, resourceName: "rain_bamboo_leaf", layer: .ambience),
+                    source("阵风", "wind", angle: -2.4, radius: 0.77, initialEnvelope: 0.20, resourceName: "wind_gust", layer: .trigger)
                 ],
                 sceneId: DemoIDs.rainEavesScene,
                 styleHint: SceneVisualStyle.rainEaves.rawValue

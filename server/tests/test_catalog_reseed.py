@@ -7,11 +7,31 @@ import uuid
 from sqlalchemy import select
 
 from app.models.content import SceneTrack
-from app.services.seed_catalog import reseed_official_catalog
+from app.services.seed_catalog import (
+    official_preset_specs,
+    official_scene_specs,
+    reseed_official_catalog,
+)
 
 RAIN_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
 BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
 FAR_RAIN_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
+
+
+def test_official_catalog_avoids_silent_and_stale_runtime_resources() -> None:
+    scene_resources = {
+        track["resource_key"]
+        for scene in official_scene_specs()
+        for track in scene["tracks"]
+        if track["resource_key"] is not None
+    }
+    preset_resources = {
+        source["resourceName"]
+        for preset in official_preset_specs()
+        for source in preset["sources"]
+    }
+    assert "voice_phrase_mom" not in scene_resources | preset_resources
+    assert "ac_hum" not in preset_resources
 
 
 async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN001

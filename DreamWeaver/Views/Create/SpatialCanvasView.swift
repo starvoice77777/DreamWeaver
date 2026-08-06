@@ -30,7 +30,7 @@ struct SpatialCanvasView: View {
                 listenerNode
                     .position(x: side / 2, y: side / 2)
 
-                ForEach(viewModel.soundSources) { source in
+                ForEach(viewModel.visibleSoundSources) { source in
                     SoundSourceNodeView(
                         source: source,
                         position: viewModel.position(for: source),

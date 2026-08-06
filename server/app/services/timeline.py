@@ -21,8 +21,8 @@ from app.schemas.content import (
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
-HAIR_CARE_TIMELINE_VERSION = 11
-RAIN_EAVES_TIMELINE_VERSION = 9
+HAIR_CARE_TIMELINE_VERSION = 12
+RAIN_EAVES_TIMELINE_VERSION = 10
 _HAIR_FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v11.json"
 )

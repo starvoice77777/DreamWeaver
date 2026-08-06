@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 final class SpatialTimelineViewModel: ObservableObject {
-    let duration: Double = 120
+    let duration: Double
     let timeSnapTolerance: Double = 0.2
     let minimumAudioDuration: Double = 1
 
@@ -45,6 +45,12 @@ final class SpatialTimelineViewModel: ObservableObject {
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
     var isTrajectoryRecordingArmed: Bool { armedTrajectorySourceID != nil }
     var isRecordingTrajectory: Bool { recordingTrajectorySourceID != nil }
+    var visibleSoundSources: [SpatialEditorSource] {
+        soundSources.filter {
+            $0.id == selectedSourceID
+                || (currentTime >= $0.audioStartTime && currentTime < $0.audioEndTime)
+        }
+    }
 
     var recordingDuration: Double {
         guard let first = liveRecordingSamples.first else { return 0 }
@@ -53,6 +59,8 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     init(seed providedSeed: SpatialEditorSeed? = nil) {
         let seed = providedSeed ?? .blank
+        let contentEnd = seed.soundSources.map(\.audioEndTime).max() ?? 0
+        self.duration = max(seed.durationSeconds ?? max(contentEnd, 120), 1)
         self.draftID = seed.draftID ?? UUID()
         self.privateSceneID = seed.privateSceneID
         self.sceneName = seed.sceneName
@@ -78,6 +86,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             sourceSceneSubtitle: sourceSceneSubtitle,
             soundSources: soundSources,
             textCues: textCues,
+            durationSeconds: duration,
             updatedAt: Date()
         )
     }
@@ -752,7 +761,9 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     var availableMaterials: [SpatialEditorMaterial] {
-        SpatialEditorMaterial.catalog
+        // The bundled ac_hum recording is neither fire nor loud enough to serve
+        // as a useful substitute. Keep fire unavailable until a real asset ships.
+        SpatialEditorMaterial.catalog.filter { $0.id != "fire" }
     }
 
     func isMaterialInUse(_ material: SpatialEditorMaterial) -> Bool {
@@ -851,7 +862,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             guard let dragged = dragPositions[sources[index].id] else { continue }
             let point = SpatialTrajectory.clampedToUnitCircle(dragged)
             sources[index].position = SpatialPosition(
-                angle: atan2(-point.y, point.x),
+                angle: atan2(point.x, -point.y),
                 radius: min(max(hypot(point.x, point.y), 0), 1)
             )
         }
