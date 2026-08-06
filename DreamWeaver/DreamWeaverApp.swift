@@ -11,8 +11,12 @@ struct DreamWeaverApp: App {
                 .environmentObject(appState)
                 .environment(\.font, DreamTypography.body)
                 .onChange(of: scenePhase) { _, phase in
-                    guard phase != .active else { return }
-                    Task { await appState.flushPendingSettingsSync() }
+                    if phase == .active {
+                        appState.resumeFromBackground()
+                    } else {
+                        appState.prepareNextLaunchScene()
+                        Task { await appState.flushPendingSettingsSync() }
+                    }
                 }
         }
     }

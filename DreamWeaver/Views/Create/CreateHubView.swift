@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 /// Root creation workspace. Entering the Create tab opens a blank editor directly.
 struct CreateHubView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     @ObservedObject private var draftStore = CreateDraftStore.shared
     @State private var isScenePickerPresented = false
     @State private var showSoundLibrary = false
@@ -123,7 +124,7 @@ struct CreateHubView: View {
                     .padding(20)
                     .dreamRefractiveLiquidGlassRounded(
                         cornerRadius: 18,
-                        accent: DreamTheme.warmApricot,
+                        accent: sceneAccent,
                         intensity: 0.85
                     )
             }

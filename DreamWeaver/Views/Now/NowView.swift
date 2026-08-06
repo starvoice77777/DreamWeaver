@@ -82,11 +82,17 @@ struct NowView: View {
                             } label: {
                                 Image(systemName: "line.3.horizontal")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
+                                    .foregroundStyle(
+                                        appState.currentScene.palette.accentColor.opacity(0.92)
+                                    )
                                     .frame(width: 44, height: 44)
                                     .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
+                            .animation(
+                                .easeInOut(duration: 0.36),
+                                value: appState.currentScene.palette
+                            )
                             .accessibilityLabel("浏览全部场景")
                         }
 
@@ -351,11 +357,15 @@ struct NowControlsOverlay: View {
                 } label: {
                     Image(systemName: appState.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(DreamTheme.moonWhite)
+                        .foregroundStyle(appState.currentScene.palette.accentColor)
                         .frame(width: 56, height: 56)
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .animation(
+                    .easeInOut(duration: 0.36),
+                    value: appState.currentScene.palette
+                )
                 .accessibilityLabel(appState.isPlaying ? "暂停" : "播放")
 
                 PlaybackProgressSlider(value: $appState.playbackProgress) { isEditing in
@@ -566,15 +576,15 @@ struct NowTimerButton: View {
         } label: {
             Image(systemName: "timer")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(
-                    showPicker
-                        ? appState.currentScene.palette.accentColor
-                        : DreamTheme.moonWhite
-                )
+                .foregroundStyle(appState.currentScene.palette.accentColor)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .animation(
+            .easeInOut(duration: 0.36),
+            value: appState.currentScene.palette
+        )
         .accessibilityLabel("定时")
         .accessibilityValue("\(appState.sleepTimerDurationMinutes)分钟")
         .accessibilityHint("点按在右侧展开或收起计时刻度")

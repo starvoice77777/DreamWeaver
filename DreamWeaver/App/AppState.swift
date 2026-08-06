@@ -20,6 +20,10 @@ final class AppState: ObservableObject {
     private var personalMixByScene: [UUID: [SoundSource]] = [:]
 
     @Published var showLaunch = true
+    /// Frozen before the first frame so bootstrap hydration cannot recolor the launch animation.
+    @Published private(set) var launchScenePalette: ScenePalette
+    /// Shown while leaving the foreground so the iOS launch snapshot already matches next boot.
+    @Published private(set) var backgroundLaunchPalette: ScenePalette?
     @Published var controlsVisible = true
     @Published var showMixPalette = false
     @Published var sceneTitleVisible = true
@@ -85,6 +89,14 @@ final class AppState: ObservableObject {
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
     private var isApplyingRemoteSettings = false
     private var remoteSettingsSyncTask: Task<Void, Never>?
+
+    private static let preparedLaunchSceneKey = "dw.preparedLaunchScene.v1"
+
+    private struct PreparedLaunchScene: Codable {
+        let id: UUID
+        let visualStyle: SceneVisualStyle
+        let palette: ScenePalette
+    }
 
     convenience init() {
         let mode = ServiceBackendConfig.mode
@@ -166,13 +178,30 @@ final class AppState: ObservableObject {
             sessionUserId = UUID(uuidString: idString)
         }
 
-        let initialScenes = MockDataService.makeScenes()
+        var initialScenes = MockDataService.makeScenes()
+        let preparedLaunch = Self.loadPreparedLaunchScene(from: defaults)
+        defaults.removeObject(forKey: Self.preparedLaunchSceneKey)
+
+        let preparedIndex = preparedLaunch.flatMap { prepared in
+            initialScenes.firstIndex(where: { $0.id == prepared.id })
+                ?? initialScenes.firstIndex(where: { $0.visualStyle == prepared.visualStyle })
+        }
+        if let preparedLaunch, let preparedIndex {
+            // Use the persisted palette from the first frame, even before a remote catalog arrives.
+            initialScenes[preparedIndex].palette = preparedLaunch.palette
+        }
+        let initialTarget = preparedIndex.map { initialScenes[$0] }
+            ?? initialScenes.randomElement()
+            ?? initialScenes[0]
+
         scenes = initialScenes
         soundAssets = MockDataService.makeSoundAssets()
         usageRecord = MockDataService.makeUsageRecord()
         mixPresets = MockDataService.makeMixPresets()
         mixBoardSelection = .mine
-        currentSceneId = initialScenes.randomElement()?.id ?? DemoIDs.hairCareScene
+        currentSceneId = initialTarget.id
+        launchScenePalette = initialTarget.palette
+        backgroundLaunchPalette = nil
 
         if let mixStore = store.loadPersonalMix() {
             for (key, value) in mixStore.byScene {
@@ -237,6 +266,10 @@ final class AppState: ObservableObject {
 
     func bootstrap() async {
         do {
+            // Capture the scene chosen synchronously during initialization so the
+            // launch overlay and the scene revealed beneath it share one target.
+            let coldLaunchTarget = currentScene
+
             // Drop cached timelines so catalog reseeds (v6→v8) take effect in-process.
             timelineCache.removeAll()
             swipePrefetchTasks.values.forEach { $0.cancel() }
@@ -269,10 +302,15 @@ final class AppState: ObservableObject {
                 lastServiceMessage = "混音预设加载失败：\(error.localizedDescription)"
             }
 
-            // Every cold launch starts from a fresh random scene. Deliberately
-            // ignore the previously played scene and any remote default.
-            if let randomScene = loadedScenes.randomElement() {
-                currentSceneId = randomScene.id
+            // The cold-launch target is chosen once in init. Keep the same ID after
+            // catalog hydration; if a backend replaced IDs, preserve its visual style.
+            if !loadedScenes.contains(where: { $0.id == currentSceneId }) {
+                let resolvedTarget = loadedScenes.first {
+                    $0.visualStyle == coldLaunchTarget.visualStyle
+                } ?? loadedScenes.randomElement()
+                if let resolvedTarget {
+                    currentSceneId = resolvedTarget.id
+                }
             }
 
             // Drop / repair stale personal mixes that no longer share official track IDs.
@@ -449,6 +487,38 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Launch
+
+    /// Select and persist the next cold-launch scene before iOS captures the background snapshot.
+    func prepareNextLaunchScene() {
+        guard backgroundLaunchPalette == nil else { return }
+
+        let createdSceneIDs = Set(store.loadCreatedScenes().map(\.id))
+        let officialScenes = scenes.filter { !createdSceneIDs.contains($0.id) }
+        let alternatives = officialScenes.filter { $0.id != currentSceneId }
+        guard let nextScene = alternatives.randomElement() ?? officialScenes.randomElement() else {
+            return
+        }
+
+        let prepared = PreparedLaunchScene(
+            id: nextScene.id,
+            visualStyle: nextScene.visualStyle,
+            palette: nextScene.palette
+        )
+        if let data = try? JSONEncoder().encode(prepared) {
+            defaults.set(data, forKey: Self.preparedLaunchSceneKey)
+        }
+        backgroundLaunchPalette = nextScene.palette
+    }
+
+    /// Returning from Control Center / app switching should reveal the current session unchanged.
+    func resumeFromBackground() {
+        backgroundLaunchPalette = nil
+    }
+
+    private static func loadPreparedLaunchScene(from defaults: UserDefaults) -> PreparedLaunchScene? {
+        guard let data = defaults.data(forKey: preparedLaunchSceneKey) else { return nil }
+        return try? JSONDecoder().decode(PreparedLaunchScene.self, from: data)
+    }
 
     func finishLaunch() {
         // Overlay is already fully transparent; drop it without a second fade of「此刻」.

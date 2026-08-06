@@ -109,9 +109,11 @@ struct SoundMixCircleEditor: View {
     }
 
     private func listenerAnchor(at center: CGPoint) -> some View {
-        Image(systemName: "person.fill")
-            .font(.system(size: 18, weight: .medium))
-            .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
+        DreamWeaverListenerMark(
+            accent: appState.currentScene.palette.accentColor,
+            lineWidth: 2
+        )
+            .frame(width: 16, height: 28)
             .frame(width: 44, height: 44)
             .dreamSpatialLiquidGlassCircle(
                 accent: DreamTheme.warmApricot,
@@ -168,7 +170,7 @@ struct SoundMixCircleEditor: View {
         let scale = 0.78 + gain * 0.5
         let iconSize: CGFloat = 14 * scale
         let side: CGFloat = 50 * scale
-        let iconOpacity = 0.55 + gain * 0.4
+        let iconOpacity = 0.40 + gain * 0.30
 
         return Image(systemName: symbol)
             .font(.system(size: iconSize))

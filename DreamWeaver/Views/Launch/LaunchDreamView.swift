@@ -7,26 +7,31 @@ struct LaunchDreamView: View {
     @State private var logoProgress: CGFloat = 0
     @State private var overallOpacity = 1.0
 
+    /// Uses the exact palette of the scene that will be revealed underneath.
+    private var launchColors: LaunchSceneColors {
+        LaunchSceneColors(palette: appState.launchScenePalette)
+    }
+
     private var reduceMotion: Bool {
         appState.reduceMotion || systemReduceMotion
     }
 
     var body: some View {
-        let colors = LaunchSceneColors(scenePalette: appState.currentScene.palette)
-
         ZStack {
-            colors.backgroundGradient
+            launchColors.backgroundGradient
 
-            DreamWeaverDrawnMark(progress: logoProgress, colors: colors)
+            DreamWeaverDrawnMark(progress: logoProgress, colors: launchColors)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .animation(.easeInOut(duration: 0.45), value: appState.currentScene.palette)
         .opacity(overallOpacity)
         .ignoresSafeArea()
         .onAppear(perform: runLaunchSequence)
     }
 
     private func runLaunchSequence() {
+        logoProgress = 0
+        overallOpacity = 1
+
         // The three equal writing windows share a 1.2-second master timeline;
         // the mark applies its own gentle ease-in/ease-out so every stroke
         // still feels hand-drawn.
@@ -53,40 +58,30 @@ struct LaunchDreamView: View {
     }
 }
 
-/// Extracts the lightest and darkest representative tones from the scene that
-/// is already rendered beneath the launch overlay. This also covers scenes
-/// delivered by the backend without maintaining a style-specific color table.
+/// Scene-derived launch palette. The background follows the scene gradient and
+/// the drawn mark follows the scene accent.
 private struct LaunchSceneColors {
-    let darkHex: UInt32
-    let lightHex: UInt32
+    let topHex: UInt32
+    let midHex: UInt32
+    let bottomHex: UInt32
+    let accentHex: UInt32
 
-    init(scenePalette: ScenePalette) {
-        let backgroundTones = [scenePalette.top, scenePalette.mid, scenePalette.bottom]
-        let dark = backgroundTones.min {
-            Self.relativeLuminance($0) < Self.relativeLuminance($1)
-        } ?? scenePalette.bottom
-
-        let extractedLight = (backgroundTones + [scenePalette.accent]).max {
-            Self.relativeLuminance($0) < Self.relativeLuminance($1)
-        } ?? scenePalette.accent
-
-        darkHex = dark
-        // Preserve the extracted hue while guaranteeing that the drawn mark
-        // remains legible for low-contrast palettes supplied by remote scenes.
-        lightHex = Self.relativeLuminance(extractedLight) - Self.relativeLuminance(dark) < 0.16
-            ? Self.blend(extractedLight, with: 0xFFFFFF, amount: 0.42)
-            : extractedLight
+    init(palette: ScenePalette) {
+        topHex = palette.top
+        midHex = palette.mid
+        bottomHex = palette.bottom
+        accentHex = palette.accent
     }
 
-    var darkColor: Color { Color(hex: darkHex) }
-    var lightColor: Color { Color(hex: lightHex) }
+    var darkColor: Color { Color(hex: bottomHex) }
+    var lightColor: Color { Color(hex: accentHex) }
 
     var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
-                darkColor,
-                Color(hex: Self.blend(darkHex, with: lightHex, amount: 0.10)),
-                darkColor
+                Color(hex: topHex),
+                Color(hex: midHex),
+                Color(hex: bottomHex)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -96,28 +91,14 @@ private struct LaunchSceneColors {
     var markGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color(hex: Self.blend(lightHex, with: 0xFFFFFF, amount: 0.12)),
+                Color(hex: Self.blend(accentHex, with: 0xFFFFFF, amount: 0.12)),
                 lightColor,
-                Color(hex: Self.blend(lightHex, with: darkHex, amount: 0.18)),
+                Color(hex: Self.blend(accentHex, with: bottomHex, amount: 0.18)),
                 lightColor
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
-
-    private static func relativeLuminance(_ hex: UInt32) -> Double {
-        func linearized(_ component: UInt32) -> Double {
-            let value = Double(component) / 255
-            return value <= 0.04045
-                ? value / 12.92
-                : pow((value + 0.055) / 1.055, 2.4)
-        }
-
-        let red = linearized((hex >> 16) & 0xFF)
-        let green = linearized((hex >> 8) & 0xFF)
-        let blue = linearized(hex & 0xFF)
-        return red * 0.2126 + green * 0.7152 + blue * 0.0722
     }
 
     private static func blend(_ source: UInt32, with target: UInt32, amount: Double) -> UInt32 {

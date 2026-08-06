@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptivePalette) private var scenePalette
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     @State private var apiBaseURLDraft = ServiceBackendConfig.apiBaseURLString.isEmpty
         ? ServiceBackendConfig.remoteBaseURL.absoluteString
         : ServiceBackendConfig.apiBaseURLString
@@ -34,7 +36,7 @@ struct SettingsView: View {
                     Button("保存基址") {
                         applyAPIBaseURL()
                     }
-                    .foregroundStyle(DreamTheme.warmApricot)
+                    .foregroundStyle(sceneAccent)
                 }
                 .listRowBackground(Color.white.opacity(0.05))
                 if appState.contentBackendMode == .remote {
@@ -42,22 +44,22 @@ struct SettingsView: View {
                         Button("退出远程登录") {
                             Task { await appState.signOutRemote() }
                         }
-                        .foregroundStyle(DreamTheme.warmApricot)
+                        .foregroundStyle(sceneAccent)
                         Button("云端保存当前混音") {
                             Task { await appState.saveCurrentMixToRemote() }
                         }
-                        .foregroundStyle(DreamTheme.warmApricot)
+                        .foregroundStyle(sceneAccent)
                     } else {
                         Button("开发登录（dev:demo-user）") {
                             Task { await appState.signInWithDevAccount() }
                         }
-                        .foregroundStyle(DreamTheme.warmApricot)
+                        .foregroundStyle(sceneAccent)
                     }
                 }
                 Button("重置为标准演示状态") {
                     appState.resetDemoState()
                 }
-                .foregroundStyle(DreamTheme.warmApricot)
+                .foregroundStyle(sceneAccent)
                 if let message = appState.lastServiceMessage {
                     Text(message)
                         .font(DreamTypography.caption)
@@ -91,7 +93,7 @@ struct SettingsView: View {
                 HStack {
                     Text("动画强度")
                     Slider(value: $appState.animationIntensity, in: 0.2...1)
-                        .tint(DreamTheme.mistBlue)
+                        .tint(sceneAccent)
                         .accessibilityLabel("动画强度")
                 }
                 Toggle("减少动态效果", isOn: $appState.reduceMotion)
@@ -146,10 +148,10 @@ struct SettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(DreamTheme.deepBlue.ignoresSafeArea())
+        .background(SceneAdaptiveBackground(palette: scenePalette))
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
-        .tint(DreamTheme.mistBlue)
+        .tint(sceneAccent)
         .onChange(of: appState.autoPlayEnabled) { _, _ in appState.persistSettings() }
         .onChange(of: appState.backgroundPlayEnabled) { _, _ in appState.persistSettings() }
         .onChange(of: appState.lockScreenPlayEnabled) { _, _ in appState.persistSettings() }
@@ -183,13 +185,13 @@ struct SettingsView: View {
 
 struct SettingsDetailPage: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sceneAdaptivePalette) private var scenePalette
     let title: String
     let bodyText: String
 
     var body: some View {
         ZStack {
-            DreamTheme.deepBlue
-                .ignoresSafeArea()
+            SceneAdaptiveBackground(palette: scenePalette)
                 .contentShape(Rectangle())
                 .onTapGesture { dismiss() }
 

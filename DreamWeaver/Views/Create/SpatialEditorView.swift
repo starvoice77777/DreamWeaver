@@ -3,9 +3,12 @@ import SwiftUI
 struct SpatialEditorView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     @StateObject private var viewModel: SpatialTimelineViewModel
     @State private var isSaving = false
     @State private var showSaveChooser = false
+    @State private var showsSoundTray = false
+    @State private var showsAdvancedEditor = false
     private let isCreateTabRoot: Bool
     private let onResetRequested: (() -> Void)?
     private let onExistingSceneRequested: (() -> Void)?
@@ -41,9 +44,20 @@ struct SpatialEditorView: View {
                         .frame(maxWidth: .infinity)
                     sceneSummary
                     soundFieldSection
-                    timelineSection
-                    textEditorSection
-                    materialsDock
+                    sourceStrip
+                    PlaybackControlView(viewModel: viewModel)
+                    advancedEditorToggle
+                    if showsAdvancedEditor {
+                        VStack(spacing: 16) {
+                            timelineSection
+                            textEditorSection
+                        }
+                        .transition(
+                            .opacity.combined(
+                                with: .scale(scale: 0.985, anchor: .top)
+                            )
+                        )
+                    }
                     Spacer(minLength: 28)
                 }
                 .padding(.horizontal, 16)
@@ -64,7 +78,7 @@ struct SpatialEditorView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .dreamRefractiveLiquidGlassCapsule(
-                        accent: DreamTheme.warmApricot,
+                        accent: sceneAccent,
                         intensity: 0.82
                     )
                     .frame(maxHeight: .infinity, alignment: .bottom)
@@ -84,6 +98,12 @@ struct SpatialEditorView: View {
         .onDisappear {
             viewModel.stopForDismissal()
         }
+        .sheet(isPresented: $showsSoundTray) {
+            soundTray
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(appState.currentScene.palette.bottomColor)
+        }
         .confirmationDialog("保存场景", isPresented: $showSaveChooser, titleVisibility: .visible) {
             Button("保存为草稿") {
                 Task { await saveDraft() }
@@ -98,28 +118,7 @@ struct SpatialEditorView: View {
     }
 
     private var editorBackground: some View {
-        ZStack {
-            DreamTheme.backgroundGradient
-            RadialGradient(
-                colors: [
-                    DreamTheme.mistBlue.opacity(0.14),
-                    Color.clear
-                ],
-                center: UnitPoint(x: 0.70, y: 0.14),
-                startRadius: 0,
-                endRadius: 260
-            )
-            RadialGradient(
-                colors: [
-                    DreamTheme.warmApricot.opacity(0.08),
-                    Color.clear
-                ],
-                center: UnitPoint(x: 0.16, y: 0.44),
-                startRadius: 0,
-                endRadius: 220
-            )
-        }
-        .ignoresSafeArea()
+        SceneAdaptiveBackground(palette: appState.currentScene.palette)
     }
 
     private var editorHeader: some View {
@@ -133,12 +132,8 @@ struct SpatialEditorView: View {
             } label: {
                 Image(systemName: onResetRequested == nil ? "chevron.left" : "arrow.counterclockwise")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(DreamTheme.warmApricot)
+                    .foregroundStyle(sceneAccent)
                     .frame(width: 38, height: 38)
-                    .dreamSpatialLiquidGlassCircle(
-                        accent: DreamTheme.warmApricot,
-                        intensity: 0.62
-                    )
             }
             .buttonStyle(.plain)
             .accessibilityLabel(onResetRequested == nil ? "返回创建" : "重置创作")
@@ -151,18 +146,14 @@ struct SpatialEditorView: View {
                 Group {
                     if isSaving {
                         ProgressView()
-                            .tint(DreamTheme.warmApricot)
+                            .tint(sceneAccent)
                     } else {
                         Image(systemName: "checkmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(DreamTheme.warmApricot)
+                            .foregroundStyle(sceneAccent)
                     }
                 }
                 .frame(width: 38, height: 38)
-                .dreamSpatialLiquidGlassCircle(
-                    accent: DreamTheme.warmApricot,
-                    intensity: 0.62
-                )
             }
             .buttonStyle(.plain)
             .disabled(isSaving)
@@ -261,72 +252,29 @@ struct SpatialEditorView: View {
     }
 
     private var sceneSummary: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0x24354B),
-                                Color(hex: 0x0E1725)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Image(systemName: "sparkles")
-                    .font(.system(size: 21))
-                    .foregroundStyle(DreamTheme.warmApricot.opacity(0.88))
-                Circle()
-                    .stroke(DreamTheme.warmApricot.opacity(0.28), lineWidth: 0.8)
-                    .padding(7)
-            }
-            .frame(width: 52, height: 52)
+        VStack(alignment: .leading, spacing: 8) {
+            TextField(
+                "",
+                text: $viewModel.sceneName,
+                prompt: Text("给这个场景起个名字")
+                    .foregroundStyle(DreamTheme.tertiaryText)
+            )
+            .font(.system(size: 22, weight: .medium, design: .rounded))
+            .foregroundStyle(DreamTheme.moonWhite)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.done)
 
-            VStack(alignment: .leading, spacing: 5) {
-                TextField(
-                    "",
-                    text: $viewModel.sceneName,
-                    prompt: Text("填写场景名称")
-                        .foregroundStyle(DreamTheme.tertiaryText)
-                )
-                .font(DreamTypography.cardTitle)
-                .foregroundStyle(DreamTheme.moonWhite)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.done)
-
-            }
-
-            Spacer(minLength: 8)
-
-            Text(SpatialTimeText.string(viewModel.duration))
-                .font(DreamTypography.timecode)
-                .foregroundStyle(DreamTheme.tertiaryText)
+            Rectangle()
+                .fill(Color.white.opacity(0.10))
+                .frame(height: 0.7)
         }
-        .padding(12)
-        .background {
-            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                .fill(Color.black.opacity(0.18))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 0.7)
-                }
-        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, 2)
     }
 
     private var soundFieldSection: some View {
         VStack(spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("声场")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(DreamTheme.warmApricot)
-                }
-
-                Spacer()
-            }
-
             SpatialCanvasView(viewModel: viewModel)
                 .frame(maxWidth: 350)
                 .frame(maxWidth: .infinity)
@@ -336,19 +284,6 @@ struct SpatialEditorView: View {
 
     private var timelineSection: some View {
         VStack(spacing: 10) {
-            HStack {
-                Text("场景时间轴")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DreamTheme.warmApricot)
-
-                Spacer()
-
-                Text(SpatialTimeText.string(viewModel.currentTime))
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(DreamTheme.moonWhite)
-                    .contentTransition(.numericText())
-            }
-
             HStack(spacing: 7) {
                 ForEach(SpatialTimelineEditMode.allCases) { mode in
                     timelineModeButton(mode)
@@ -370,8 +305,6 @@ struct SpatialEditorView: View {
             }
 
             TimelineEditorView(viewModel: viewModel)
-
-            PlaybackControlView(viewModel: viewModel)
         }
     }
 
@@ -392,7 +325,7 @@ struct SpatialEditorView: View {
                     Capsule(style: .continuous)
                         .fill(
                             isSelected
-                                ? DreamTheme.warmApricot.opacity(0.18)
+                                ? sceneAccent.opacity(0.18)
                                 : Color.clear
                         )
                 }
@@ -409,10 +342,12 @@ struct SpatialEditorView: View {
                     .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
                     .contentTransition(.numericText())
 
-                Text(trajectoryRecordingSubtitle)
-                    .font(.system(size: 9))
-                    .foregroundStyle(DreamTheme.tertiaryText)
-                    .lineLimit(1)
+                if !trajectoryRecordingSubtitle.isEmpty {
+                    Text(trajectoryRecordingSubtitle)
+                        .font(.system(size: 9))
+                        .foregroundStyle(DreamTheme.tertiaryText)
+                        .lineLimit(1)
+                }
             }
 
             Spacer(minLength: 6)
@@ -461,7 +396,7 @@ struct SpatialEditorView: View {
                         .fill(
                             viewModel.isRecordingTrajectory
                                 ? Color.red.opacity(0.72)
-                                : DreamTheme.warmApricot.opacity(
+                                : sceneAccent.opacity(
                                     viewModel.isTrajectoryRecordingArmed ? 0.30 : 0.16
                                 )
                         )
@@ -470,7 +405,7 @@ struct SpatialEditorView: View {
                                 .stroke(
                                     viewModel.isRecordingTrajectory
                                         ? Color.red.opacity(0.92)
-                                        : DreamTheme.warmApricot.opacity(0.34),
+                                        : sceneAccent.opacity(0.34),
                                     lineWidth: 0.8
                                 )
                         }
@@ -508,38 +443,23 @@ struct SpatialEditorView: View {
 
     private var trajectoryRecordingTitle: String {
         if viewModel.isRecordingTrajectory {
-            return "正在录制 · \(String(format: "%.1f", viewModel.recordingDuration)) 秒"
+            return "录制移动 · \(String(format: "%.1f", viewModel.recordingDuration)) 秒"
         }
         if viewModel.isTrajectoryRecordingArmed {
-            return "已就绪"
+            return "等待拖动"
         }
-        return viewModel.selectedSource.map { "录制 \($0.name) 的移动" } ?? "实时轨迹录制"
+        return viewModel.selectedSource.map { "录制 \($0.name)" } ?? "录制移动"
     }
 
     private var trajectoryRecordingSubtitle: String {
-        if viewModel.isRecordingTrajectory {
-            return "松手即结束，当前位置会实时写入轨迹"
-        }
         if viewModel.isTrajectoryRecordingArmed {
-            return "从当前时间开始，拖动画布中的音源"
+            return "拖动音源开始"
         }
-        return "普通拖动仍只修改当前时间点"
+        return ""
     }
 
     private var textEditorSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("文本编排")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DreamTheme.warmApricot)
-
-                Spacer()
-
-                Text("\(viewModel.textCues.count) 段")
-                    .font(.system(size: 11))
-                    .foregroundStyle(DreamTheme.tertiaryText)
-            }
-
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.black.opacity(0.22))
@@ -574,12 +494,6 @@ struct SpatialEditorView: View {
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(DreamTheme.secondaryText)
 
-                if !viewModel.hasVoiceSource {
-                    Label("尚未添加人声", systemImage: "person.wave.2")
-                        .font(.system(size: 10))
-                        .foregroundStyle(DreamTheme.tertiaryText)
-                }
-
                 Spacer(minLength: 4)
 
                 Button {
@@ -591,7 +505,7 @@ struct SpatialEditorView: View {
                         .padding(.horizontal, 12)
                         .frame(height: 32)
                         .dreamRefractiveLiquidGlassCapsule(
-                            accent: DreamTheme.warmApricot,
+                            accent: sceneAccent,
                             intensity: 0.62,
                             interactive: true
                         )
@@ -614,7 +528,7 @@ struct SpatialEditorView: View {
                 .fill(Color.black.opacity(0.20))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(DreamTheme.warmApricot.opacity(0.16), lineWidth: 0.8)
+                        .stroke(sceneAccent.opacity(0.16), lineWidth: 0.8)
                 }
         }
     }
@@ -629,12 +543,12 @@ struct SpatialEditorView: View {
                 Text(SpatialTimeText.string(cue.time))
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(
-                        isSelected ? DreamTheme.warmApricot : DreamTheme.secondaryText
+                        isSelected ? sceneAccent : DreamTheme.secondaryText
                     )
                     .frame(width: 42, height: 28)
                     .background {
                         Capsule()
-                            .fill(DreamTheme.warmApricot.opacity(isSelected ? 0.14 : 0.06))
+                            .fill(sceneAccent.opacity(isSelected ? 0.14 : 0.06))
                     }
             }
             .buttonStyle(.plain)
@@ -670,84 +584,107 @@ struct SpatialEditorView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
                     isSelected
-                        ? DreamTheme.warmApricot.opacity(0.07)
+                        ? sceneAccent.opacity(0.07)
                         : Color.white.opacity(0.025)
                 )
         }
     }
 
-    private var materialsDock: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("选择声音")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(DreamTheme.warmApricot)
+    private var sourceStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Button {
+                    showsSoundTray = true
+                } label: {
+                    Label("添加声音", systemImage: "plus")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(sceneAccent)
+                        .padding(.horizontal, 13)
+                        .frame(height: 40)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(sceneAccent.opacity(0.13))
+                        }
+                }
+                .buttonStyle(.plain)
 
-                Spacer()
-
-                Text("全部 \(editorMaterials.count) 项")
-                    .font(.system(size: 11))
-                    .foregroundStyle(DreamTheme.tertiaryText)
-            }
-
-            if isCreateTabRoot {
-                creationEntryButtons
-            }
-
-            LazyVGrid(
-                columns: Array(
-                    repeating: GridItem(.flexible(), spacing: 12),
-                    count: 4
-                ),
-                spacing: 16
-            ) {
-                ForEach(editorMaterials) { material in
-                    materialChip(material)
+                ForEach(viewModel.soundSources) { source in
+                    sourceStripButton(source)
                 }
             }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 4)
+        .scrollClipDisabled()
     }
 
-    private func materialChip(_ material: SpatialEditorMaterial) -> some View {
-        let inUse = viewModel.isMaterialInUse(material)
+    private func sourceStripButton(_ source: SpatialEditorSource) -> some View {
+        let isSelected = viewModel.selectedSourceID == source.id
 
         return Button {
-            viewModel.addMaterial(material)
+            viewModel.selectSource(source.id)
         } label: {
-            VStack(spacing: 7) {
-                Image(systemName: material.iconName)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(material.themeColor)
-                    .frame(width: 48, height: 48)
-                    .dreamSpatialLiquidGlassCircle(
-                        accent: material.themeColor,
-                        intensity: inUse ? 0.92 : 0.68
-                    )
-                    .overlay {
-                        if inUse {
-                            Circle()
-                                .stroke(material.themeColor.opacity(0.85), lineWidth: 1.4)
-                        }
+            HStack(spacing: 7) {
+                Image(systemName: source.iconName)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(source.themeColor)
+                    .frame(width: 25, height: 25)
+                    .background {
+                        Circle().fill(source.themeColor.opacity(0.12))
                     }
 
-                Text(material.name)
-                    .font(.system(size: 10))
+                Text(source.name)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(
-                        inUse
-                            ? DreamTheme.moonWhite.opacity(0.92)
+                        isSelected
+                            ? DreamTheme.moonWhite
                             : DreamTheme.secondaryText
                     )
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .frame(height: 40)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(isSelected ? 0.09 : 0.035))
+            }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(material.name)
-        .accessibilityHint(inUse ? "已在声场中，点按选中" : "点按加入声场")
-        .accessibilityAddTraits(inUse ? .isSelected : [])
+        .accessibilityLabel(source.name)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var advancedEditorToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                showsAdvancedEditor.toggle()
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(sceneAccent.opacity(0.86))
+
+                Text("高级编排")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.86))
+
+                Spacer()
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(DreamTheme.tertiaryText)
+                    .rotationEffect(.degrees(showsAdvancedEditor ? 180 : 0))
+            }
+            .padding(.horizontal, 13)
+            .frame(height: 42)
+            .background {
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(Color.white.opacity(0.035))
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(showsAdvancedEditor ? "已展开" : "已收起")
     }
 
     private var editorMaterials: [SpatialEditorMaterial] {
@@ -757,30 +694,85 @@ struct SpatialEditorView: View {
         return viewModel.availableMaterials + libraryMaterials
     }
 
-    private var creationEntryButtons: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
-            spacing: 8
-        ) {
-            creationEntryButton(
-                title: "已有场景",
-                symbol: "square.stack.3d.up.fill",
-                action: { onExistingSceneRequested?() }
-            )
-            creationEntryButton(
-                title: "录制/上传",
-                symbol: "waveform.badge.plus",
-                action: { onCreateSoundRequested?() }
-            )
-            creationEntryButton(
-                title: "声音管理",
-                symbol: "slider.horizontal.3",
-                action: { onManageSoundsRequested?() }
-            )
+    private var soundTray: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("添加声音")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(DreamTheme.moonWhite)
+
+                Spacer()
+
+                Button {
+                    showsSoundTray = false
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(DreamTheme.secondaryText)
+                        .frame(width: 34, height: 34)
+                        .background {
+                            Circle().fill(Color.white.opacity(0.055))
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("关闭")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 12)
+
+            if isCreateTabRoot {
+                HStack(spacing: 28) {
+                    if let onExistingSceneRequested {
+                        soundTrayUtilityButton(
+                            title: "场景",
+                            symbol: "square.stack.3d.up.fill"
+                        ) {
+                            closeSoundTray(then: onExistingSceneRequested)
+                        }
+                    }
+                    if let onCreateSoundRequested {
+                        soundTrayUtilityButton(
+                            title: "录制",
+                            symbol: "waveform.badge.plus"
+                        ) {
+                            closeSoundTray(then: onCreateSoundRequested)
+                        }
+                    }
+                    if let onManageSoundsRequested {
+                        soundTrayUtilityButton(
+                            title: "管理",
+                            symbol: "slider.horizontal.3"
+                        ) {
+                            closeSoundTray(then: onManageSoundsRequested)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 14)
+            }
+
+            Divider()
+                .overlay(Color.white.opacity(0.07))
+
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 0) {
+                    ForEach(editorMaterials) { material in
+                        soundTrayRow(material)
+                        if material.id != editorMaterials.last?.id {
+                            Divider()
+                                .overlay(Color.white.opacity(0.055))
+                                .padding(.leading, 58)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+            }
         }
     }
 
-    private func creationEntryButton(
+    private func soundTrayUtilityButton(
         title: String,
         symbol: String,
         action: @escaping () -> Void
@@ -789,27 +781,69 @@ struct SpatialEditorView: View {
             VStack(spacing: 7) {
                 Image(systemName: symbol)
                     .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.86))
+                    .frame(width: 40, height: 40)
+                    .background {
+                        Circle().fill(Color.white.opacity(0.055))
+                    }
                 Text(title)
                     .font(.system(size: 10, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    .foregroundStyle(DreamTheme.secondaryText)
             }
-            .foregroundStyle(DreamTheme.moonWhite.opacity(0.90))
-            .frame(maxWidth: .infinity)
-            .frame(height: 58)
-            .dreamRefractiveLiquidGlassRounded(
-                cornerRadius: 14,
-                accent: DreamTheme.mistBlue,
-                intensity: 0.62,
-                interactive: true
-            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(title)
+    }
+
+    private func soundTrayRow(_ material: SpatialEditorMaterial) -> some View {
+        let inUse = viewModel.isMaterialInUse(material)
+
+        return Button {
+            viewModel.addMaterial(material)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: material.iconName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(material.themeColor)
+                    .frame(width: 36, height: 36)
+                    .background {
+                        Circle().fill(material.themeColor.opacity(0.11))
+                    }
+
+                Text(material.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.90))
+                    .lineLimit(1)
+
+                Spacer()
+
+                Image(systemName: inUse ? "checkmark" : "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(
+                        inUse ? material.themeColor : DreamTheme.tertiaryText
+                    )
+                    .frame(width: 28, height: 28)
+            }
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(material.name)
+        .accessibilityHint(inUse ? "已在声场中，点按选中" : "点按加入声场")
+        .accessibilityAddTraits(inUse ? .isSelected : [])
+    }
+
+    private func closeSoundTray(then action: @escaping () -> Void) {
+        showsSoundTray = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(260))
+            action()
+        }
     }
 }
 
 private struct SpatialEditorHeaderMark: View {
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
+
     var body: some View {
         ZStack {
             ForEach(DreamWeaverMarkStroke.allCases) { stroke in
@@ -818,8 +852,8 @@ private struct SpatialEditorHeaderMark: View {
                         LinearGradient(
                             colors: [
                                 DreamTheme.moonWhite.opacity(0.96),
-                                DreamTheme.warmApricot,
-                                DreamTheme.warmApricot.opacity(0.78)
+                                sceneAccent,
+                                sceneAccent.opacity(0.78)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -833,7 +867,7 @@ private struct SpatialEditorHeaderMark: View {
             }
         }
         .frame(width: 27, height: 46)
-        .shadow(color: DreamTheme.warmApricot.opacity(0.26), radius: 4, y: 1)
+        .shadow(color: sceneAccent.opacity(0.26), radius: 4, y: 1)
         .accessibilityElement()
         .accessibilityLabel("DreamWeaver")
     }
@@ -841,6 +875,7 @@ private struct SpatialEditorHeaderMark: View {
 
 struct PlaybackControlView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     var body: some View {
         HStack(spacing: 13) {
@@ -849,12 +884,16 @@ struct PlaybackControlView: View {
             } label: {
                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(DreamTheme.warmApricot)
-                    .frame(width: 42, height: 42)
-                    .dreamSpatialLiquidGlassCircle(
-                        accent: DreamTheme.warmApricot,
-                        intensity: 0.76
-                    )
+                    .foregroundStyle(sceneAccent)
+                    .frame(width: 40, height: 40)
+                    .background {
+                        Circle()
+                            .fill(
+                                sceneAccent.opacity(
+                                    viewModel.isPlaying ? 0.17 : 0.10
+                                )
+                            )
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityLabel(viewModel.isPlaying ? "暂停" : "播放")
@@ -868,8 +907,8 @@ struct PlaybackControlView: View {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        DreamTheme.warmApricot.opacity(0.72),
-                                        DreamTheme.warmApricot
+                                        sceneAccent.opacity(0.72),
+                                        sceneAccent
                                     ],
                                     startPoint: .leading,
                                     endPoint: .trailing
@@ -891,26 +930,9 @@ struct PlaybackControlView: View {
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(DreamTheme.tertiaryText)
             }
-
-            Text(viewModel.isPlaying ? "播放中" : "已暂停")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(
-                    viewModel.isPlaying
-                        ? DreamTheme.warmApricot
-                        : DreamTheme.secondaryText
-                )
-                .frame(width: 44)
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 10)
-        .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.22))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.07), lineWidth: 0.7)
-                }
-        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
     }
 }
 

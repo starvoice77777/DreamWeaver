@@ -45,6 +45,8 @@ struct RootTabView: View {
         }
         .background(DreamTheme.midnight.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .environment(\.sceneAdaptivePalette, appState.currentScene.palette)
+        .animation(.easeInOut(duration: 0.45), value: appState.currentScene.palette)
         .onChange(of: appState.selectedTab) { _, tab in
             if tab == .now {
                 // Returning to「此刻」always brings chrome / tab bar back out.
@@ -116,14 +118,20 @@ struct DreamTabBar: View {
         .frame(height: barHeight)
         .padding(.horizontal, barContentInset)
         .padding(.vertical, barContentInset)
-        .dreamRefractiveLiquidGlassCapsule(
-            accent: appState.currentScene.palette.accentColor,
-            intensity: 0.84,
-            interactive: true
-        )
+        .background {
+            Capsule(style: .continuous)
+                .fill(DreamTheme.midnight.opacity(0.94))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(
+                            appState.currentScene.palette.accentColor.opacity(0.18),
+                            lineWidth: 0.8
+                        )
+                }
+        }
         .highPriorityGesture(tabDragGesture)
         .sensoryFeedback(.selection, trigger: displayedSelection.rawValue)
-        .shadow(color: .black.opacity(0.18), radius: 16, y: 7)
+        .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
         .padding(.horizontal, 16)
         .padding(.top, 4)
         .padding(.bottom, 2)
@@ -136,12 +144,15 @@ struct DreamTabBar: View {
         let diameter = min(selectionDiameter, size.height - 4)
 
         return Circle()
-            .fill(DreamTheme.moonWhite.opacity(0.09))
+            .fill(appState.currentScene.palette.accentColor.opacity(0.20))
             .frame(width: diameter, height: diameter)
-            .dreamSpatialLiquidGlassCircle(
-                accent: appState.currentScene.palette.accentColor,
-                intensity: 0.92
-            )
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        appState.currentScene.palette.accentColor.opacity(0.42),
+                        lineWidth: 0.8
+                    )
+            }
             .position(x: lensX, y: size.height / 2)
             .animation(lensAnimation, value: selectionProgress)
             .allowsHitTesting(false)
@@ -173,7 +184,6 @@ struct DreamTabBar: View {
                     }
             }
             .font(.system(size: 22, weight: .medium))
-            .scaleEffect(0.94 + fill.fraction * 0.18)
             .frame(width: 36, height: 36)
             .frame(maxWidth: .infinity)
             .frame(height: barHeight)

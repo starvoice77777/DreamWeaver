@@ -9,7 +9,8 @@ struct MoonLakeBackdrop: View {
     @StateObject private var videoPlayer = LoopingVideoPlayer(
         resourceName: "moon_lake_bg",
         fileExtension: "mp4",
-        subdirectory: "Scenes/MoonLake"
+        subdirectory: "Scenes/MoonLake",
+        loopOverlap: 0.25
     )
 
     var body: some View {

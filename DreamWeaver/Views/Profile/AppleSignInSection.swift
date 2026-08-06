@@ -6,6 +6,7 @@ import SwiftUI
 /// sign-out → `signOutRemote`, session via `isRemoteAuthenticated`.
 struct AppleSignInSection: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     @State private var currentNonce: String?
     @State private var isBusy = false
     @State private var localError: String?
@@ -79,7 +80,7 @@ struct AppleSignInSection: View {
                 if let localError {
                     Text(localError)
                         .font(DreamTypography.caption)
-                        .foregroundStyle(DreamTheme.warmApricot)
+                        .foregroundStyle(sceneAccent)
                 } else if let message = appState.lastServiceMessage,
                           message.contains("登录") || message.contains("退出") {
                     Text(message)
@@ -99,7 +100,7 @@ struct AppleSignInSection: View {
         HStack(spacing: 10) {
             Image(systemName: statusSymbol)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(DreamTheme.mistBlue)
+                .foregroundStyle(sceneAccent)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusTitle)

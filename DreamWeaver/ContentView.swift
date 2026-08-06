@@ -15,6 +15,14 @@ struct ContentView: View {
                     .transition(.identity)
                     .allowsHitTesting(true)
             }
+
+            if let palette = appState.backgroundLaunchPalette {
+                palette.gradient
+                    .ignoresSafeArea()
+                    .zIndex(2)
+                    .transition(.identity)
+                    .allowsHitTesting(true)
+            }
         }
     }
 }

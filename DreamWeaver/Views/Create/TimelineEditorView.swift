@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TimelineEditorView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     private let labelWidth: CGFloat = 104
     private let rulerHeight: CGFloat = 34
@@ -18,9 +19,7 @@ struct TimelineEditorView: View {
             ZStack(alignment: .topLeading) {
                 VStack(spacing: 0) {
                     HStack(spacing: 12) {
-                        Text("时间")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(DreamTheme.warmApricot)
+                        Color.clear
                             .frame(width: labelWidth, alignment: .leading)
 
                         TimelineRulerView(
@@ -66,7 +65,7 @@ struct TimelineEditorView: View {
                 .fill(Color.black.opacity(0.30))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(DreamTheme.warmApricot.opacity(0.22), lineWidth: 0.8)
+                        .stroke(sceneAccent.opacity(0.22), lineWidth: 0.8)
                 }
         }
     }
@@ -249,6 +248,7 @@ private struct TimelineMotionClipRangesView: View {
     let liveSamples: [SpatialMotionSample]
     let duration: Double
     let color: Color
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     var body: some View {
         GeometryReader { proxy in
@@ -267,9 +267,9 @@ private struct TimelineMotionClipRangesView: View {
                         start: first.time,
                         end: max(last.time, first.time + 0.05),
                         width: proxy.size.width,
-                        fill: DreamTheme.warmApricot.opacity(0.88)
+                        fill: sceneAccent.opacity(0.88)
                     )
-                    .shadow(color: DreamTheme.warmApricot.opacity(0.55), radius: 4)
+                    .shadow(color: sceneAccent.opacity(0.55), radius: 4)
                 }
             }
         }
@@ -341,6 +341,7 @@ private struct AudioClipRangeView: View {
     let duration: Double
     let trackWidth: CGFloat
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     @State private var moveOriginStart: Double?
     @State private var leadingOriginStart: Double?
@@ -404,9 +405,9 @@ private struct AudioClipRangeView: View {
                 .fill(Color.black.opacity(0.46))
                 .frame(width: 20, height: 32)
             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(DreamTheme.warmApricot)
+                .fill(sceneAccent)
                 .frame(width: 4, height: 18)
-                .shadow(color: DreamTheme.warmApricot.opacity(0.45), radius: 4)
+                .shadow(color: sceneAccent.opacity(0.45), radius: 4)
         }
         .frame(width: 24, height: 40)
         .contentShape(Rectangle())
@@ -514,13 +515,14 @@ private struct SpatialKeyPointView: View {
     let isSelected: Bool
     let sourceColor: Color
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     @State private var dragStartTime: Double?
     @State private var appeared = false
 
     var body: some View {
         RoundedRectangle(cornerRadius: 2, style: .continuous)
-            .fill(isSelected ? DreamTheme.warmApricot : sourceColor.opacity(0.72))
+            .fill(isSelected ? sceneAccent : sourceColor.opacity(0.72))
             .frame(width: isSelected ? 13 : 11, height: isSelected ? 13 : 11)
             .rotationEffect(.degrees(45))
             .overlay {
@@ -529,7 +531,7 @@ private struct SpatialKeyPointView: View {
                     .rotationEffect(.degrees(45))
             }
             .shadow(
-                color: DreamTheme.warmApricot.opacity(isSelected ? 0.65 : 0),
+                color: sceneAccent.opacity(isSelected ? 0.65 : 0),
                 radius: isSelected ? 7 : 0
             )
             .scaleEffect(appeared ? 1 : 0.7)
@@ -587,6 +589,7 @@ private struct TimelinePlayheadView: View {
     let timelineWidth: CGFloat
     let height: CGFloat
     let onScrub: (Double) -> Void
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     @State private var dragStartTime: Double?
 
@@ -595,13 +598,13 @@ private struct TimelinePlayheadView: View {
 
         ZStack(alignment: .top) {
             Rectangle()
-                .fill(DreamTheme.warmApricot.opacity(0.86))
+                .fill(sceneAccent.opacity(0.86))
                 .frame(width: 1.2, height: height - 4)
 
             Diamond()
-                .fill(DreamTheme.warmApricot)
+                .fill(sceneAccent)
                 .frame(width: 10, height: 10)
-                .shadow(color: DreamTheme.warmApricot.opacity(0.55), radius: 5)
+                .shadow(color: sceneAccent.opacity(0.55), radius: 5)
                 .offset(y: -2)
                 .contentShape(Rectangle().size(width: 34, height: 28))
                 .highPriorityGesture(

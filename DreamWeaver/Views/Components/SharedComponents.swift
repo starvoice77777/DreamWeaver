@@ -407,6 +407,40 @@ struct EmptyStateView: View {
     }
 }
 
+/// Compact three-stroke brand mark used for the listener anchor at the center
+/// of spatial sound fields. The frame is supplied by the caller so the same
+/// vector remains crisp in both the Create and Now disks.
+struct DreamWeaverListenerMark: View {
+    let accent: Color
+    var lineWidth: CGFloat = 2.1
+
+    var body: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.moonWhite.opacity(0.98),
+                                accent.opacity(0.96),
+                                DreamTheme.moonWhite.opacity(0.84)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: lineWidth,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .shadow(color: accent.opacity(0.42), radius: 4, y: 1)
+        .accessibilityHidden(true)
+    }
+}
+
 struct CapsuleChip: View {
     let title: String
     var selected: Bool

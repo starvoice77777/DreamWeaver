@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     var body: some View {
         NavigationStack {
@@ -15,7 +16,7 @@ struct ProfileView: View {
                 .padding(20)
                 .padding(.bottom, 120)
             }
-            .background(DreamTheme.backgroundGradient.ignoresSafeArea())
+            .background(SceneAdaptiveBackground(palette: appState.currentScene.palette))
             .navigationBarHidden(true)
         }
     }
@@ -25,7 +26,10 @@ struct ProfileView: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [DreamTheme.warmApricot.opacity(0.8), DreamTheme.softLavender.opacity(0.7)],
+                        colors: [
+                            sceneAccent.opacity(0.86),
+                            appState.currentScene.palette.midColor.opacity(0.78)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -44,7 +48,7 @@ struct ProfileView: View {
                     .foregroundStyle(DreamTheme.moonWhite)
                 Text(appState.isMember ? "织梦会员" : "免费体验")
                     .font(DreamTypography.caption.weight(.medium))
-                    .foregroundStyle(DreamTheme.warmApricot)
+                    .foregroundStyle(sceneAccent)
             }
             Spacer()
         }
@@ -75,7 +79,7 @@ struct ProfileView: View {
                         ForEach(Array(values.enumerated()), id: \.offset) { index, value in
                             VStack(spacing: 6) {
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(DreamTheme.mistBlue.opacity(0.55))
+                                    .fill(sceneAccent.opacity(0.55))
                                     .frame(
                                         width: (geo.size.width - 48) / 7,
                                         height: max(8, CGFloat(value) / maxV * 70)
@@ -129,7 +133,7 @@ struct ProfileView: View {
     private func row(_ title: String, _ symbol: String) -> some View {
         HStack {
             Image(systemName: symbol)
-                .foregroundStyle(DreamTheme.mistBlue)
+                .foregroundStyle(sceneAccent)
                 .frame(width: 28)
             Text(title)
                 .foregroundStyle(DreamTheme.moonWhite)
