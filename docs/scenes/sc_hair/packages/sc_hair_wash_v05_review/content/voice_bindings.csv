@@ -1,0 +1,2 @@
+﻿voice_binding,voice_type,authorization_status,allowed_usage,revocation_status
+reference_recording_pending,recorded_reference,pending,internal_review_only;not_for_bundle_or_distribution,not_applicable_pending_authorization

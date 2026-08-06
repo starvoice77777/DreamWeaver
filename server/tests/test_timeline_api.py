@@ -10,8 +10,8 @@ from app.services.timeline import (
 )
 
 RAIN_EAVES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
-FIRST_PHRASE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666701")
-FIRST_PHRASE_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666802")
+FIRST_PHRASE_ID = uuid.UUID("db7992e9-09ee-571d-a58d-2763f9c86ef8")
+FIRST_PHRASE_CUE_ID = uuid.UUID("108ddf75-d4f5-52b5-aba3-a357955fa3a2")
 RAIN_SOFT_ENTER_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666630")
 RAIN_SOFT_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
 RAIN_BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
@@ -37,19 +37,25 @@ async def test_scene_timeline_hair_care(client) -> None:
     assert body["manual_override_track_ids"] == []
     assert body["duration_hint_seconds"] == 620
 
-    assert len(body["phrases"]) >= 20
+    assert len(body["phrases"]) == 20
     phrase_ids = {item["id"] for item in body["phrases"]}
     assert str(FIRST_PHRASE_ID) in phrase_ids
     first_phrase = next(p for p in body["phrases"] if p["id"] == str(FIRST_PHRASE_ID))
     assert first_phrase["text"] == "先靠好，什么都不用做。"
-    assert first_phrase["review_status"] == "approved"
-    assert first_phrase["voice_binding"]["resource_key"] == "voice_phrase_mom"
+    assert first_phrase["review_status"] == "qc_pending"
+    assert first_phrase["voice_binding"]["resource_key"] == "voice_phrase_01"
     assert first_phrase["voice_binding"]["track_id"] == str(VOICE_TRACK_ID)
+    assert {
+        phrase["voice_binding"]["resource_key"] for phrase in body["phrases"]
+    } == {f"voice_phrase_{index:02d}" for index in range(1, 21)}
+    assert {
+        phrase["voice_binding"]["track_id"] for phrase in body["phrases"]
+    } == {str(VOICE_TRACK_ID)}
 
     first = next(c for c in body["cues"] if c["id"] == str(FIRST_PHRASE_CUE_ID))
     assert first["at_seconds"] == 3.0
-    assert first["actions"][0]["type"] == "play_phrase"
-    assert first["actions"][0]["phrase_id"] == str(FIRST_PHRASE_ID)
+    first_play = next(a for a in first["actions"] if a["type"] == "play_phrase")
+    assert first_play["phrase_id"] == str(FIRST_PHRASE_ID)
 
     assert any(
         a.get("type") == "play_oneshot" for c in body["cues"] for a in c.get("actions", [])
@@ -57,6 +63,7 @@ async def test_scene_timeline_hair_care(client) -> None:
     assert any(
         a.get("type") == "set_position" for c in body["cues"] for a in c.get("actions", [])
     )
+    assert not any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
     # No legacy 28s repeat cadence from pre-v4 placeholder timeline.
     assert not any(c.get("repeat_every_seconds") == 28.0 for c in body["cues"])
 

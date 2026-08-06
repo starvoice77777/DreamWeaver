@@ -1,0 +1,64 @@
+{
+  "scene_id": "sc_hair_wash_v05",
+  "scene_name": "洗头陪伴",
+  "package_version": "0.5.0-review",
+  "timeline_version": 11,
+  "scene_type": "process_text_voice",
+  "duration_seconds": 620.0,
+  "output_preference": "speaker_and_headphones",
+  "headphones_supported": true,
+  "package_status": "review_ready_qc_pending",
+  "phrases": [
+    "db7992e9-09ee-571d-a58d-2763f9c86ef8",
+    "e885866d-dcf8-5f9a-afe0-5c50eb35b7b0",
+    "79408d0c-803b-5a39-9cab-9d79ed0f2955",
+    "abdaa2d3-24af-59d6-bd31-cbc2dd8cafdb",
+    "a8366bf7-0066-5c34-a834-9fcfaa78ce79",
+    "cfbbb5de-5000-5bcf-8b07-0a91a56d7897",
+    "36d32f8b-819d-59e4-a5e1-7b449ea9ddd8",
+    "ca854343-dcbe-5f8e-b8d5-254d5ebedb90",
+    "53776273-34af-5dce-987b-8eb54e1356e3",
+    "7500e516-4276-56e7-a677-0d298d32dc41",
+    "939e2dab-bf33-5e4e-b9c4-c69653370575",
+    "4e794042-b210-5757-b48f-a383850516ac",
+    "3116716b-e34c-5ad3-b1b6-7cb189794a03",
+    "abe53721-2d36-5f66-bd09-d5e47d56fd4a",
+    "0c823bd5-a6c9-50b5-b8e1-00b62c728804",
+    "9ca14def-f509-58f4-ac8a-64e59207bc47",
+    "41770d80-54d3-505c-9c93-ba97d3933a6f",
+    "cb4828f2-a1fe-53d0-a4ba-972b64fc0b1c",
+    "5118a93b-8649-5218-b807-7eb80b982e9e",
+    "935a66ad-554c-53b2-b715-096af1c12186"
+  ],
+  "voice_bindings": [
+    "reference_recording_pending"
+  ],
+  "demo_ready": true,
+  "release_ready": false,
+  "release_blockers": [
+    "20条人声为原声直切参考素材，综合响度未达到-18±1 LUFS",
+    "19条人声短于5秒建议窗口，但为保留原始听感未补静音或变速",
+    "人声声线来源、官方资源资格与分发授权待确认",
+    "29条素材手机外放/耳机人工试听待完成",
+    "4条loop轨连续2分钟交叉淡化试听待完成",
+    "非人声参考素材的许可证凭证待补齐",
+    "位置关键帧完整路径仍需后端按耳部禁行区参数校验"
+  ],
+  "voice_qc_summary": {
+    "format": "48000Hz PCM16 stereo",
+    "processing": "direct sample copy; no gain, denoise, compression, normalization, padding, or fades",
+    "duration_range_seconds": [
+      2.32,
+      7.55
+    ],
+    "integrated_lufs_range": [
+      -47.99,
+      -33.52
+    ],
+    "true_peak_dbtp_range": [
+      -27.72,
+      -15.0
+    ],
+    "sample_copy_check": "20/20 PASS"
+  }
+}

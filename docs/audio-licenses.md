@@ -8,6 +8,8 @@
 | `hair_wash.m4a` | `384924__beeproductive__washing-hair.wav` | beeproductive | Freesound | 采用前复核页面许可证 | 洗头陪伴 · 水流 | 按许可证署名 |
 | `hair_dryer.mp3` | `150303__orginaljun__hair-dryer.mp3` | orginaljun | Freesound | 采用前复核 | 洗头陪伴 · 吹风机 | 按许可证署名 |
 | `ac_hum.m4a` | `573034__jptalty__air-conditioner-with-rattle.wav` | jptalty | Freesound | 采用前复核 | 洗头陪伴 · 底噪 | 按许可证署名 |
+| `hair_wash_*.wav`、`hair_towel.wav`、`water_drip_roomtone.wav` | `sc_hair_wash_v05_review/audio/master` | 素材交付 sc_hair_wash_v05 | `docs/scenes/sc_hair/packages/sc_hair_wash_v05_review` | **pending / internal_review_only** | 洗头陪伴 v11 环境与动作轨 | 正式上架前补来源凭证与授权范围 |
+| `voice_phrase_01.wav`…`voice_phrase_20.wav` | `8月5日 (1).wav` 原声直切 v02 | 提供录音，权属待确认 | 同上 | **pending / internal_review_only** | 洗头陪伴 v11 逐句人声 | 声线授权、官方资源资格和逐句 QC 未完成，不得正式分发 |
 | `rain_parasol.wav` | `dw_official_amb_rain_parasol_loop_sc_rain_near_v02_t01.wav` | 素材交付 sc_rain_v1 | `docs/scenes/sc_rain/packages/sc_rain_v1` | **qc_pending**（演示 license `approved`） | 檐下听雨 · A02 近雨 | 正式上架前补凭证归档 |
 | `rain_soft.wav` | `dw_official_env_rain_soft_loop_sc_rain_far_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A01 远雨 | 正式上架前补凭证归档 |
 | `rain_bamboo_leaf.wav` | `dw_official_amb_rain_bamboo_leaf_loop_sc_rain_soft_v02_t01.wav` | 素材交付 sc_rain_v1 | 同上 | **qc_pending** | 檐下听雨 · A03 竹叶雨 | 正式上架前补凭证归档 |
@@ -25,7 +27,7 @@
 1. 对每条「采用前复核」在 Freesound 页面截图保存许可证。
 2. 确认 `796505` 是否 CC BY / CC0 / 禁止商用；若不清则演示中禁用该轨。
 3. 将大体积 WAV 转码为 48kHz AAC/M4A 以减小包体（脚本见 `scripts/prepare_demo_audio.md`）。
-4. 替换 `voice_phrase_mom` 占位文件为授权人声短句成品。
+4. 完成 `voice_phrase_01`…`20` 的声线授权与逐句 QC；`voice_phrase_mom` 只保留给声音种子流程回退，不再用于洗头陪伴主时间线。
 
 ## 说明材料建议署名文案
 

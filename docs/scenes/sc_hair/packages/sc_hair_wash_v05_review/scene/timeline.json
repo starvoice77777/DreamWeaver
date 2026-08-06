@@ -1,0 +1,4179 @@
+{
+  "scene_id": "sc_hair_wash_v05",
+  "version": 11,
+  "duration_seconds": 620.0,
+  "automation_mode": "official_auto",
+  "timeline_model": "audio_tracks_v1",
+  "manual_override_track_ids": [],
+  "tracks": [
+    {
+      "code": "A01-L",
+      "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+      "resource_key": "hair_wash_water_cycle",
+      "master_file": "dw_ref_env_hair_wash_water_cycle_loop_sc_hair_far_v03_t01.wav",
+      "layer": "environment",
+      "asset_status": "ref",
+      "start_seconds": 0.0,
+      "asset_duration_seconds": 48.75,
+      "playback_duration_seconds": 113.0,
+      "schedule_end_seconds": 620.0,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.2,
+      "position_keyframes": [
+        {
+          "at_seconds": 0.0,
+          "angle": 0.18,
+          "radius": 0.92,
+          "event_id": "a01_open"
+        },
+        {
+          "at_seconds": 12.0,
+          "angle": -0.12,
+          "radius": 0.9,
+          "event_id": "a01_open"
+        },
+        {
+          "at_seconds": 24.0,
+          "angle": 0.1,
+          "radius": 0.92,
+          "event_id": "a01_open"
+        },
+        {
+          "at_seconds": 68.0,
+          "angle": 0.3,
+          "radius": 0.9,
+          "event_id": "a01_tune"
+        },
+        {
+          "at_seconds": 74.0,
+          "angle": 0.1,
+          "radius": 0.74,
+          "event_id": "a01_tune"
+        },
+        {
+          "at_seconds": 81.0,
+          "angle": -0.2,
+          "radius": 0.62,
+          "event_id": "a01_tune"
+        },
+        {
+          "at_seconds": 96.0,
+          "angle": 0.55,
+          "radius": 0.82,
+          "event_id": "a01_approach"
+        },
+        {
+          "at_seconds": 103.0,
+          "angle": 0.75,
+          "radius": 0.7,
+          "event_id": "a01_approach"
+        },
+        {
+          "at_seconds": 109.0,
+          "angle": 0.45,
+          "radius": 0.6,
+          "event_id": "a01_approach"
+        },
+        {
+          "at_seconds": 113.0,
+          "angle": 0.2,
+          "radius": 0.56,
+          "event_id": "a01_approach"
+        },
+        {
+          "at_seconds": 565.0,
+          "angle": -0.2,
+          "radius": 0.92,
+          "event_id": "a01_exit"
+        },
+        {
+          "at_seconds": 580.0,
+          "angle": 0.1,
+          "radius": 0.9,
+          "event_id": "a01_exit"
+        },
+        {
+          "at_seconds": 595.0,
+          "angle": 0.28,
+          "radius": 0.92,
+          "event_id": "a01_exit"
+        },
+        {
+          "at_seconds": 602.0,
+          "angle": 0.08,
+          "radius": 0.94,
+          "event_id": "a01_exit"
+        },
+        {
+          "at_seconds": 612.0,
+          "angle": -0.18,
+          "radius": 0.96,
+          "event_id": "a01_exit"
+        },
+        {
+          "at_seconds": 620.0,
+          "angle": 0.0,
+          "radius": 1.0,
+          "event_id": "a01_exit"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a01_open",
+          "start_seconds": 0.0,
+          "playback_duration_seconds": 27.0,
+          "volume": 0.2,
+          "fade_in_ms": 3000,
+          "fade_out_ms": 3000,
+          "position_keyframes": [
+            {
+              "at_seconds": 0.0,
+              "angle": 0.18,
+              "radius": 0.92
+            },
+            {
+              "at_seconds": 12.0,
+              "angle": -0.12,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 24.0,
+              "angle": 0.1,
+              "radius": 0.92
+            }
+          ]
+        },
+        {
+          "event_id": "a01_tune",
+          "start_seconds": 68.0,
+          "playback_duration_seconds": 14.0,
+          "volume": 0.24,
+          "fade_in_ms": 1500,
+          "fade_out_ms": 1500,
+          "position_keyframes": [
+            {
+              "at_seconds": 68.0,
+              "angle": 0.3,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 74.0,
+              "angle": 0.1,
+              "radius": 0.74
+            },
+            {
+              "at_seconds": 81.0,
+              "angle": -0.2,
+              "radius": 0.62
+            }
+          ]
+        },
+        {
+          "event_id": "a01_approach",
+          "start_seconds": 96.0,
+          "playback_duration_seconds": 17.0,
+          "volume": 0.26,
+          "fade_in_ms": 1500,
+          "fade_out_ms": 1500,
+          "position_keyframes": [
+            {
+              "at_seconds": 96.0,
+              "angle": 0.55,
+              "radius": 0.82
+            },
+            {
+              "at_seconds": 103.0,
+              "angle": 0.75,
+              "radius": 0.7
+            },
+            {
+              "at_seconds": 109.0,
+              "angle": 0.45,
+              "radius": 0.6
+            },
+            {
+              "at_seconds": 113.0,
+              "angle": 0.2,
+              "radius": 0.56
+            }
+          ]
+        },
+        {
+          "event_id": "a01_exit",
+          "start_seconds": 565.0,
+          "playback_duration_seconds": 55.0,
+          "volume": 0.2,
+          "fade_in_ms": 2000,
+          "fade_out_ms": 8000,
+          "position_keyframes": [
+            {
+              "at_seconds": 565.0,
+              "angle": -0.2,
+              "radius": 0.92
+            },
+            {
+              "at_seconds": 580.0,
+              "angle": 0.1,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 595.0,
+              "angle": 0.28,
+              "radius": 0.92
+            },
+            {
+              "at_seconds": 602.0,
+              "angle": 0.08,
+              "radius": 0.94
+            },
+            {
+              "at_seconds": 612.0,
+              "angle": -0.18,
+              "radius": 0.96
+            },
+            {
+              "at_seconds": 620.0,
+              "angle": 0.0,
+              "radius": 1.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A02",
+      "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+      "resource_key": "hair_wash_wet",
+      "master_file": "dw_ref_env_hair_wash_wet_oneshot_sc_hair_wet_v03_t01.wav",
+      "layer": "environment",
+      "asset_status": "ref",
+      "start_seconds": 127.0,
+      "asset_duration_seconds": 29.975,
+      "playback_duration_seconds": 35.0,
+      "schedule_end_seconds": 173.0,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.33,
+      "position_keyframes": [
+        {
+          "at_seconds": 127.0,
+          "angle": 0.0,
+          "radius": 0.66,
+          "event_id": "a02_wet_1"
+        },
+        {
+          "at_seconds": 133.0,
+          "angle": -0.32,
+          "radius": 0.58,
+          "event_id": "a02_wet_1"
+        },
+        {
+          "at_seconds": 139.0,
+          "angle": -0.62,
+          "radius": 0.52,
+          "event_id": "a02_wet_1"
+        },
+        {
+          "at_seconds": 144.0,
+          "angle": -0.4,
+          "radius": 0.56,
+          "event_id": "a02_wet_1"
+        },
+        {
+          "at_seconds": 156.0,
+          "angle": -0.48,
+          "radius": 0.56,
+          "event_id": "a02_wet_2"
+        },
+        {
+          "at_seconds": 162.0,
+          "angle": -0.18,
+          "radius": 0.49,
+          "event_id": "a02_wet_2"
+        },
+        {
+          "at_seconds": 167.0,
+          "angle": 0.2,
+          "radius": 0.49,
+          "event_id": "a02_wet_2"
+        },
+        {
+          "at_seconds": 172.0,
+          "angle": 0.48,
+          "radius": 0.58,
+          "event_id": "a02_wet_2"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a02_wet_1",
+          "start_seconds": 127.0,
+          "playback_duration_seconds": 18.0,
+          "volume": 0.33,
+          "fade_in_ms": 500,
+          "fade_out_ms": 500,
+          "position_keyframes": [
+            {
+              "at_seconds": 127.0,
+              "angle": 0.0,
+              "radius": 0.66
+            },
+            {
+              "at_seconds": 133.0,
+              "angle": -0.32,
+              "radius": 0.58
+            },
+            {
+              "at_seconds": 139.0,
+              "angle": -0.62,
+              "radius": 0.52
+            },
+            {
+              "at_seconds": 144.0,
+              "angle": -0.4,
+              "radius": 0.56
+            }
+          ]
+        },
+        {
+          "event_id": "a02_wet_2",
+          "start_seconds": 156.0,
+          "playback_duration_seconds": 17.0,
+          "volume": 0.31,
+          "fade_in_ms": 500,
+          "fade_out_ms": 500,
+          "position_keyframes": [
+            {
+              "at_seconds": 156.0,
+              "angle": -0.48,
+              "radius": 0.56
+            },
+            {
+              "at_seconds": 162.0,
+              "angle": -0.18,
+              "radius": 0.49
+            },
+            {
+              "at_seconds": 167.0,
+              "angle": 0.2,
+              "radius": 0.49
+            },
+            {
+              "at_seconds": 172.0,
+              "angle": 0.48,
+              "radius": 0.58
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A03",
+      "track_id": "94054d67-d558-5f60-90b4-5370ec3b73fc",
+      "resource_key": "hair_wash_foam_start",
+      "master_file": "dw_ref_trg_hair_wash_foam_start_oneshot_sc_hair_near_v03_t01.wav",
+      "layer": "trigger",
+      "asset_status": "ref",
+      "start_seconds": 188.0,
+      "asset_duration_seconds": 3.4,
+      "playback_duration_seconds": 3.4,
+      "schedule_end_seconds": 191.4,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.45,
+      "position_keyframes": [
+        {
+          "at_seconds": 188.0,
+          "angle": -0.35,
+          "radius": 0.32,
+          "event_id": "a03_press"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a03_press",
+          "start_seconds": 188.0,
+          "playback_duration_seconds": 3.4,
+          "volume": 0.45,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "position_keyframes": [
+            {
+              "at_seconds": 188.0,
+              "angle": -0.35,
+              "radius": 0.32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A04-L",
+      "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+      "resource_key": "hair_wash_foam_rub",
+      "master_file": "dw_ref_amb_hair_wash_foam_rub_loop_sc_hair_near_v03_t01.wav",
+      "layer": "ambience",
+      "asset_status": "ref",
+      "start_seconds": 191.0,
+      "asset_duration_seconds": 108.75,
+      "playback_duration_seconds": 58.0,
+      "schedule_end_seconds": 350.0,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.38,
+      "position_keyframes": [
+        {
+          "at_seconds": 191.0,
+          "angle": -0.28,
+          "radius": 0.42,
+          "event_id": "a04_foam_start"
+        },
+        {
+          "at_seconds": 196.0,
+          "angle": 0.0,
+          "radius": 0.35,
+          "event_id": "a04_foam_start"
+        },
+        {
+          "at_seconds": 202.0,
+          "angle": 0.28,
+          "radius": 0.42,
+          "event_id": "a04_foam_start"
+        },
+        {
+          "at_seconds": 217.0,
+          "angle": 0.4,
+          "radius": 0.42,
+          "event_id": "a04_foam_spread"
+        },
+        {
+          "at_seconds": 222.0,
+          "angle": 0.15,
+          "radius": 0.34,
+          "event_id": "a04_foam_spread"
+        },
+        {
+          "at_seconds": 227.0,
+          "angle": -0.15,
+          "radius": 0.34,
+          "event_id": "a04_foam_spread"
+        },
+        {
+          "at_seconds": 232.0,
+          "angle": -0.4,
+          "radius": 0.42,
+          "event_id": "a04_foam_spread"
+        },
+        {
+          "at_seconds": 248.0,
+          "angle": -0.68,
+          "radius": 0.46,
+          "event_id": "a04_left_rub"
+        },
+        {
+          "at_seconds": 253.0,
+          "angle": -0.5,
+          "radius": 0.37,
+          "event_id": "a04_left_rub"
+        },
+        {
+          "at_seconds": 258.0,
+          "angle": -0.28,
+          "radius": 0.39,
+          "event_id": "a04_left_rub"
+        },
+        {
+          "at_seconds": 330.0,
+          "angle": -0.55,
+          "radius": 0.46,
+          "event_id": "a04_quiet_hold"
+        },
+        {
+          "at_seconds": 336.0,
+          "angle": -0.2,
+          "radius": 0.38,
+          "event_id": "a04_quiet_hold"
+        },
+        {
+          "at_seconds": 343.0,
+          "angle": 0.2,
+          "radius": 0.38,
+          "event_id": "a04_quiet_hold"
+        },
+        {
+          "at_seconds": 350.0,
+          "angle": 0.55,
+          "radius": 0.46,
+          "event_id": "a04_quiet_hold"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a04_foam_start",
+          "start_seconds": 191.0,
+          "playback_duration_seconds": 12.0,
+          "volume": 0.34,
+          "fade_in_ms": 1200,
+          "fade_out_ms": 1200,
+          "position_keyframes": [
+            {
+              "at_seconds": 191.0,
+              "angle": -0.28,
+              "radius": 0.42
+            },
+            {
+              "at_seconds": 196.0,
+              "angle": 0.0,
+              "radius": 0.35
+            },
+            {
+              "at_seconds": 202.0,
+              "angle": 0.28,
+              "radius": 0.42
+            }
+          ]
+        },
+        {
+          "event_id": "a04_foam_spread",
+          "start_seconds": 217.0,
+          "playback_duration_seconds": 16.0,
+          "volume": 0.38,
+          "fade_in_ms": 1200,
+          "fade_out_ms": 1200,
+          "position_keyframes": [
+            {
+              "at_seconds": 217.0,
+              "angle": 0.4,
+              "radius": 0.42
+            },
+            {
+              "at_seconds": 222.0,
+              "angle": 0.15,
+              "radius": 0.34
+            },
+            {
+              "at_seconds": 227.0,
+              "angle": -0.15,
+              "radius": 0.34
+            },
+            {
+              "at_seconds": 232.0,
+              "angle": -0.4,
+              "radius": 0.42
+            }
+          ]
+        },
+        {
+          "event_id": "a04_left_rub",
+          "start_seconds": 248.0,
+          "playback_duration_seconds": 10.0,
+          "volume": 0.36,
+          "fade_in_ms": 1000,
+          "fade_out_ms": 1000,
+          "position_keyframes": [
+            {
+              "at_seconds": 248.0,
+              "angle": -0.68,
+              "radius": 0.46
+            },
+            {
+              "at_seconds": 253.0,
+              "angle": -0.5,
+              "radius": 0.37
+            },
+            {
+              "at_seconds": 258.0,
+              "angle": -0.28,
+              "radius": 0.39
+            }
+          ]
+        },
+        {
+          "event_id": "a04_quiet_hold",
+          "start_seconds": 330.0,
+          "playback_duration_seconds": 20.0,
+          "volume": 0.3,
+          "fade_in_ms": 1200,
+          "fade_out_ms": 1200,
+          "position_keyframes": [
+            {
+              "at_seconds": 330.0,
+              "angle": -0.55,
+              "radius": 0.46
+            },
+            {
+              "at_seconds": 336.0,
+              "angle": -0.2,
+              "radius": 0.38
+            },
+            {
+              "at_seconds": 343.0,
+              "angle": 0.2,
+              "radius": 0.38
+            },
+            {
+              "at_seconds": 350.0,
+              "angle": 0.55,
+              "radius": 0.46
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A05-L",
+      "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+      "resource_key": "hair_wash_scalp_foam",
+      "master_file": "dw_ref_amb_hair_wash_scalp_foam_loop_sc_hair_near_v03_t01.wav",
+      "layer": "ambience",
+      "asset_status": "ref",
+      "start_seconds": 260.0,
+      "asset_duration_seconds": 108.75,
+      "playback_duration_seconds": 32.0,
+      "schedule_end_seconds": 323.0,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.4,
+      "position_keyframes": [
+        {
+          "at_seconds": 260.0,
+          "angle": 0.25,
+          "radius": 0.39,
+          "event_id": "a05_right_front"
+        },
+        {
+          "at_seconds": 264.0,
+          "angle": 0.48,
+          "radius": 0.43,
+          "event_id": "a05_right_front"
+        },
+        {
+          "at_seconds": 278.0,
+          "angle": 0.0,
+          "radius": 0.34,
+          "event_id": "a05_crown"
+        },
+        {
+          "at_seconds": 283.0,
+          "angle": -0.28,
+          "radius": 0.36,
+          "event_id": "a05_crown"
+        },
+        {
+          "at_seconds": 288.0,
+          "angle": 0.0,
+          "radius": 0.3,
+          "event_id": "a05_crown"
+        },
+        {
+          "at_seconds": 293.0,
+          "angle": 0.28,
+          "radius": 0.36,
+          "event_id": "a05_crown"
+        },
+        {
+          "at_seconds": 309.0,
+          "angle": -0.7,
+          "radius": 0.48,
+          "event_id": "a05_left_ear"
+        },
+        {
+          "at_seconds": 315.0,
+          "angle": -0.48,
+          "radius": 0.36,
+          "event_id": "a05_left_ear"
+        },
+        {
+          "at_seconds": 317.0,
+          "angle": 0.48,
+          "radius": 0.36,
+          "event_id": "a05_right_ear"
+        },
+        {
+          "at_seconds": 323.0,
+          "angle": 0.7,
+          "radius": 0.48,
+          "event_id": "a05_right_ear"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a05_right_front",
+          "start_seconds": 260.0,
+          "playback_duration_seconds": 5.0,
+          "volume": 0.35,
+          "fade_in_ms": 700,
+          "fade_out_ms": 700,
+          "position_keyframes": [
+            {
+              "at_seconds": 260.0,
+              "angle": 0.25,
+              "radius": 0.39
+            },
+            {
+              "at_seconds": 264.0,
+              "angle": 0.48,
+              "radius": 0.43
+            }
+          ]
+        },
+        {
+          "event_id": "a05_crown",
+          "start_seconds": 278.0,
+          "playback_duration_seconds": 15.0,
+          "volume": 0.4,
+          "fade_in_ms": 1200,
+          "fade_out_ms": 1200,
+          "position_keyframes": [
+            {
+              "at_seconds": 278.0,
+              "angle": 0.0,
+              "radius": 0.34
+            },
+            {
+              "at_seconds": 283.0,
+              "angle": -0.28,
+              "radius": 0.36
+            },
+            {
+              "at_seconds": 288.0,
+              "angle": 0.0,
+              "radius": 0.3
+            },
+            {
+              "at_seconds": 293.0,
+              "angle": 0.28,
+              "radius": 0.36
+            }
+          ]
+        },
+        {
+          "event_id": "a05_left_ear",
+          "start_seconds": 309.0,
+          "playback_duration_seconds": 6.0,
+          "volume": 0.36,
+          "fade_in_ms": 800,
+          "fade_out_ms": 800,
+          "position_keyframes": [
+            {
+              "at_seconds": 309.0,
+              "angle": -0.7,
+              "radius": 0.48
+            },
+            {
+              "at_seconds": 315.0,
+              "angle": -0.48,
+              "radius": 0.36
+            }
+          ]
+        },
+        {
+          "event_id": "a05_right_ear",
+          "start_seconds": 317.0,
+          "playback_duration_seconds": 6.0,
+          "volume": 0.36,
+          "fade_in_ms": 800,
+          "fade_out_ms": 800,
+          "position_keyframes": [
+            {
+              "at_seconds": 317.0,
+              "angle": 0.48,
+              "radius": 0.36
+            },
+            {
+              "at_seconds": 323.0,
+              "angle": 0.7,
+              "radius": 0.48
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A07",
+      "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+      "resource_key": "hair_wash_rinse",
+      "master_file": "dw_ref_env_hair_wash_rinse_oneshot_sc_hair_wet_v03_t01.wav",
+      "layer": "environment",
+      "asset_status": "ref",
+      "start_seconds": 370.0,
+      "asset_duration_seconds": 44.975,
+      "playback_duration_seconds": 43.0,
+      "schedule_end_seconds": 440.0,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.36,
+      "position_keyframes": [
+        {
+          "at_seconds": 370.0,
+          "angle": 0.45,
+          "radius": 0.68,
+          "event_id": "a07_rinse_1"
+        },
+        {
+          "at_seconds": 374.0,
+          "angle": 0.15,
+          "radius": 0.55,
+          "event_id": "a07_rinse_1"
+        },
+        {
+          "at_seconds": 378.0,
+          "angle": -0.25,
+          "radius": 0.52,
+          "event_id": "a07_rinse_1"
+        },
+        {
+          "at_seconds": 382.0,
+          "angle": -0.5,
+          "radius": 0.6,
+          "event_id": "a07_rinse_1"
+        },
+        {
+          "at_seconds": 397.0,
+          "angle": -0.52,
+          "radius": 0.6,
+          "event_id": "a07_rinse_2"
+        },
+        {
+          "at_seconds": 402.0,
+          "angle": -0.18,
+          "radius": 0.52,
+          "event_id": "a07_rinse_2"
+        },
+        {
+          "at_seconds": 407.0,
+          "angle": 0.18,
+          "radius": 0.52,
+          "event_id": "a07_rinse_2"
+        },
+        {
+          "at_seconds": 412.0,
+          "angle": 0.52,
+          "radius": 0.6,
+          "event_id": "a07_rinse_2"
+        },
+        {
+          "at_seconds": 426.0,
+          "angle": 0.45,
+          "radius": 0.62,
+          "event_id": "a07_rinse_3"
+        },
+        {
+          "at_seconds": 430.0,
+          "angle": 0.18,
+          "radius": 0.52,
+          "event_id": "a07_rinse_3"
+        },
+        {
+          "at_seconds": 435.0,
+          "angle": 0.0,
+          "radius": 0.48,
+          "event_id": "a07_rinse_3"
+        },
+        {
+          "at_seconds": 439.0,
+          "angle": -0.25,
+          "radius": 0.56,
+          "event_id": "a07_rinse_3"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a07_rinse_1",
+          "start_seconds": 370.0,
+          "playback_duration_seconds": 13.0,
+          "volume": 0.36,
+          "fade_in_ms": 500,
+          "fade_out_ms": 500,
+          "position_keyframes": [
+            {
+              "at_seconds": 370.0,
+              "angle": 0.45,
+              "radius": 0.68
+            },
+            {
+              "at_seconds": 374.0,
+              "angle": 0.15,
+              "radius": 0.55
+            },
+            {
+              "at_seconds": 378.0,
+              "angle": -0.25,
+              "radius": 0.52
+            },
+            {
+              "at_seconds": 382.0,
+              "angle": -0.5,
+              "radius": 0.6
+            }
+          ]
+        },
+        {
+          "event_id": "a07_rinse_2",
+          "start_seconds": 397.0,
+          "playback_duration_seconds": 16.0,
+          "volume": 0.38,
+          "fade_in_ms": 500,
+          "fade_out_ms": 500,
+          "position_keyframes": [
+            {
+              "at_seconds": 397.0,
+              "angle": -0.52,
+              "radius": 0.6
+            },
+            {
+              "at_seconds": 402.0,
+              "angle": -0.18,
+              "radius": 0.52
+            },
+            {
+              "at_seconds": 407.0,
+              "angle": 0.18,
+              "radius": 0.52
+            },
+            {
+              "at_seconds": 412.0,
+              "angle": 0.52,
+              "radius": 0.6
+            }
+          ]
+        },
+        {
+          "event_id": "a07_rinse_3",
+          "start_seconds": 426.0,
+          "playback_duration_seconds": 14.0,
+          "volume": 0.34,
+          "fade_in_ms": 500,
+          "fade_out_ms": 500,
+          "position_keyframes": [
+            {
+              "at_seconds": 426.0,
+              "angle": 0.45,
+              "radius": 0.62
+            },
+            {
+              "at_seconds": 430.0,
+              "angle": 0.18,
+              "radius": 0.52
+            },
+            {
+              "at_seconds": 435.0,
+              "angle": 0.0,
+              "radius": 0.48
+            },
+            {
+              "at_seconds": 439.0,
+              "angle": -0.25,
+              "radius": 0.56
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A10-L",
+      "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+      "resource_key": "hair_wash_finger_massage",
+      "master_file": "dw_ref_amb_hair_wash_finger_massage_loop_sc_hair_near_v03_t01.wav",
+      "layer": "ambience",
+      "asset_status": "ref",
+      "start_seconds": 520.0,
+      "asset_duration_seconds": 134.75,
+      "playback_duration_seconds": 22.0,
+      "schedule_end_seconds": 561.0,
+      "loop": true,
+      "requires_engine_crossfade": true,
+      "crossfade_ms": 1200,
+      "default_volume": 0.34,
+      "position_keyframes": [
+        {
+          "at_seconds": 520.0,
+          "angle": 0.32,
+          "radius": 0.34,
+          "event_id": "a10_close"
+        },
+        {
+          "at_seconds": 524.0,
+          "angle": 0.1,
+          "radius": 0.28,
+          "event_id": "a10_close"
+        },
+        {
+          "at_seconds": 529.0,
+          "angle": -0.12,
+          "radius": 0.28,
+          "event_id": "a10_close"
+        },
+        {
+          "at_seconds": 533.0,
+          "angle": -0.32,
+          "radius": 0.34,
+          "event_id": "a10_close"
+        },
+        {
+          "at_seconds": 552.0,
+          "angle": -0.28,
+          "radius": 0.38,
+          "event_id": "a10_final_touch"
+        },
+        {
+          "at_seconds": 556.0,
+          "angle": 0.0,
+          "radius": 0.32,
+          "event_id": "a10_final_touch"
+        },
+        {
+          "at_seconds": 560.0,
+          "angle": 0.2,
+          "radius": 0.36,
+          "event_id": "a10_final_touch"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a10_close",
+          "start_seconds": 520.0,
+          "playback_duration_seconds": 13.0,
+          "volume": 0.34,
+          "fade_in_ms": 1000,
+          "fade_out_ms": 1000,
+          "position_keyframes": [
+            {
+              "at_seconds": 520.0,
+              "angle": 0.32,
+              "radius": 0.34
+            },
+            {
+              "at_seconds": 524.0,
+              "angle": 0.1,
+              "radius": 0.28
+            },
+            {
+              "at_seconds": 529.0,
+              "angle": -0.12,
+              "radius": 0.28
+            },
+            {
+              "at_seconds": 533.0,
+              "angle": -0.32,
+              "radius": 0.34
+            }
+          ]
+        },
+        {
+          "event_id": "a10_final_touch",
+          "start_seconds": 552.0,
+          "playback_duration_seconds": 9.0,
+          "volume": 0.24,
+          "fade_in_ms": 1000,
+          "fade_out_ms": 1000,
+          "position_keyframes": [
+            {
+              "at_seconds": 552.0,
+              "angle": -0.28,
+              "radius": 0.38
+            },
+            {
+              "at_seconds": 556.0,
+              "angle": 0.0,
+              "radius": 0.32
+            },
+            {
+              "at_seconds": 560.0,
+              "angle": 0.2,
+              "radius": 0.36
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A11",
+      "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+      "resource_key": "hair_towel",
+      "master_file": "dw_ref_trg_hair_towel_press_oneshot_sc_hair_soft_v05_t01.wav",
+      "layer": "trigger",
+      "asset_status": "ref",
+      "start_seconds": 459.0,
+      "asset_duration_seconds": 6.0,
+      "playback_duration_seconds": 12.0,
+      "schedule_end_seconds": 493.0,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.43,
+      "position_keyframes": [
+        {
+          "at_seconds": 459.0,
+          "angle": -0.55,
+          "radius": 0.34,
+          "event_id": "a11_towel_1"
+        },
+        {
+          "at_seconds": 462.0,
+          "angle": 0.0,
+          "radius": 0.27,
+          "event_id": "a11_towel_1"
+        },
+        {
+          "at_seconds": 465.0,
+          "angle": 0.55,
+          "radius": 0.34,
+          "event_id": "a11_towel_1"
+        },
+        {
+          "at_seconds": 487.0,
+          "angle": -0.48,
+          "radius": 0.38,
+          "event_id": "a11_towel_2"
+        },
+        {
+          "at_seconds": 490.0,
+          "angle": 0.0,
+          "radius": 0.3,
+          "event_id": "a11_towel_2"
+        },
+        {
+          "at_seconds": 493.0,
+          "angle": 0.48,
+          "radius": 0.38,
+          "event_id": "a11_towel_2"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a11_towel_1",
+          "start_seconds": 459.0,
+          "playback_duration_seconds": 6.0,
+          "volume": 0.43,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "position_keyframes": [
+            {
+              "at_seconds": 459.0,
+              "angle": -0.55,
+              "radius": 0.34
+            },
+            {
+              "at_seconds": 462.0,
+              "angle": 0.0,
+              "radius": 0.27
+            },
+            {
+              "at_seconds": 465.0,
+              "angle": 0.55,
+              "radius": 0.34
+            }
+          ]
+        },
+        {
+          "event_id": "a11_towel_2",
+          "start_seconds": 487.0,
+          "playback_duration_seconds": 6.0,
+          "volume": 0.38,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "position_keyframes": [
+            {
+              "at_seconds": 487.0,
+              "angle": -0.48,
+              "radius": 0.38
+            },
+            {
+              "at_seconds": 490.0,
+              "angle": 0.0,
+              "radius": 0.3
+            },
+            {
+              "at_seconds": 493.0,
+              "angle": 0.48,
+              "radius": 0.38
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "A12",
+      "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+      "resource_key": "water_drip_roomtone",
+      "master_file": "dw_ref_amb_water_drip_sparse_oneshot_sc_room_far_v01_t01.wav",
+      "layer": "ambience",
+      "asset_status": "ref",
+      "start_seconds": 30.0,
+      "asset_duration_seconds": 25.0,
+      "playback_duration_seconds": 50.0,
+      "schedule_end_seconds": 563.0,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.22,
+      "position_keyframes": [
+        {
+          "at_seconds": 30.0,
+          "angle": -0.62,
+          "radius": 0.9,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 31.8,
+          "angle": -0.62,
+          "radius": 0.9,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 40.8,
+          "angle": 0.62,
+          "radius": 0.92,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 45.6,
+          "angle": 0.0,
+          "radius": 0.86,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 50.2,
+          "angle": -0.35,
+          "radius": 0.94,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 53.3,
+          "angle": 0.32,
+          "radius": 0.96,
+          "event_id": "a12_roomtone_1"
+        },
+        {
+          "at_seconds": 538.0,
+          "angle": -0.62,
+          "radius": 0.9,
+          "event_id": "a12_roomtone_2"
+        },
+        {
+          "at_seconds": 539.8,
+          "angle": -0.62,
+          "radius": 0.9,
+          "event_id": "a12_roomtone_2"
+        },
+        {
+          "at_seconds": 548.8,
+          "angle": 0.62,
+          "radius": 0.92,
+          "event_id": "a12_roomtone_2"
+        },
+        {
+          "at_seconds": 553.6,
+          "angle": 0.0,
+          "radius": 0.86,
+          "event_id": "a12_roomtone_2"
+        },
+        {
+          "at_seconds": 558.2,
+          "angle": -0.35,
+          "radius": 0.94,
+          "event_id": "a12_roomtone_2"
+        },
+        {
+          "at_seconds": 561.3,
+          "angle": 0.32,
+          "radius": 0.96,
+          "event_id": "a12_roomtone_2"
+        }
+      ],
+      "playback_events": [
+        {
+          "event_id": "a12_roomtone_1",
+          "start_seconds": 30.0,
+          "playback_duration_seconds": 25.0,
+          "volume": 0.22,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "position_keyframes": [
+            {
+              "at_seconds": 30.0,
+              "angle": -0.62,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 31.8,
+              "angle": -0.62,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 40.8,
+              "angle": 0.62,
+              "radius": 0.92
+            },
+            {
+              "at_seconds": 45.6,
+              "angle": 0.0,
+              "radius": 0.86
+            },
+            {
+              "at_seconds": 50.2,
+              "angle": -0.35,
+              "radius": 0.94
+            },
+            {
+              "at_seconds": 53.3,
+              "angle": 0.32,
+              "radius": 0.96
+            }
+          ]
+        },
+        {
+          "event_id": "a12_roomtone_2",
+          "start_seconds": 538.0,
+          "playback_duration_seconds": 25.0,
+          "volume": 0.18,
+          "fade_in_ms": 0,
+          "fade_out_ms": 0,
+          "position_keyframes": [
+            {
+              "at_seconds": 538.0,
+              "angle": -0.62,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 539.8,
+              "angle": -0.62,
+              "radius": 0.9
+            },
+            {
+              "at_seconds": 548.8,
+              "angle": 0.62,
+              "radius": 0.92
+            },
+            {
+              "at_seconds": 553.6,
+              "angle": 0.0,
+              "radius": 0.86
+            },
+            {
+              "at_seconds": 558.2,
+              "angle": -0.35,
+              "radius": 0.94
+            },
+            {
+              "at_seconds": 561.3,
+              "angle": 0.32,
+              "radius": 0.96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "V01",
+      "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9",
+      "resource_key": "voice_phrase_01",
+      "master_file": "dw_ref_vox_hair_wash_phrase_01_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 3.0,
+      "asset_duration_seconds": 4.1,
+      "playback_duration_seconds": 4.1,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 3.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V02",
+      "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c",
+      "resource_key": "voice_phrase_02",
+      "master_file": "dw_ref_vox_hair_wash_phrase_02_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 35.0,
+      "asset_duration_seconds": 2.6,
+      "playback_duration_seconds": 2.6,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 35.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V03",
+      "track_id": "23526a62-70ed-52ec-8117-be50dcb45942",
+      "resource_key": "voice_phrase_03",
+      "master_file": "dw_ref_vox_hair_wash_phrase_03_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 58.0,
+      "asset_duration_seconds": 2.95,
+      "playback_duration_seconds": 2.95,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 58.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V04",
+      "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7",
+      "resource_key": "voice_phrase_04",
+      "master_file": "dw_ref_vox_hair_wash_phrase_04_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 88.0,
+      "asset_duration_seconds": 4.55,
+      "playback_duration_seconds": 4.55,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 88.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V05",
+      "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18",
+      "resource_key": "voice_phrase_05",
+      "master_file": "dw_ref_vox_hair_wash_phrase_05_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 118.0,
+      "asset_duration_seconds": 4.15,
+      "playback_duration_seconds": 4.15,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 118.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V06",
+      "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76",
+      "resource_key": "voice_phrase_06",
+      "master_file": "dw_ref_vox_hair_wash_phrase_06_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 149.0,
+      "asset_duration_seconds": 4.4,
+      "playback_duration_seconds": 4.4,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 149.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V07",
+      "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2",
+      "resource_key": "voice_phrase_07",
+      "master_file": "dw_ref_vox_hair_wash_phrase_07_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 178.0,
+      "asset_duration_seconds": 4.15,
+      "playback_duration_seconds": 4.15,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 178.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V08",
+      "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb",
+      "resource_key": "voice_phrase_08",
+      "master_file": "dw_ref_vox_hair_wash_phrase_08_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 210.0,
+      "asset_duration_seconds": 3.05,
+      "playback_duration_seconds": 3.05,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 210.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V09",
+      "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804",
+      "resource_key": "voice_phrase_09",
+      "master_file": "dw_ref_vox_hair_wash_phrase_09_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 240.0,
+      "asset_duration_seconds": 4.05,
+      "playback_duration_seconds": 4.05,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 240.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V10",
+      "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf",
+      "resource_key": "voice_phrase_10",
+      "master_file": "dw_ref_vox_hair_wash_phrase_10_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 270.0,
+      "asset_duration_seconds": 3.7,
+      "playback_duration_seconds": 3.7,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 270.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V11",
+      "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15",
+      "resource_key": "voice_phrase_11",
+      "master_file": "dw_ref_vox_hair_wash_phrase_11_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 300.0,
+      "asset_duration_seconds": 3.95,
+      "playback_duration_seconds": 3.95,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 300.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V12",
+      "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf",
+      "resource_key": "voice_phrase_12",
+      "master_file": "dw_ref_vox_hair_wash_phrase_12_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 360.0,
+      "asset_duration_seconds": 3.65,
+      "playback_duration_seconds": 3.65,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 360.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V13",
+      "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e",
+      "resource_key": "voice_phrase_13",
+      "master_file": "dw_ref_vox_hair_wash_phrase_13_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 390.0,
+      "asset_duration_seconds": 3.98,
+      "playback_duration_seconds": 3.98,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 390.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V14",
+      "track_id": "74461357-965f-5fd7-80ef-f19bdff00356",
+      "resource_key": "voice_phrase_14",
+      "master_file": "dw_ref_vox_hair_wash_phrase_14_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 420.0,
+      "asset_duration_seconds": 3.87,
+      "playback_duration_seconds": 3.87,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 420.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V15",
+      "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3",
+      "resource_key": "voice_phrase_15",
+      "master_file": "dw_ref_vox_hair_wash_phrase_15_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 449.0,
+      "asset_duration_seconds": 3.88,
+      "playback_duration_seconds": 3.88,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 449.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V16",
+      "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a",
+      "resource_key": "voice_phrase_16",
+      "master_file": "dw_ref_vox_hair_wash_phrase_16_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 480.0,
+      "asset_duration_seconds": 4.15,
+      "playback_duration_seconds": 4.15,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 480.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V17",
+      "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee",
+      "resource_key": "voice_phrase_17",
+      "master_file": "dw_ref_vox_hair_wash_phrase_17_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 511.0,
+      "asset_duration_seconds": 3.7,
+      "playback_duration_seconds": 3.7,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 511.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V18",
+      "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef",
+      "resource_key": "voice_phrase_18",
+      "master_file": "dw_ref_vox_hair_wash_phrase_18_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 544.0,
+      "asset_duration_seconds": 2.32,
+      "playback_duration_seconds": 2.32,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 544.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V19",
+      "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c",
+      "resource_key": "voice_phrase_19",
+      "master_file": "dw_ref_vox_hair_wash_phrase_19_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 574.0,
+      "asset_duration_seconds": 3.3,
+      "playback_duration_seconds": 3.3,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 574.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "code": "V20",
+      "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141",
+      "resource_key": "voice_phrase_20",
+      "master_file": "dw_ref_vox_hair_wash_phrase_20_oneshot_sc_hair_center_v02_t01.wav",
+      "layer": "voice",
+      "asset_status": "ref",
+      "start_seconds": 604.0,
+      "asset_duration_seconds": 7.55,
+      "playback_duration_seconds": 7.55,
+      "loop": false,
+      "requires_engine_crossfade": false,
+      "crossfade_ms": 0,
+      "default_volume": 0.68,
+      "position_keyframes": [
+        {
+          "at_seconds": 604.0,
+          "angle": 0.0,
+          "radius": 0.38
+        }
+      ]
+    }
+  ],
+  "phrases": [
+    {
+      "phrase_id": "db7992e9-09ee-571d-a58d-2763f9c86ef8",
+      "text": "先靠好，什么都不用做。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_01_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.1,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9"
+    },
+    {
+      "phrase_id": "e885866d-dcf8-5f9a-afe0-5c50eb35b7b0",
+      "text": "今天就慢一点。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_02_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 2.6,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c"
+    },
+    {
+      "phrase_id": "79408d0c-803b-5a39-9cab-9d79ed0f2955",
+      "text": "水温已经调好了。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_03_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 2.95,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "23526a62-70ed-52ec-8117-be50dcb45942"
+    },
+    {
+      "phrase_id": "abdaa2d3-24af-59d6-bd31-cbc2dd8cafdb",
+      "text": "如果愿意，就慢慢靠近一点。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_04_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.55,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7"
+    },
+    {
+      "phrase_id": "a8366bf7-0066-5c34-a834-9fcfaa78ce79",
+      "text": "温水从发顶慢慢落下来。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_05_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.15,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18"
+    },
+    {
+      "phrase_id": "cfbbb5de-5000-5bcf-8b07-0a91a56d7897",
+      "text": "头发慢慢变重，也慢慢放松。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_06_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.4,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76"
+    },
+    {
+      "phrase_id": "36d32f8b-819d-59e4-a5e1-7b449ea9ddd8",
+      "text": "取一点点，轻轻揉开。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_07_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.15,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2"
+    },
+    {
+      "phrase_id": "ca854343-dcbe-5f8e-b8d5-254d5ebedb90",
+      "text": "先不用用力，让泡沫自己铺开。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_08_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.05,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb"
+    },
+    {
+      "phrase_id": "53776273-34af-5dce-987b-8eb54e1356e3",
+      "text": "这里慢一点，放松就好。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_09_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.05,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804"
+    },
+    {
+      "phrase_id": "7500e516-4276-56e7-a677-0d298d32dc41",
+      "text": "从发顶开始，轻轻按一按。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_10_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.7,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf"
+    },
+    {
+      "phrase_id": "939e2dab-bf33-5e4e-b9c4-c69653370575",
+      "text": "耳边这里，也慢慢放松下来。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_11_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.95,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15"
+    },
+    {
+      "phrase_id": "4e794042-b210-5757-b48f-a383850516ac",
+      "text": "泡沫会被温水慢慢带走。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_12_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.65,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf"
+    },
+    {
+      "phrase_id": "3116716b-e34c-5ad3-b1b6-7cb189794a03",
+      "text": "剩下的泡沫，也一起带走。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_13_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.98,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e"
+    },
+    {
+      "phrase_id": "abe53721-2d36-5f66-bd09-d5e47d56fd4a",
+      "text": "已经很干净了，慢慢就好。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_14_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.87,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "74461357-965f-5fd7-80ef-f19bdff00356"
+    },
+    {
+      "phrase_id": "0c823bd5-a6c9-50b5-b8e1-00b62c728804",
+      "text": "用柔软的毛巾，轻轻按一按。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_15_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.88,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3"
+    },
+    {
+      "phrase_id": "9ca14def-f509-58f4-ac8a-64e59207bc47",
+      "text": "不是擦，只是轻轻按住。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_16_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 4.15,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a"
+    },
+    {
+      "phrase_id": "41770d80-54d3-505c-9c93-ba97d3933a6f",
+      "text": "现在只剩下很轻的按压。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_17_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.7,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee"
+    },
+    {
+      "phrase_id": "cb4828f2-a1fe-53d0-a4ba-972b64fc0b1c",
+      "text": "你不用再做什么了。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_18_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 2.32,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef"
+    },
+    {
+      "phrase_id": "5118a93b-8649-5218-b807-7eb80b982e9e",
+      "text": "就这样安静躺一会儿。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_19_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 3.3,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c"
+    },
+    {
+      "phrase_id": "935a66ad-554c-53b2-b715-096af1c12186",
+      "text": "剩下的时间，安心休息。",
+      "audio_file": "dw_ref_vox_hair_wash_phrase_20_oneshot_sc_hair_center_v02_t01.wav",
+      "duration_seconds": 7.55,
+      "review_status": "qc_pending",
+      "voice_binding": "reference_recording_pending",
+      "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141"
+    }
+  ],
+  "cues": [
+    {
+      "id": "9e3ce5ae-071d-5f08-9830-bbd39c710d75",
+      "at_seconds": 0.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.18,
+          "radius": 0.92
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.2,
+          "fade_ms": 3000
+        },
+        {
+          "type": "play",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "event_id": "a01_open"
+        }
+      ]
+    },
+    {
+      "id": "108ddf75-d4f5-52b5-aba3-a357955fa3a2",
+      "at_seconds": 3.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "334534b8-e8bc-5ff7-98c4-80af0ab98ca9",
+          "phrase_id": "db7992e9-09ee-571d-a58d-2763f9c86ef8"
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.13,
+          "fade_ms": 250
+        }
+      ]
+    },
+    {
+      "id": "9acd8c76-83de-56d5-9c8a-9c45252e57bc",
+      "at_seconds": 7.4,
+      "actions": [
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.2,
+          "fade_ms": 350
+        }
+      ]
+    },
+    {
+      "id": "e9b940d0-4934-5e08-ad2a-8a4b39981ab8",
+      "at_seconds": 12.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": -0.12,
+          "radius": 0.9
+        }
+      ]
+    },
+    {
+      "id": "8f231e75-9ffb-5142-9b68-21b6f5151e87",
+      "at_seconds": 24.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.1,
+          "radius": 0.92
+        },
+        {
+          "type": "fade_out",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "fade_ms": 3000
+        }
+      ]
+    },
+    {
+      "id": "b269906b-2df2-5893-80da-3ba2e81f93d5",
+      "at_seconds": 27.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91"
+        }
+      ]
+    },
+    {
+      "id": "7907889f-fb91-5239-9286-0365817fdd94",
+      "at_seconds": 30.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.62,
+          "radius": 0.9
+        },
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.22,
+          "fade_ms": 1
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "event_id": "a12_roomtone_1"
+        }
+      ]
+    },
+    {
+      "id": "ef82f545-266e-5957-8f3e-58160d776c71",
+      "at_seconds": 31.8,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.62,
+          "radius": 0.9
+        }
+      ]
+    },
+    {
+      "id": "61217e3b-1577-5b37-91f3-5dff3b9fab2b",
+      "at_seconds": 35.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "6c756118-9f47-5135-b4f8-780d1b1ae22c",
+          "phrase_id": "e885866d-dcf8-5f9a-afe0-5c50eb35b7b0"
+        },
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.14,
+          "fade_ms": 250
+        }
+      ]
+    },
+    {
+      "id": "f2af94e2-9020-5a72-ba4c-23806743e145",
+      "at_seconds": 37.9,
+      "actions": [
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.22,
+          "fade_ms": 350
+        }
+      ]
+    },
+    {
+      "id": "7daf36ed-a43a-541f-bd80-da339845b771",
+      "at_seconds": 40.8,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.62,
+          "radius": 0.92
+        }
+      ]
+    },
+    {
+      "id": "ec46c04c-2bd0-5c15-bad4-22c31b902a58",
+      "at_seconds": 45.6,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.0,
+          "radius": 0.86
+        }
+      ]
+    },
+    {
+      "id": "9ce8c4d4-7c5d-505e-ae6d-b7d75caa65cd",
+      "at_seconds": 50.2,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.35,
+          "radius": 0.94
+        }
+      ]
+    },
+    {
+      "id": "8070b735-255a-599b-9b76-5b02655e96c5",
+      "at_seconds": 53.3,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.32,
+          "radius": 0.96
+        }
+      ]
+    },
+    {
+      "id": "7dca1c47-9ad0-5c63-baf3-622efe16ecb1",
+      "at_seconds": 58.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "23526a62-70ed-52ec-8117-be50dcb45942",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "23526a62-70ed-52ec-8117-be50dcb45942",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "23526a62-70ed-52ec-8117-be50dcb45942",
+          "phrase_id": "79408d0c-803b-5a39-9cab-9d79ed0f2955"
+        }
+      ]
+    },
+    {
+      "id": "db75763f-fe82-5099-b55b-639d3a8f1d56",
+      "at_seconds": 68.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.3,
+          "radius": 0.9
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.24,
+          "fade_ms": 1500
+        },
+        {
+          "type": "play",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "event_id": "a01_tune"
+        }
+      ]
+    },
+    {
+      "id": "15a744d2-7c86-5395-8292-1487326f7efd",
+      "at_seconds": 74.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.1,
+          "radius": 0.74
+        }
+      ]
+    },
+    {
+      "id": "14991e75-6285-5f87-bd87-f8eec59cca14",
+      "at_seconds": 80.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "fade_ms": 1500
+        }
+      ]
+    },
+    {
+      "id": "fbaf0f63-1839-57e0-b04d-4783085a907f",
+      "at_seconds": 81.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": -0.2,
+          "radius": 0.62
+        }
+      ]
+    },
+    {
+      "id": "574573e9-c231-5b4c-aca1-c37489772748",
+      "at_seconds": 82.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91"
+        }
+      ]
+    },
+    {
+      "id": "a9a60019-342f-5230-8523-a96da7f3cc35",
+      "at_seconds": 88.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "fec93bda-1ddb-5836-9903-3799c17ee1b7",
+          "phrase_id": "abdaa2d3-24af-59d6-bd31-cbc2dd8cafdb"
+        }
+      ]
+    },
+    {
+      "id": "f7c4a61e-bb12-5acb-a9e9-15ec2d762c28",
+      "at_seconds": 96.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.55,
+          "radius": 0.82
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.26,
+          "fade_ms": 1500
+        },
+        {
+          "type": "play",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "event_id": "a01_approach"
+        }
+      ]
+    },
+    {
+      "id": "45e74957-c67e-50c0-b5ee-d122a5f6dff4",
+      "at_seconds": 103.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.75,
+          "radius": 0.7
+        }
+      ]
+    },
+    {
+      "id": "de3c6058-ac3a-54cb-b146-51f9ebd16921",
+      "at_seconds": 109.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.45,
+          "radius": 0.6
+        }
+      ]
+    },
+    {
+      "id": "88ce4caf-f669-58fd-ba1a-eb5875c3fd24",
+      "at_seconds": 111.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "fade_ms": 1500
+        }
+      ]
+    },
+    {
+      "id": "92208f46-24bb-5c14-8c86-a09c9fa6883d",
+      "at_seconds": 113.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.2,
+          "radius": 0.56
+        },
+        {
+          "type": "pause",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91"
+        }
+      ]
+    },
+    {
+      "id": "06c9a706-4222-5542-aefb-c8c9a0215f8b",
+      "at_seconds": 118.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "d55fb460-10a4-546c-90dd-18dd0b5dac18",
+          "phrase_id": "a8366bf7-0066-5c34-a834-9fcfaa78ce79"
+        }
+      ]
+    },
+    {
+      "id": "d724327e-5cb6-5c04-a049-8e2c2eb82529",
+      "at_seconds": 127.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": 0.0,
+          "radius": 0.66
+        },
+        {
+          "type": "set_volume",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "volume": 0.33,
+          "fade_ms": 500
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "event_id": "a02_wet_1"
+        }
+      ]
+    },
+    {
+      "id": "0bb9f10b-2d8c-57cb-a46c-02cee5810d7f",
+      "at_seconds": 133.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": -0.32,
+          "radius": 0.58
+        }
+      ]
+    },
+    {
+      "id": "5338e767-6bc8-5f52-9695-054715481690",
+      "at_seconds": 139.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": -0.62,
+          "radius": 0.52
+        }
+      ]
+    },
+    {
+      "id": "096f32b7-98cf-53e5-be22-c6a5e801e93a",
+      "at_seconds": 144.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": -0.4,
+          "radius": 0.56
+        }
+      ]
+    },
+    {
+      "id": "2aa5d897-fe6d-59a7-bf56-eb57158c1309",
+      "at_seconds": 144.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "fade_ms": 500
+        }
+      ]
+    },
+    {
+      "id": "597fd921-6566-56d3-9c00-82880177984f",
+      "at_seconds": 145.0,
+      "actions": [
+        {
+          "type": "disable",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6"
+        }
+      ]
+    },
+    {
+      "id": "80f8b0f2-6dce-5a90-a197-0a20adb61c97",
+      "at_seconds": 149.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "55d99728-e2be-566b-953c-f4c730cbfe76",
+          "phrase_id": "cfbbb5de-5000-5bcf-8b07-0a91a56d7897"
+        }
+      ]
+    },
+    {
+      "id": "47c10ff0-14e5-5a8a-8c30-59091e51a161",
+      "at_seconds": 156.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": -0.48,
+          "radius": 0.56
+        },
+        {
+          "type": "set_volume",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "volume": 0.31,
+          "fade_ms": 500
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "event_id": "a02_wet_2"
+        }
+      ]
+    },
+    {
+      "id": "0e669177-796e-5a7e-84aa-93245e77611b",
+      "at_seconds": 162.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": -0.18,
+          "radius": 0.49
+        }
+      ]
+    },
+    {
+      "id": "b4541ec1-6e05-5f79-8938-1aeaf99ab52a",
+      "at_seconds": 167.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": 0.2,
+          "radius": 0.49
+        }
+      ]
+    },
+    {
+      "id": "e1948a8a-f6a9-566f-9c52-e32d7ae39ebf",
+      "at_seconds": 172.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "angle": 0.48,
+          "radius": 0.58
+        }
+      ]
+    },
+    {
+      "id": "1aa79517-ae96-5a19-9e34-215e6dc4c96a",
+      "at_seconds": 172.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6",
+          "fade_ms": 500
+        }
+      ]
+    },
+    {
+      "id": "75178e4f-229b-5ef2-8570-ee4aec05c89c",
+      "at_seconds": 173.0,
+      "actions": [
+        {
+          "type": "disable",
+          "track_id": "a8f15c0f-c610-51c9-ba22-81e33c5856f6"
+        }
+      ]
+    },
+    {
+      "id": "445db312-a8a3-5c18-8025-9cf6b49750d1",
+      "at_seconds": 178.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "4bc90a4e-58fa-5411-980e-b8f3136c8bd2",
+          "phrase_id": "36d32f8b-819d-59e4-a5e1-7b449ea9ddd8"
+        }
+      ]
+    },
+    {
+      "id": "b4ce6245-94f6-5cb9-bbce-6b1cd39aca67",
+      "at_seconds": 188.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "94054d67-d558-5f60-90b4-5370ec3b73fc",
+          "angle": -0.35,
+          "radius": 0.32
+        },
+        {
+          "type": "set_volume",
+          "track_id": "94054d67-d558-5f60-90b4-5370ec3b73fc",
+          "volume": 0.45,
+          "fade_ms": 1
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "94054d67-d558-5f60-90b4-5370ec3b73fc",
+          "event_id": "a03_press"
+        }
+      ]
+    },
+    {
+      "id": "7e6b464a-6961-5218-bbe6-456b0a914bc6",
+      "at_seconds": 191.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.28,
+          "radius": 0.42
+        },
+        {
+          "type": "set_volume",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "volume": 0.34,
+          "fade_ms": 1200
+        },
+        {
+          "type": "play",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "event_id": "a04_foam_start"
+        }
+      ]
+    },
+    {
+      "id": "933f1503-3f35-57b2-ab14-21d02b3b0bdb",
+      "at_seconds": 196.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.0,
+          "radius": 0.35
+        }
+      ]
+    },
+    {
+      "id": "06b3cba5-6527-5566-b6df-fc9912224020",
+      "at_seconds": 201.8,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "fade_ms": 1200
+        }
+      ]
+    },
+    {
+      "id": "a683e527-3988-5d73-8e9b-80657fa20fcc",
+      "at_seconds": 202.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.28,
+          "radius": 0.42
+        }
+      ]
+    },
+    {
+      "id": "861eca18-2d3d-569a-9e33-36017185c3c8",
+      "at_seconds": 203.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da"
+        }
+      ]
+    },
+    {
+      "id": "26ecb81f-bc57-57cf-908d-a2ad2ee99710",
+      "at_seconds": 210.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "5df8d8ba-872e-502e-af1b-3f863201a3fb",
+          "phrase_id": "ca854343-dcbe-5f8e-b8d5-254d5ebedb90"
+        }
+      ]
+    },
+    {
+      "id": "4d1f4ae9-0171-583b-bc89-6871d694af1c",
+      "at_seconds": 217.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.4,
+          "radius": 0.42
+        },
+        {
+          "type": "set_volume",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "volume": 0.38,
+          "fade_ms": 1200
+        },
+        {
+          "type": "play",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "event_id": "a04_foam_spread"
+        }
+      ]
+    },
+    {
+      "id": "b82d2055-e268-545b-90d2-edf9dc1399e2",
+      "at_seconds": 222.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.15,
+          "radius": 0.34
+        }
+      ]
+    },
+    {
+      "id": "6a60edca-f770-5c6c-8366-bd93dac41da1",
+      "at_seconds": 227.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.15,
+          "radius": 0.34
+        }
+      ]
+    },
+    {
+      "id": "14467cdd-d48c-5450-8ada-c085f5b3d233",
+      "at_seconds": 231.8,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "fade_ms": 1200
+        }
+      ]
+    },
+    {
+      "id": "ac966819-22d8-52cd-9810-982b3b07a2eb",
+      "at_seconds": 232.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.4,
+          "radius": 0.42
+        }
+      ]
+    },
+    {
+      "id": "83e1bba0-b8ad-5b00-9b8d-957bf04203a2",
+      "at_seconds": 233.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da"
+        }
+      ]
+    },
+    {
+      "id": "52916b04-ea22-56f7-8d5b-4d3b2a4f6819",
+      "at_seconds": 240.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "054a8001-c09c-5755-9f50-ceafbac7f804",
+          "phrase_id": "53776273-34af-5dce-987b-8eb54e1356e3"
+        }
+      ]
+    },
+    {
+      "id": "8435fa5f-8cb9-507c-b0ff-164278e662eb",
+      "at_seconds": 248.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.68,
+          "radius": 0.46
+        },
+        {
+          "type": "set_volume",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "volume": 0.36,
+          "fade_ms": 1000
+        },
+        {
+          "type": "play",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "event_id": "a04_left_rub"
+        }
+      ]
+    },
+    {
+      "id": "ceadcbe4-b435-5851-90de-01f232d64ca4",
+      "at_seconds": 253.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.5,
+          "radius": 0.37
+        }
+      ]
+    },
+    {
+      "id": "14da43cc-0135-591e-b83a-c453d6689eeb",
+      "at_seconds": 257.0,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "fade_ms": 1000
+        }
+      ]
+    },
+    {
+      "id": "20f7d5b1-0f94-5cd5-b6c8-e36b48cbb0d6",
+      "at_seconds": 258.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.28,
+          "radius": 0.39
+        },
+        {
+          "type": "pause",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da"
+        }
+      ]
+    },
+    {
+      "id": "45a3ae04-6cb0-5f3d-a2d7-63bd914970b6",
+      "at_seconds": 260.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.25,
+          "radius": 0.39
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "volume": 0.35,
+          "fade_ms": 700
+        },
+        {
+          "type": "play",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "event_id": "a05_right_front"
+        }
+      ]
+    },
+    {
+      "id": "0f4163ce-86a6-5566-a06f-0d38480a7fe9",
+      "at_seconds": 264.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.48,
+          "radius": 0.43
+        }
+      ]
+    },
+    {
+      "id": "5078eb93-9b8f-5c07-ac07-79c9156cf471",
+      "at_seconds": 264.3,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "fade_ms": 700
+        }
+      ]
+    },
+    {
+      "id": "72a9d3eb-e189-5d64-8525-f22fd19a233e",
+      "at_seconds": 265.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d"
+        }
+      ]
+    },
+    {
+      "id": "9c3e371c-27df-5dea-b83a-254b0db45bb3",
+      "at_seconds": 270.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "332a3801-dcf4-514e-b674-79aebfba04bf",
+          "phrase_id": "7500e516-4276-56e7-a677-0d298d32dc41"
+        }
+      ]
+    },
+    {
+      "id": "2f175106-612a-5bd9-a9ef-5187ab32264c",
+      "at_seconds": 278.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.0,
+          "radius": 0.34
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "volume": 0.4,
+          "fade_ms": 1200
+        },
+        {
+          "type": "play",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "event_id": "a05_crown"
+        }
+      ]
+    },
+    {
+      "id": "f4300d23-1955-5117-a238-62ddc3607c64",
+      "at_seconds": 283.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": -0.28,
+          "radius": 0.36
+        }
+      ]
+    },
+    {
+      "id": "31103cb9-7cf1-54e8-8c02-f3ec8727d8b0",
+      "at_seconds": 288.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.0,
+          "radius": 0.3
+        }
+      ]
+    },
+    {
+      "id": "4eadf2c4-1d3e-5418-9855-90c68b3c623e",
+      "at_seconds": 291.8,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "fade_ms": 1200
+        }
+      ]
+    },
+    {
+      "id": "fe2b10ca-9385-5079-86af-2ae36d8ad057",
+      "at_seconds": 293.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.28,
+          "radius": 0.36
+        },
+        {
+          "type": "pause",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d"
+        }
+      ]
+    },
+    {
+      "id": "ff23ab15-753f-5037-b70c-6be6b29191bd",
+      "at_seconds": 300.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "80c62f91-e85f-5cbf-a989-8b369343ce15",
+          "phrase_id": "939e2dab-bf33-5e4e-b9c4-c69653370575"
+        }
+      ]
+    },
+    {
+      "id": "80e2e49a-0411-5ac5-9f4e-d172f2b63864",
+      "at_seconds": 309.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": -0.7,
+          "radius": 0.48
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "volume": 0.36,
+          "fade_ms": 800
+        },
+        {
+          "type": "play",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "event_id": "a05_left_ear"
+        }
+      ]
+    },
+    {
+      "id": "ed558cc8-11bf-59f8-acd4-666487c14805",
+      "at_seconds": 314.2,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "fade_ms": 800
+        }
+      ]
+    },
+    {
+      "id": "162da7f3-6419-58b0-b23e-4f6fb9bcf489",
+      "at_seconds": 315.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": -0.48,
+          "radius": 0.36
+        },
+        {
+          "type": "pause",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d"
+        }
+      ]
+    },
+    {
+      "id": "6a0b551a-767f-5aee-ba79-c5e2e79e4b42",
+      "at_seconds": 317.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.48,
+          "radius": 0.36
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "volume": 0.36,
+          "fade_ms": 800
+        },
+        {
+          "type": "play",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "event_id": "a05_right_ear"
+        }
+      ]
+    },
+    {
+      "id": "04f3b0a6-96b3-53a7-a5b0-3de21711d69e",
+      "at_seconds": 322.2,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "fade_ms": 800
+        }
+      ]
+    },
+    {
+      "id": "a930069d-1a7a-5dc4-8000-75432d000143",
+      "at_seconds": 323.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d",
+          "angle": 0.7,
+          "radius": 0.48
+        },
+        {
+          "type": "pause",
+          "track_id": "8c298978-b530-5d36-be43-dc85e5454e0d"
+        }
+      ]
+    },
+    {
+      "id": "72a3f70d-b9f7-50b0-b880-66698b120a2a",
+      "at_seconds": 330.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.55,
+          "radius": 0.46
+        },
+        {
+          "type": "set_volume",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "volume": 0.3,
+          "fade_ms": 1200
+        },
+        {
+          "type": "play",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "event_id": "a04_quiet_hold"
+        }
+      ]
+    },
+    {
+      "id": "139521a1-55e0-5734-8d1b-376728e67ceb",
+      "at_seconds": 336.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": -0.2,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "id": "fb9407a2-73cd-5ebd-97bf-2e65635fe1c2",
+      "at_seconds": 343.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.2,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "id": "4f85ceb7-fcd2-5e91-a967-9d7224223389",
+      "at_seconds": 348.8,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "fade_ms": 1200
+        }
+      ]
+    },
+    {
+      "id": "25066922-ebda-5c88-bb1a-b617d382a0db",
+      "at_seconds": 350.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da",
+          "angle": 0.55,
+          "radius": 0.46
+        },
+        {
+          "type": "pause",
+          "track_id": "ac3556b2-8b76-5cd1-8468-66f691f428da"
+        }
+      ]
+    },
+    {
+      "id": "3ccae835-f21e-5c5c-8bd3-c5d57f53f3af",
+      "at_seconds": 360.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "fc53f107-af9e-54b6-9395-717977ad83cf",
+          "phrase_id": "4e794042-b210-5757-b48f-a383850516ac"
+        }
+      ]
+    },
+    {
+      "id": "f9bdd7ed-26c7-5cf9-9cc3-93ff479ddc9d",
+      "at_seconds": 370.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.45,
+          "radius": 0.68
+        },
+        {
+          "type": "set_volume",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "volume": 0.36,
+          "fade_ms": 500
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "event_id": "a07_rinse_1"
+        }
+      ]
+    },
+    {
+      "id": "82f4b45b-3956-5f4a-aca3-1b7f58ae9aab",
+      "at_seconds": 374.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.15,
+          "radius": 0.55
+        }
+      ]
+    },
+    {
+      "id": "fd5c0fd0-ecac-5cbd-aee7-2e6633f58b07",
+      "at_seconds": 378.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": -0.25,
+          "radius": 0.52
+        }
+      ]
+    },
+    {
+      "id": "6dda531e-5ade-5b82-bcbe-cd173fc18287",
+      "at_seconds": 382.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": -0.5,
+          "radius": 0.6
+        }
+      ]
+    },
+    {
+      "id": "42c16c64-3aa3-57c8-8945-31d0e595c7bf",
+      "at_seconds": 382.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "fade_ms": 500
+        }
+      ]
+    },
+    {
+      "id": "b9c6dd03-e245-5d48-ad32-0a7ee9cccabc",
+      "at_seconds": 383.0,
+      "actions": [
+        {
+          "type": "disable",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb"
+        }
+      ]
+    },
+    {
+      "id": "4c6e168a-98f9-59d0-bf3e-7812b17c4e67",
+      "at_seconds": 390.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "a8e97b85-2687-5fa8-8c8a-e56b2f4e778e",
+          "phrase_id": "3116716b-e34c-5ad3-b1b6-7cb189794a03"
+        }
+      ]
+    },
+    {
+      "id": "454845fd-84bb-5195-9922-06197f170170",
+      "at_seconds": 397.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": -0.52,
+          "radius": 0.6
+        },
+        {
+          "type": "set_volume",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "volume": 0.38,
+          "fade_ms": 500
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "event_id": "a07_rinse_2"
+        }
+      ]
+    },
+    {
+      "id": "c7b39337-75ff-54e7-9659-2ccbd187eef2",
+      "at_seconds": 402.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": -0.18,
+          "radius": 0.52
+        }
+      ]
+    },
+    {
+      "id": "69a0b633-e81a-54aa-a052-d2b21f2904a5",
+      "at_seconds": 407.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.18,
+          "radius": 0.52
+        }
+      ]
+    },
+    {
+      "id": "134e90f3-2c1f-5c80-b034-2cec8fcdc820",
+      "at_seconds": 412.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.52,
+          "radius": 0.6
+        }
+      ]
+    },
+    {
+      "id": "be927091-45a5-55ad-b47f-7a9d203667ec",
+      "at_seconds": 412.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "fade_ms": 500
+        }
+      ]
+    },
+    {
+      "id": "5d9da3cb-a0c8-54cf-bda7-b3d362d4d14e",
+      "at_seconds": 413.0,
+      "actions": [
+        {
+          "type": "disable",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb"
+        }
+      ]
+    },
+    {
+      "id": "d4f1ae7c-49c5-5348-9b75-032be9c9620d",
+      "at_seconds": 420.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "74461357-965f-5fd7-80ef-f19bdff00356",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "74461357-965f-5fd7-80ef-f19bdff00356",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "74461357-965f-5fd7-80ef-f19bdff00356",
+          "phrase_id": "abe53721-2d36-5f66-bd09-d5e47d56fd4a"
+        }
+      ]
+    },
+    {
+      "id": "9161871b-c691-5664-864b-9f3d4d66bab0",
+      "at_seconds": 426.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.45,
+          "radius": 0.62
+        },
+        {
+          "type": "set_volume",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "volume": 0.34,
+          "fade_ms": 500
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "event_id": "a07_rinse_3"
+        }
+      ]
+    },
+    {
+      "id": "ce890024-2477-5657-ab5f-9a4672b95adf",
+      "at_seconds": 430.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.18,
+          "radius": 0.52
+        }
+      ]
+    },
+    {
+      "id": "537cdc7a-e28e-59a9-a8c5-c94d3c782a0f",
+      "at_seconds": 435.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": 0.0,
+          "radius": 0.48
+        }
+      ]
+    },
+    {
+      "id": "2146f5dd-5117-5d5a-83d1-e4c4b5f00983",
+      "at_seconds": 439.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "angle": -0.25,
+          "radius": 0.56
+        }
+      ]
+    },
+    {
+      "id": "788575ee-ff40-5b19-a9a8-79825d51bb37",
+      "at_seconds": 439.5,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb",
+          "fade_ms": 500
+        }
+      ]
+    },
+    {
+      "id": "21173031-85f9-583d-8305-e9e71dc0b279",
+      "at_seconds": 440.0,
+      "actions": [
+        {
+          "type": "disable",
+          "track_id": "9696d138-6fb3-5941-beb2-42075a5d83cb"
+        }
+      ]
+    },
+    {
+      "id": "244c51e6-2bb0-5a34-a4e9-acdb6e60cc8d",
+      "at_seconds": 449.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "551764d7-f818-5a93-92a3-ec26ecd1a2a3",
+          "phrase_id": "0c823bd5-a6c9-50b5-b8e1-00b62c728804"
+        }
+      ]
+    },
+    {
+      "id": "da339566-7238-56f0-9758-6f52091f9334",
+      "at_seconds": 459.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": -0.55,
+          "radius": 0.34
+        },
+        {
+          "type": "set_volume",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "volume": 0.43,
+          "fade_ms": 1
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "event_id": "a11_towel_1"
+        }
+      ]
+    },
+    {
+      "id": "22964b99-0fa3-50c5-ae73-590ca7fa8df4",
+      "at_seconds": 462.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": 0.0,
+          "radius": 0.27
+        }
+      ]
+    },
+    {
+      "id": "5abb5f63-841d-5c7c-b031-b34503d35e29",
+      "at_seconds": 465.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": 0.55,
+          "radius": 0.34
+        }
+      ]
+    },
+    {
+      "id": "b00bc8d7-bac0-5f59-83b2-1f8f3e597c1b",
+      "at_seconds": 480.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "b3410b17-bf95-5d08-b182-372ba291ca1a",
+          "phrase_id": "9ca14def-f509-58f4-ac8a-64e59207bc47"
+        }
+      ]
+    },
+    {
+      "id": "ff5904d0-ff83-54b1-ba86-f9b94b188119",
+      "at_seconds": 487.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": -0.48,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "volume": 0.38,
+          "fade_ms": 1
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "event_id": "a11_towel_2"
+        }
+      ]
+    },
+    {
+      "id": "d9ee6346-af6d-5f83-866a-4f5257dc4974",
+      "at_seconds": 490.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": 0.0,
+          "radius": 0.3
+        }
+      ]
+    },
+    {
+      "id": "ce6968b5-ef3f-5a97-8da4-246c50ba188b",
+      "at_seconds": 493.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "f5bc37e9-6721-5ef5-bf29-daa5327aea59",
+          "angle": 0.48,
+          "radius": 0.38
+        }
+      ]
+    },
+    {
+      "id": "b00ee7ce-1dbb-54b5-a82b-5bf21d8b74f6",
+      "at_seconds": 511.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "189714af-c37b-5953-86f0-5ae5545f85ee",
+          "phrase_id": "41770d80-54d3-505c-9c93-ba97d3933a6f"
+        }
+      ]
+    },
+    {
+      "id": "1c6d6a32-43a4-5304-abbc-c7778ab3ac6c",
+      "at_seconds": 520.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": 0.32,
+          "radius": 0.34
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "volume": 0.34,
+          "fade_ms": 1000
+        },
+        {
+          "type": "play",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "event_id": "a10_close"
+        }
+      ]
+    },
+    {
+      "id": "7f2e6d7e-883e-57e2-b52a-7ce4d90608d7",
+      "at_seconds": 524.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": 0.1,
+          "radius": 0.28
+        }
+      ]
+    },
+    {
+      "id": "58d228e8-13f6-50b6-bd08-155156f021f1",
+      "at_seconds": 529.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": -0.12,
+          "radius": 0.28
+        }
+      ]
+    },
+    {
+      "id": "9b515556-e897-5eb8-8314-5c6efe0618da",
+      "at_seconds": 532.0,
+      "actions": [
+        {
+          "type": "fade_out",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "fade_ms": 1000
+        }
+      ]
+    },
+    {
+      "id": "03753565-50fc-5b94-bec6-56c5bd858c8e",
+      "at_seconds": 533.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": -0.32,
+          "radius": 0.34
+        },
+        {
+          "type": "pause",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8"
+        }
+      ]
+    },
+    {
+      "id": "b15970be-8c04-5121-a4a1-52f5ccf2e044",
+      "at_seconds": 538.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.62,
+          "radius": 0.9
+        },
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.18,
+          "fade_ms": 1
+        },
+        {
+          "type": "play_oneshot",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "event_id": "a12_roomtone_2"
+        }
+      ]
+    },
+    {
+      "id": "df2c1ef5-4b96-5ecb-883d-a5d7d1668585",
+      "at_seconds": 539.8,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.62,
+          "radius": 0.9
+        }
+      ]
+    },
+    {
+      "id": "27fb15b9-f804-589b-904c-1c9c1968d479",
+      "at_seconds": 544.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "9a785455-0b6e-52b9-8c94-3966e97f13ef",
+          "phrase_id": "cb4828f2-a1fe-53d0-a4ba-972b64fc0b1c"
+        },
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.12,
+          "fade_ms": 250
+        }
+      ]
+    },
+    {
+      "id": "0140d8cf-1a11-50e4-9a4d-dae1a920c833",
+      "at_seconds": 546.62,
+      "actions": [
+        {
+          "type": "set_volume",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "volume": 0.18,
+          "fade_ms": 350
+        }
+      ]
+    },
+    {
+      "id": "aecf9997-5db3-5812-874d-afa2986817ff",
+      "at_seconds": 548.8,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.62,
+          "radius": 0.92
+        }
+      ]
+    },
+    {
+      "id": "0ad510ef-885a-5d85-8d06-8987b45cab95",
+      "at_seconds": 552.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": -0.28,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "volume": 0.24,
+          "fade_ms": 1000
+        },
+        {
+          "type": "play",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "event_id": "a10_final_touch"
+        }
+      ]
+    },
+    {
+      "id": "b20a0168-8e49-5524-9543-d155ba72315a",
+      "at_seconds": 553.6,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.0,
+          "radius": 0.86
+        }
+      ]
+    },
+    {
+      "id": "36fa1949-b6b7-5daa-9e9c-8f4e6c7ae5eb",
+      "at_seconds": 556.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": 0.0,
+          "radius": 0.32
+        }
+      ]
+    },
+    {
+      "id": "4f1f05fc-52d1-5470-803a-3318e36096c2",
+      "at_seconds": 558.2,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": -0.35,
+          "radius": 0.94
+        }
+      ]
+    },
+    {
+      "id": "91a97fd5-8648-5930-b875-65c2db71a346",
+      "at_seconds": 560.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "angle": 0.2,
+          "radius": 0.36
+        },
+        {
+          "type": "fade_out",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8",
+          "fade_ms": 1000
+        }
+      ]
+    },
+    {
+      "id": "ce2f1a2a-0bb0-5621-944a-205bf6bca113",
+      "at_seconds": 561.0,
+      "actions": [
+        {
+          "type": "pause",
+          "track_id": "8cfbe72f-83c1-56af-b744-ed5cee179aa8"
+        }
+      ]
+    },
+    {
+      "id": "1124f4e6-ce9f-5b74-8e59-d9c1a0a9b9cd",
+      "at_seconds": 561.3,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "798599d3-a11c-544e-a73e-81519276cb9d",
+          "angle": 0.32,
+          "radius": 0.96
+        }
+      ]
+    },
+    {
+      "id": "8f0ea9d0-60d3-5ad8-a45c-6fedc54ce282",
+      "at_seconds": 565.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": -0.2,
+          "radius": 0.92
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.2,
+          "fade_ms": 2000
+        },
+        {
+          "type": "play",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "event_id": "a01_exit"
+        }
+      ]
+    },
+    {
+      "id": "ecdff4ca-fe04-54d2-a087-dcc369f98881",
+      "at_seconds": 574.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "61a9747a-eb6e-5eb3-9d0b-ca2b05c0585c",
+          "phrase_id": "5118a93b-8649-5218-b807-7eb80b982e9e"
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.13,
+          "fade_ms": 250
+        }
+      ]
+    },
+    {
+      "id": "a2511804-d365-5a10-a6a5-ad94145363ac",
+      "at_seconds": 577.6,
+      "actions": [
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.2,
+          "fade_ms": 350
+        }
+      ]
+    },
+    {
+      "id": "4b2d185c-4d61-5f96-aa83-9179c25665a8",
+      "at_seconds": 580.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.1,
+          "radius": 0.9
+        }
+      ]
+    },
+    {
+      "id": "daaed4c3-1efc-52a4-8241-aedc60a3a432",
+      "at_seconds": 595.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.28,
+          "radius": 0.92
+        }
+      ]
+    },
+    {
+      "id": "3af60b61-3d31-566f-af4e-b1251619460f",
+      "at_seconds": 602.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.08,
+          "radius": 0.94
+        }
+      ]
+    },
+    {
+      "id": "dd3a3c61-31fc-5257-808d-6dba66ba714a",
+      "at_seconds": 604.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141",
+          "angle": 0.0,
+          "radius": 0.38
+        },
+        {
+          "type": "set_volume",
+          "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141",
+          "volume": 0.68,
+          "fade_ms": 80
+        },
+        {
+          "type": "play_phrase",
+          "track_id": "8ca2e247-1cd2-5ef0-bc60-767676957141",
+          "phrase_id": "935a66ad-554c-53b2-b715-096af1c12186"
+        },
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.13,
+          "fade_ms": 250
+        }
+      ]
+    },
+    {
+      "id": "095f7752-4d34-5571-9a55-ff7e809bcbf2",
+      "at_seconds": 611.85,
+      "actions": [
+        {
+          "type": "set_volume",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "volume": 0.2,
+          "fade_ms": 350
+        }
+      ]
+    },
+    {
+      "id": "f8d28e0b-a611-5c29-a5b9-e0dbccf85163",
+      "at_seconds": 612.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": -0.18,
+          "radius": 0.96
+        },
+        {
+          "type": "fade_out",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "fade_ms": 8000
+        }
+      ]
+    },
+    {
+      "id": "ad0d5ccd-3af8-5f38-a8fb-806e08d9f858",
+      "at_seconds": 620.0,
+      "actions": [
+        {
+          "type": "set_position",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91",
+          "angle": 0.0,
+          "radius": 1.0
+        },
+        {
+          "type": "pause",
+          "track_id": "3c6c0188-1f35-57b6-adbd-1041997e6c91"
+        }
+      ]
+    }
+  ]
+}
