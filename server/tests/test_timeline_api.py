@@ -10,6 +10,7 @@ from app.services.timeline import (
 )
 
 RAIN_EAVES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
+FIREFLIES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111103")
 FIRST_PHRASE_ID = uuid.UUID("db7992e9-09ee-571d-a58d-2763f9c86ef8")
 FIRST_PHRASE_CUE_ID = uuid.UUID("108ddf75-d4f5-52b5-aba3-a357955fa3a2")
 RAIN_SOFT_ENTER_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666630")
@@ -147,6 +148,15 @@ async def test_scene_timeline_rain_eaves(client) -> None:
         if any(action["type"] == "set_position" for action in cue["actions"])
     ]
     assert len(positioned_cues) >= 10
+
+
+async def test_non_hair_scene_has_no_voice_timeline(client) -> None:
+    response = await client.get(f"/v1/scenes/{FIREFLIES_ID}/timeline")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["version"] == 2
+    assert body["phrases"] == []
+    assert body["cues"] == []
 
 
 async def test_scene_timeline_missing_scene(client) -> None:

@@ -11,11 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import Scene, SceneTimeline
 from app.schemas.content import (
-    CueActionOut,
     PhraseOut,
     SceneCueOut,
     SceneTimelineOut,
-    VoiceBindingOut,
 )
 
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
@@ -23,6 +21,7 @@ AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 HAIR_CARE_TIMELINE_VERSION = 12
 RAIN_EAVES_TIMELINE_VERSION = 10
+GENERIC_TIMELINE_VERSION = 2
 _HAIR_FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v11.json"
 )
@@ -101,54 +100,11 @@ def build_official_timeline_payload(scene: Scene) -> dict:
             "cues": payload["cues"],
         }
 
-    # Scenes with a voice layer get a minimal approved phrase hook; others stay empty.
-    voice_tracks = [t for t in scene.tracks if t.layer == "voice" and t.resource_key]
-    if voice_tracks:
-        track = voice_tracks[0]
-        phrase_id = uuid.uuid5(scene.id, "official-phrase-0")
-        phrases = [
-            PhraseOut(
-                id=phrase_id,
-                text="",
-                review_status="approved",
-                voice_binding=VoiceBindingOut(
-                    kind="official_resource",
-                    resource_key=track.resource_key,
-                    track_id=track.id,
-                    track_layer="voice",
-                ),
-            ).model_dump(mode="json")
-        ]
-        cues = [
-            SceneCueOut(
-                id=uuid.uuid5(scene.id, "official-cue-first"),
-                at_seconds=6.0,
-                actions=[
-                    CueActionOut(
-                        type="play_phrase",
-                        phrase_id=phrase_id,
-                        track_id=track.id,
-                    )
-                ],
-            ).model_dump(mode="json"),
-            SceneCueOut(
-                id=uuid.uuid5(scene.id, "official-cue-repeat"),
-                at_seconds=34.0,
-                repeat_every_seconds=28.0,
-                until_seconds=float(duration),
-                actions=[
-                    CueActionOut(
-                        type="play_phrase",
-                        phrase_id=phrase_id,
-                        track_id=track.id,
-                    )
-                ],
-            ).model_dump(mode="json"),
-        ]
-        version = 1
-    else:
-        phrases, cues = _empty_document()
-        version = 1
+    # Bundled narration is exclusive to hair care. All other official scenes
+    # intentionally have no phrase hooks, even if stale DB rows still contain
+    # a legacy voice track before the catalog cleanup migration runs.
+    phrases, cues = _empty_document()
+    version = GENERIC_TIMELINE_VERSION
 
     return {
         "version": version,
@@ -191,6 +147,10 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
         needs_upgrade = (
             scene.visual_style == "hairCare" and row.version < HAIR_CARE_TIMELINE_VERSION
         ) or (scene.visual_style == "rainEaves" and row.version < RAIN_EAVES_TIMELINE_VERSION)
+        needs_upgrade = needs_upgrade or (
+            scene.visual_style not in {"hairCare", "rainEaves"}
+            and (row.version < GENERIC_TIMELINE_VERSION or bool(row.phrases))
+        )
         if needs_upgrade:
             row.version = payload["version"]
             row.automation_mode = payload["automation_mode"]

@@ -63,7 +63,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         prepareSpatialGraph()
 
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
-        let resolvedTimeline = resolvedTimeline(timeline)
+        let resolvedTimeline = resolvedTimeline(timeline, sceneID: scene.id)
         activeTimeline = resolvedTimeline
         phraseById = Dictionary(
             uniqueKeysWithValues: (resolvedTimeline?.phrases ?? []).map { ($0.id, $0) }
@@ -389,13 +389,15 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     private func resolvedTimeline(
-        _ timeline: APIContentDTO.SceneTimeline?
+        _ timeline: APIContentDTO.SceneTimeline?,
+        sceneID: UUID
     ) -> APIContentDTO.SceneTimeline? {
-        // When caller passes nil, use hair-care-compatible local fixture if a voice track is present.
+        // Only the official hair-care scene may fall back to bundled narration.
+        // A stale voice row in another scene must never activate this timeline.
         if let timeline {
             return timeline
         }
-        if currentSources.values.contains(where: { $0.layer == .voice }) {
+        if sceneID == DemoIDs.hairCareScene {
             return LocalTimelineFixture.timeline(for: DemoIDs.hairCareScene)
         }
         return nil

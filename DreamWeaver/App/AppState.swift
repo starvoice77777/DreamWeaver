@@ -277,7 +277,10 @@ final class AppState: ObservableObject {
 
             // Drop / repair stale personal mixes that no longer share official track IDs.
             for scene in loadedScenes {
-                reconcilePersonalMix(with: scene)
+                reconcilePersonalMix(
+                    with: scene,
+                    enforceOfficialVoiceScope: !createdIDs.contains(scene.id)
+                )
             }
 
             if let personal = personalMixByScene[currentSceneId] {
@@ -1027,14 +1030,30 @@ final class AppState: ObservableObject {
     }
 
     /// Replaces or repairs a stored personal mix when it drifts from the official catalog.
-    private func reconcilePersonalMix(with scene: DreamScene) {
+    private func reconcilePersonalMix(
+        with scene: DreamScene,
+        enforceOfficialVoiceScope: Bool
+    ) {
         let official = scene.soundSources
-        let remoteKeys = Set(official.compactMap(\.resourceName))
-        guard !remoteKeys.isEmpty else { return }
-        guard let personal = personalMixByScene[scene.id] else {
+        guard var personal = personalMixByScene[scene.id] else {
             personalMixByScene[scene.id] = official
             return
         }
+        if enforceOfficialVoiceScope {
+            var scoped = personal.filter { $0.layer != .voice }
+            if scene.id == DemoIDs.hairCareScene,
+               let officialVoice = official.first(where: { $0.layer == .voice }) {
+                // The timeline requires the canonical track ID and resource key.
+                scoped.append(officialVoice)
+            }
+            if scoped != personal {
+                personal = scoped
+                personalMixByScene[scene.id] = scoped
+                persistPersonalMix()
+            }
+        }
+        let remoteKeys = Set(official.compactMap(\.resourceName))
+        guard !remoteKeys.isEmpty else { return }
         let personalKeys = Set(personal.compactMap(\.resourceName))
         let officialResourceIds = Set(official.filter { $0.resourceName != nil }.map(\.id))
         let personalIds = Set(personal.map(\.id))

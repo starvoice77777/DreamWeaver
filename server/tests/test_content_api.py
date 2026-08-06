@@ -61,15 +61,14 @@ async def test_emotional_fluid_scene_seeded(client) -> None:
     assert detail.status_code == 200
     body = detail.json()
     assert body["visual_style"] == "emotionalFluid"
-    assert len(body["tracks"]) == 5
+    assert len(body["tracks"]) == 4
     by_name = {track["name"]: track for track in body["tracks"]}
     assert by_name["风声"]["resource_key"] == "wind_realistic"
     assert by_name["雨声"]["resource_key"] == "rain_soft"
     assert by_name["潮声"]["resource_key"] == "stream_nature"
     assert by_name["钢琴"]["resource_key"] is None
     assert by_name["钢琴"]["enabled_by_default"] is False
-    assert by_name["人声"]["layer"] == "voice"
-    assert by_name["人声"]["enabled_by_default"] is False
+    assert "人声" not in by_name
 
 
 async def test_apple_auth_dev_token(client) -> None:

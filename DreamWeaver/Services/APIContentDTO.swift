@@ -455,9 +455,14 @@ enum APIContentDTO {
 
 enum APIContentMapper {
     static func dreamScene(from detail: APIContentDTO.SceneDetail) -> DreamScene {
-        let sources = detail.tracks.map(soundSource(from:))
+        // The bundled phrase library is authored only for the official hair-care
+        // timeline. Defensively hide stale server voice rows from every other scene.
+        let tracks = detail.id == DemoIDs.hairCareScene
+            ? detail.tracks
+            : detail.tracks.filter { $0.layer != "voice" }
+        let sources = tracks.map(soundSource(from:))
         let manifest = SceneAudioManifest(
-            tracks: detail.tracks.map { track in
+            tracks: tracks.map { track in
                 AudioTrackRef(
                     id: track.id,
                     name: track.name,
@@ -473,7 +478,7 @@ enum APIContentMapper {
                     isRequired: true
                 )
             },
-            voicePhraseResourceName: detail.tracks.first(where: { $0.layer == "voice" })?.resource_key
+            voicePhraseResourceName: tracks.first(where: { $0.layer == "voice" })?.resource_key
         )
 
         return DreamScene(
