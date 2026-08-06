@@ -411,17 +411,26 @@ struct CapsuleChip: View {
     let title: String
     var selected: Bool
     var usesLiquidGlass: Bool = false
+    var systemImage: String? = nil
     /// When set, chip stretches to this width (equal-width tag rows).
     var fixedWidth: CGFloat? = nil
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(selected ? DreamTypography.callout.bold() : DreamTypography.callout)
+            Group {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 16, weight: selected ? .semibold : .medium))
+                        .accessibilityHidden(true)
+                } else {
+                    Text(title)
+                        .font(selected ? DreamTypography.callout.bold() : DreamTypography.callout)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+            }
                 .foregroundStyle(foreground)
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
                 .frame(maxWidth: fixedWidth == nil ? nil : .infinity)
                 .padding(.horizontal, fixedWidth == nil ? 14 : 8)
                 .padding(.vertical, fixedWidth == nil ? 8 : 11)

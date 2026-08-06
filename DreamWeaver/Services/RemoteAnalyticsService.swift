@@ -61,15 +61,6 @@ final class RemoteAnalyticsService: AnalyticsService {
                 occurred_at: nil,
                 idempotency_key: UUID().uuidString
             )
-        case .seedCreated(let assetId):
-            return APIContentDTO.AnalyticsEventPayload(
-                type: event.typeName,
-                scene_id: nil,
-                asset_id: assetId,
-                duration_seconds: nil,
-                occurred_at: nil,
-                idempotency_key: nil
-            )
         case .mixEdited(let sceneId):
             return APIContentDTO.AnalyticsEventPayload(
                 type: event.typeName,

@@ -20,6 +20,36 @@ struct SpatialKeyPoint: Identifiable, Equatable, Codable {
     }
 }
 
+/// One time-position sample captured while the user is dragging a source.
+struct SpatialMotionSample: Identifiable, Equatable, Codable {
+    let id: UUID
+    var time: Double
+    var position: CGPoint
+
+    init(id: UUID = UUID(), time: Double, position: CGPoint) {
+        self.id = id
+        self.time = time
+        self.position = SpatialTrajectory.clampedToUnitCircle(position)
+    }
+}
+
+/// A continuous, linearly-interpolated drag recording. Keeping recordings as
+/// clips makes punch-in replacement and one-step undo possible without exposing
+/// hundreds of samples as individually editable timeline points.
+struct SpatialMotionClip: Identifiable, Equatable, Codable {
+    let id: UUID
+    var samples: [SpatialMotionSample]
+
+    init(id: UUID = UUID(), samples: [SpatialMotionSample]) {
+        self.id = id
+        self.samples = samples.sorted { $0.time < $1.time }
+    }
+
+    var startTime: Double { samples.first?.time ?? 0 }
+    var endTime: Double { samples.last?.time ?? startTime }
+    var duration: Double { max(endTime - startTime, 0) }
+}
+
 /// A short user-authored line scheduled on the scene timeline.
 struct SpatialTextCue: Identifiable, Equatable, Codable {
     let id: UUID
@@ -72,6 +102,9 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
     let iconName: String
     let theme: SpatialSourceTheme
     let defaultPosition: CGPoint
+    var assetID: UUID? = nil
+    var resourceName: String? = nil
+    var audioDuration: Double? = nil
     /// Voice tracks are exclusive per scene; natural sounds may stack.
     var isVoice: Bool = false
 
@@ -150,6 +183,31 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
             defaultPosition: CGPoint(x: 0.40, y: 0.02)
         )
     ]
+
+    static func from(_ asset: SoundAsset) -> SpatialEditorMaterial {
+        let isVoice = asset.kind == .seed
+        let theme: SpatialSourceTheme = isVoice
+            ? .narration
+            : (asset.kind == .community ? .nature : .texture)
+        let position: CGPoint = {
+            switch asset.kind {
+            case .seed: return CGPoint(x: 0, y: -0.52)
+            case .recording: return CGPoint(x: 0.38, y: 0.12)
+            case .community: return CGPoint(x: -0.38, y: 0.12)
+            }
+        }()
+        return SpatialEditorMaterial(
+            id: "library-\(asset.id.uuidString)",
+            name: asset.name,
+            iconName: asset.symbolName,
+            theme: theme,
+            defaultPosition: position,
+            assetID: asset.id,
+            resourceName: asset.previewResourceName,
+            audioDuration: Double(asset.durationSeconds),
+            isVoice: isVoice
+        )
+    }
 }
 
 enum SpatialTimelineEditMode: String, CaseIterable, Identifiable {
@@ -182,11 +240,15 @@ enum SpatialTimelineEditMode: String, CaseIterable, Identifiable {
 struct SpatialEditorSource: Identifiable, Equatable, Codable {
     let id: UUID
     var materialID: String?
+    var assetID: UUID?
+    var resourceName: String?
     var name: String
     var iconName: String
     var theme: SpatialSourceTheme
     var defaultPosition: CGPoint
     var keyPoints: [SpatialKeyPoint]
+    /// Optional keeps local drafts created before trajectory recording decodable.
+    var motionClips: [SpatialMotionClip]?
     /// Playback range is independent from spatial positioning points.
     var audioStartTime: Double
     var audioDuration: Double
@@ -198,22 +260,28 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
     init(
         id: UUID = UUID(),
         materialID: String? = nil,
+        assetID: UUID? = nil,
+        resourceName: String? = nil,
         name: String,
         iconName: String,
         theme: SpatialSourceTheme,
         defaultPosition: CGPoint,
         keyPoints: [SpatialKeyPoint],
+        motionClips: [SpatialMotionClip] = [],
         audioStartTime: Double = 0,
         audioDuration: Double = 120,
         isVoice: Bool = false
     ) {
         self.id = id
         self.materialID = materialID
+        self.assetID = assetID
+        self.resourceName = resourceName
         self.name = name
         self.iconName = iconName
         self.theme = theme
         self.defaultPosition = SpatialTrajectory.clampedToUnitCircle(defaultPosition)
         self.keyPoints = keyPoints.sorted { $0.time < $1.time }
+        self.motionClips = motionClips.isEmpty ? nil : motionClips.sorted { $0.startTime < $1.startTime }
         self.audioStartTime = max(0, audioStartTime)
         self.audioDuration = max(1, audioDuration)
         self.isVoice = isVoice
@@ -221,6 +289,41 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
 }
 
 enum SpatialTrajectory {
+    static func position(at time: Double, source: SpatialEditorSource) -> CGPoint {
+        let clips = (source.motionClips ?? []).sorted { $0.startTime < $1.startTime }
+        if let clip = clips.last(where: { time >= $0.startTime && time <= $0.endTime }) {
+            return position(at: time, samples: clip.samples, defaultPosition: source.defaultPosition)
+        }
+
+        var anchors = source.keyPoints
+        for clip in clips {
+            if let first = clip.samples.first {
+                anchors.append(
+                    SpatialKeyPoint(
+                        time: first.time,
+                        position: first.position,
+                        createdByUser: false
+                    )
+                )
+            }
+            if let last = clip.samples.last, last.time > clip.startTime {
+                anchors.append(
+                    SpatialKeyPoint(
+                        time: last.time,
+                        position: last.position,
+                        createdByUser: false
+                    )
+                )
+            }
+        }
+
+        return position(
+            at: time,
+            keyPoints: deduplicatedKeyPoints(anchors),
+            defaultPosition: source.defaultPosition
+        )
+    }
+
     /// Smoothly evaluates sparse user positioning points without persisting any
     /// generated samples. Coordinates are normalized to the unit sound field.
     static func position(
@@ -266,6 +369,115 @@ enum SpatialTrajectory {
         )
     }
 
+    /// Linear evaluation preserves the timing and velocity authored by a live drag.
+    static func position(
+        at time: Double,
+        samples: [SpatialMotionSample],
+        defaultPosition: CGPoint
+    ) -> CGPoint {
+        let points = samples.sorted { $0.time < $1.time }
+        guard let first = points.first else {
+            return clampedToUnitCircle(defaultPosition)
+        }
+        guard points.count > 1, let last = points.last else {
+            return clampedToUnitCircle(first.position)
+        }
+        if time <= first.time { return clampedToUnitCircle(first.position) }
+        if time >= last.time { return clampedToUnitCircle(last.position) }
+
+        guard let upperIndex = points.firstIndex(where: { $0.time >= time }),
+              upperIndex > 0 else {
+            return clampedToUnitCircle(first.position)
+        }
+        let start = points[upperIndex - 1]
+        let end = points[upperIndex]
+        let interval = max(end.time - start.time, 0.000_1)
+        let progress = min(max((time - start.time) / interval, 0), 1)
+        return clampedToUnitCircle(
+            CGPoint(
+                x: start.position.x + (end.position.x - start.position.x) * progress,
+                y: start.position.y + (end.position.y - start.position.y) * progress
+            )
+        )
+    }
+
+    /// Expands recording clips only at the persistence boundary. Manual points
+    /// covered by a recording are intentionally omitted because the recording
+    /// has precedence inside its punch-in range.
+    static func flattenedKeyPoints(for source: SpatialEditorSource) -> [SpatialKeyPoint] {
+        let clips = source.motionClips ?? []
+        var points = source.keyPoints.filter { point in
+            !clips.contains { point.time >= $0.startTime && point.time <= $0.endTime }
+        }
+        for clip in clips {
+            points.append(contentsOf: clip.samples.map {
+                SpatialKeyPoint(
+                    time: $0.time,
+                    position: $0.position,
+                    createdByUser: false
+                )
+            })
+        }
+        return deduplicatedKeyPoints(points)
+    }
+
+    /// Produces a compact, time-aware representation of raw 20 Hz drag samples.
+    /// The simplifier compares each point with its time-correct linear prediction,
+    /// so pauses and changes in speed remain visible after geometric compression.
+    static func processedRecordingSamples(
+        _ rawSamples: [SpatialMotionSample],
+        tolerance: CGFloat = 0.009,
+        maximumCount: Int = 600
+    ) -> [SpatialMotionSample] {
+        let ordered = deduplicatedSamples(rawSamples)
+        guard ordered.count > 2 else { return ordered }
+
+        let smoothed = ordered.enumerated().map { index, sample in
+            guard index > 0, index < ordered.count - 1 else { return sample }
+            let previous = ordered[index - 1].position
+            let next = ordered[index + 1].position
+            let position = CGPoint(
+                x: previous.x * 0.18 + sample.position.x * 0.64 + next.x * 0.18,
+                y: previous.y * 0.18 + sample.position.y * 0.64 + next.y * 0.18
+            )
+            return SpatialMotionSample(id: sample.id, time: sample.time, position: position)
+        }
+
+        var currentTolerance = tolerance
+        var simplified = simplify(smoothed, tolerance: currentTolerance)
+        while simplified.count > maximumCount {
+            currentTolerance *= 1.35
+            simplified = simplify(smoothed, tolerance: currentTolerance)
+        }
+        return simplified
+    }
+
+    static func sliced(
+        _ clip: SpatialMotionClip,
+        from lowerBound: Double,
+        through upperBound: Double
+    ) -> SpatialMotionClip? {
+        let lower = max(lowerBound, clip.startTime)
+        let upper = min(upperBound, clip.endTime)
+        guard upper - lower >= 0.05 else { return nil }
+
+        var samples = clip.samples.filter { $0.time > lower && $0.time < upper }
+        samples.insert(
+            SpatialMotionSample(
+                time: lower,
+                position: position(at: lower, samples: clip.samples, defaultPosition: .zero)
+            ),
+            at: 0
+        )
+        samples.append(
+            SpatialMotionSample(
+                time: upper,
+                position: position(at: upper, samples: clip.samples, defaultPosition: .zero)
+            )
+        )
+        return SpatialMotionClip(samples: deduplicatedSamples(samples))
+    }
+
     static func neighboringPoints(
         at time: Double,
         keyPoints: [SpatialKeyPoint]
@@ -281,6 +493,73 @@ enum SpatialTrajectory {
         guard distance > 1 else { return point }
         guard distance > 0 else { return .zero }
         return CGPoint(x: point.x / distance, y: point.y / distance)
+    }
+
+    private static func deduplicatedKeyPoints(_ points: [SpatialKeyPoint]) -> [SpatialKeyPoint] {
+        var result: [SpatialKeyPoint] = []
+        for point in points.sorted(by: { $0.time < $1.time }) {
+            if let last = result.last, abs(last.time - point.time) < 0.001 {
+                result[result.count - 1] = point
+            } else {
+                result.append(point)
+            }
+        }
+        return result
+    }
+
+    private static func deduplicatedSamples(
+        _ samples: [SpatialMotionSample]
+    ) -> [SpatialMotionSample] {
+        var result: [SpatialMotionSample] = []
+        for sample in samples.sorted(by: { $0.time < $1.time }) {
+            let clamped = SpatialMotionSample(
+                id: sample.id,
+                time: sample.time,
+                position: sample.position
+            )
+            if let last = result.last, abs(last.time - clamped.time) < 0.01 {
+                result[result.count - 1] = clamped
+            } else {
+                result.append(clamped)
+            }
+        }
+        return result
+    }
+
+    private static func simplify(
+        _ samples: [SpatialMotionSample],
+        tolerance: CGFloat
+    ) -> [SpatialMotionSample] {
+        guard samples.count > 2,
+              let first = samples.first,
+              let last = samples.last else {
+            return samples
+        }
+
+        let interval = max(last.time - first.time, 0.000_1)
+        var largestDistance: CGFloat = 0
+        var largestIndex = 0
+        for index in 1..<(samples.count - 1) {
+            let sample = samples[index]
+            let progress = min(max((sample.time - first.time) / interval, 0), 1)
+            let predicted = CGPoint(
+                x: first.position.x + (last.position.x - first.position.x) * progress,
+                y: first.position.y + (last.position.y - first.position.y) * progress
+            )
+            let distance = hypot(
+                sample.position.x - predicted.x,
+                sample.position.y - predicted.y
+            )
+            if distance > largestDistance {
+                largestDistance = distance
+                largestIndex = index
+            }
+        }
+
+        guard largestDistance > tolerance else { return [first, last] }
+        let left = simplify(Array(samples[0...largestIndex]), tolerance: tolerance)
+        let right = simplify(Array(samples[largestIndex...]), tolerance: tolerance)
+        return Array(left.dropLast()) + right
     }
 }
 

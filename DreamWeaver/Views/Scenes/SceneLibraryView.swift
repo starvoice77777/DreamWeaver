@@ -36,18 +36,7 @@ struct SceneLibraryView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    SectionHeader(title: "全部")
-                    if let onDismiss {
-                        Button(action: onDismiss) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(DreamTheme.moonWhite.opacity(0.78))
-                                .frame(width: 44, height: 44)
-                                .background(Circle().fill(Color.white.opacity(0.06)))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("关闭场景选择")
-                    }
+                    Spacer()
                     Button {
                         withAnimation { showSearch.toggle() }
                     } label: {
@@ -59,6 +48,17 @@ struct SceneLibraryView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("搜索")
+                    if let onDismiss {
+                        Button(action: onDismiss) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(DreamTheme.moonWhite.opacity(0.78))
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.white.opacity(0.06)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("关闭场景选择")
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -80,10 +80,10 @@ struct SceneLibraryView: View {
                     let sidePad: CGFloat = 20
                     let spacing: CGFloat = 10
                     let visibleCount: CGFloat = 4
-                    // Scale tags so roughly four fit in one viewport row.
+                    // Icon-only filters stay compact while preserving a generous hit target.
                     let tagWidth = max(
                         (geo.size.width - sidePad * 2 - spacing * (visibleCount - 1)) / visibleCount,
-                        64
+                        48
                     )
 
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -93,15 +93,23 @@ struct SceneLibraryView: View {
                                     title: "全部",
                                     selected: selectedCategory == nil,
                                     usesLiquidGlass: false,
+                                    systemImage: "square.grid.2x2.fill",
                                     fixedWidth: tagWidth
                                 ) {
                                     selectedCategory = nil
                                 }
-                                ForEach(SceneCategory.allCases.filter { $0 != .frequent }) { category in
+                                ForEach(
+                                    Array(
+                                        SceneCategory.allCases
+                                            .filter { $0 != .frequent }
+                                            .prefix(3)
+                                    )
+                                ) { category in
                                     CapsuleChip(
                                         title: category.rawValue,
                                         selected: selectedCategory == category,
                                         usesLiquidGlass: false,
+                                        systemImage: category.systemImage,
                                         fixedWidth: tagWidth
                                     ) {
                                         selectedCategory = category

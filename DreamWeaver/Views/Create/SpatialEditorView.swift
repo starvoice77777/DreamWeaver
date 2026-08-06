@@ -6,9 +6,29 @@ struct SpatialEditorView: View {
     @StateObject private var viewModel: SpatialTimelineViewModel
     @State private var isSaving = false
     @State private var showSaveChooser = false
+    private let isCreateTabRoot: Bool
+    private let onResetRequested: (() -> Void)?
+    private let onExistingSceneRequested: (() -> Void)?
+    private let onCreateSoundRequested: (() -> Void)?
+    private let onManageSoundsRequested: (() -> Void)?
+    private let onFinished: (() -> Void)?
 
-    init(seed: SpatialEditorSeed? = nil) {
+    init(
+        seed: SpatialEditorSeed? = nil,
+        isCreateTabRoot: Bool = false,
+        onResetRequested: (() -> Void)? = nil,
+        onExistingSceneRequested: (() -> Void)? = nil,
+        onCreateSoundRequested: (() -> Void)? = nil,
+        onManageSoundsRequested: (() -> Void)? = nil,
+        onFinished: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
+        self.isCreateTabRoot = isCreateTabRoot
+        self.onResetRequested = onResetRequested
+        self.onExistingSceneRequested = onExistingSceneRequested
+        self.onCreateSoundRequested = onCreateSoundRequested
+        self.onManageSoundsRequested = onManageSoundsRequested
+        self.onFinished = onFinished
     }
 
     var body: some View {
@@ -17,6 +37,8 @@ struct SpatialEditorView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
+                    SpatialEditorHeaderMark()
+                        .frame(maxWidth: .infinity)
                     sceneSummary
                     soundFieldSection
                     timelineSection
@@ -25,14 +47,14 @@ struct SpatialEditorView: View {
                     Spacer(minLength: 28)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 20)
+                .padding(.top, 8)
+                .padding(.bottom, isCreateTabRoot ? 112 : 20)
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .overlay(alignment: .top) {
                 editorHeader
+                    .frame(height: 46)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(headerBackground)
+                    .padding(.top, 8)
             }
 
             if let toast = viewModel.toastMessage {
@@ -103,9 +125,13 @@ struct SpatialEditorView: View {
     private var editorHeader: some View {
         HStack {
             Button {
-                dismiss()
+                if let onResetRequested {
+                    onResetRequested()
+                } else {
+                    dismiss()
+                }
             } label: {
-                Image(systemName: "chevron.left")
+                Image(systemName: onResetRequested == nil ? "chevron.left" : "arrow.counterclockwise")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(DreamTheme.warmApricot)
                     .frame(width: 38, height: 38)
@@ -115,19 +141,7 @@ struct SpatialEditorView: View {
                     )
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("返回创建")
-
-            Spacer()
-
-            VStack(spacing: 1) {
-                Text("DreamWeaver")
-                    .font(.system(size: 23, weight: .light, design: .serif))
-                    .foregroundStyle(DreamTheme.warmApricot)
-                Text("编织你的梦境")
-                    .font(.system(size: 9))
-                    .tracking(4)
-                    .foregroundStyle(DreamTheme.secondaryText)
-            }
+            .accessibilityLabel(onResetRequested == nil ? "返回创建" : "重置创作")
 
             Spacer()
 
@@ -156,17 +170,6 @@ struct SpatialEditorView: View {
             .accessibilityHint("可选择保存为草稿或个人场景")
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private var headerBackground: some View {
-        Rectangle()
-            .fill(DreamTheme.midnight.opacity(0.84))
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(DreamTheme.chromeStroke.opacity(0.42))
-                    .frame(height: 1)
-            }
-            .ignoresSafeArea(edges: .top)
     }
 
     @MainActor
@@ -245,7 +248,11 @@ struct SpatialEditorView: View {
             viewModel.showToast("已保存为个人场景「\(scene.name)」")
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 650_000_000)
-                dismiss()
+                if let onFinished {
+                    onFinished()
+                } else {
+                    dismiss()
+                }
             }
         } catch {
             viewModel.showToast("保存个人场景失败：\(error.localizedDescription)")
@@ -317,22 +324,6 @@ struct SpatialEditorView: View {
                 }
 
                 Spacer()
-
-                Button {
-                    viewModel.resetDemo()
-                } label: {
-                    Label("清空", systemImage: "arrow.counterclockwise")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(DreamTheme.secondaryText)
-                        .padding(.horizontal, 11)
-                        .frame(height: 29)
-                        .dreamRefractiveLiquidGlassCapsule(
-                            accent: DreamTheme.warmApricot,
-                            intensity: 0.50,
-                            interactive: true
-                        )
-                }
-                .buttonStyle(.plain)
             }
 
             SpatialCanvasView(viewModel: viewModel)
@@ -372,6 +363,11 @@ struct SpatialEditorView: View {
                     }
             }
 
+            if viewModel.timelineEditMode == .spatialTrajectory {
+                trajectoryRecordingBar
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             TimelineEditorView(viewModel: viewModel)
 
             PlaybackControlView(viewModel: viewModel)
@@ -402,6 +398,131 @@ struct SpatialEditorView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var trajectoryRecordingBar: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(trajectoryRecordingTitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
+                    .contentTransition(.numericText())
+
+                Text(trajectoryRecordingSubtitle)
+                    .font(.system(size: 9))
+                    .foregroundStyle(DreamTheme.tertiaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 6)
+
+            if viewModel.canUndoTrajectoryRecording && !viewModel.isRecordingTrajectory {
+                Button {
+                    viewModel.undoLastTrajectoryRecording()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(DreamTheme.secondaryText)
+                        .frame(width: 34, height: 34)
+                        .background {
+                            Circle().fill(Color.white.opacity(0.055))
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("撤销上一段轨迹录制")
+            }
+
+            Button {
+                viewModel.toggleTrajectoryRecording()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(
+                        systemName: viewModel.isRecordingTrajectory
+                            ? "stop.fill"
+                            : "record.circle"
+                    )
+                    Text(
+                        viewModel.isRecordingTrajectory
+                            ? "结束"
+                            : (viewModel.isTrajectoryRecordingArmed ? "取消" : "录制")
+                    )
+                }
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(
+                    viewModel.isRecordingTrajectory
+                        ? Color.white
+                        : DreamTheme.moonWhite.opacity(0.92)
+                )
+                .padding(.horizontal, 13)
+                .frame(height: 34)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(
+                            viewModel.isRecordingTrajectory
+                                ? Color.red.opacity(0.72)
+                                : DreamTheme.warmApricot.opacity(
+                                    viewModel.isTrajectoryRecordingArmed ? 0.30 : 0.16
+                                )
+                        )
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .stroke(
+                                    viewModel.isRecordingTrajectory
+                                        ? Color.red.opacity(0.92)
+                                        : DreamTheme.warmApricot.opacity(0.34),
+                                    lineWidth: 0.8
+                                )
+                        }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.selectedSource == nil && !viewModel.isTrajectoryRecordingArmed)
+            .opacity(
+                viewModel.selectedSource == nil && !viewModel.isTrajectoryRecordingArmed
+                    ? 0.45
+                    : 1
+            )
+            .accessibilityLabel(
+                viewModel.isRecordingTrajectory ? "结束轨迹录制" : "准备轨迹录制"
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.20))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(
+                            viewModel.isRecordingTrajectory
+                                ? Color.red.opacity(0.24)
+                                : Color.white.opacity(0.07),
+                            lineWidth: 0.7
+                        )
+                }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isRecordingTrajectory)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isTrajectoryRecordingArmed)
+    }
+
+    private var trajectoryRecordingTitle: String {
+        if viewModel.isRecordingTrajectory {
+            return "正在录制 · \(String(format: "%.1f", viewModel.recordingDuration)) 秒"
+        }
+        if viewModel.isTrajectoryRecordingArmed {
+            return "已就绪"
+        }
+        return viewModel.selectedSource.map { "录制 \($0.name) 的移动" } ?? "实时轨迹录制"
+    }
+
+    private var trajectoryRecordingSubtitle: String {
+        if viewModel.isRecordingTrajectory {
+            return "松手即结束，当前位置会实时写入轨迹"
+        }
+        if viewModel.isTrajectoryRecordingArmed {
+            return "从当前时间开始，拖动画布中的音源"
+        }
+        return "普通拖动仍只修改当前时间点"
     }
 
     private var textEditorSection: some View {
@@ -557,15 +678,19 @@ struct SpatialEditorView: View {
     private var materialsDock: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("可用素材")
+                Text("选择声音")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(DreamTheme.warmApricot)
 
                 Spacer()
 
-                Text("全部 \(viewModel.availableMaterials.count) 项")
+                Text("全部 \(editorMaterials.count) 项")
                     .font(.system(size: 11))
                     .foregroundStyle(DreamTheme.tertiaryText)
+            }
+
+            if isCreateTabRoot {
+                creationEntryButtons
             }
 
             LazyVGrid(
@@ -575,7 +700,7 @@ struct SpatialEditorView: View {
                 ),
                 spacing: 16
             ) {
-                ForEach(viewModel.availableMaterials) { material in
+                ForEach(editorMaterials) { material in
                     materialChip(material)
                 }
             }
@@ -585,7 +710,7 @@ struct SpatialEditorView: View {
     }
 
     private func materialChip(_ material: SpatialEditorMaterial) -> some View {
-        let inUse = viewModel.isMaterialInUse(material.id)
+        let inUse = viewModel.isMaterialInUse(material)
 
         return Button {
             viewModel.addMaterial(material)
@@ -622,6 +747,94 @@ struct SpatialEditorView: View {
         .accessibilityLabel(material.name)
         .accessibilityHint(inUse ? "已在声场中，点按选中" : "点按加入声场")
         .accessibilityAddTraits(inUse ? .isSelected : [])
+    }
+
+    private var editorMaterials: [SpatialEditorMaterial] {
+        let libraryMaterials = appState.soundAssets
+            .filter { $0.processingStatus == .ready }
+            .map { SpatialEditorMaterial.from($0) }
+        return viewModel.availableMaterials + libraryMaterials
+    }
+
+    private var creationEntryButtons: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+            spacing: 8
+        ) {
+            creationEntryButton(
+                title: "已有场景",
+                symbol: "square.stack.3d.up.fill",
+                action: { onExistingSceneRequested?() }
+            )
+            creationEntryButton(
+                title: "录制/上传",
+                symbol: "waveform.badge.plus",
+                action: { onCreateSoundRequested?() }
+            )
+            creationEntryButton(
+                title: "声音管理",
+                symbol: "slider.horizontal.3",
+                action: { onManageSoundsRequested?() }
+            )
+        }
+    }
+
+    private func creationEntryButton(
+        title: String,
+        symbol: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 7) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .medium))
+                Text(title)
+                    .font(.system(size: 10, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            .foregroundStyle(DreamTheme.moonWhite.opacity(0.90))
+            .frame(maxWidth: .infinity)
+            .frame(height: 58)
+            .dreamRefractiveLiquidGlassRounded(
+                cornerRadius: 14,
+                accent: DreamTheme.mistBlue,
+                intensity: 0.62,
+                interactive: true
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct SpatialEditorHeaderMark: View {
+    var body: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.moonWhite.opacity(0.96),
+                                DreamTheme.warmApricot,
+                                DreamTheme.warmApricot.opacity(0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: 3.2,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .frame(width: 27, height: 46)
+        .shadow(color: DreamTheme.warmApricot.opacity(0.26), radius: 4, y: 1)
+        .accessibilityElement()
+        .accessibilityLabel("DreamWeaver")
     }
 }
 

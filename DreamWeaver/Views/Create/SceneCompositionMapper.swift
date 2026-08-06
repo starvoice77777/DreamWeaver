@@ -14,8 +14,8 @@ enum SceneCompositionMapper {
             let keyframes = normalizedKeyframes(for: source, start: start, end: end)
             return APIContentDTO.CompositionTrack(
                 id: source.id,
-                asset_id: nil,
-                resource_key: resourceKey(for: source),
+                asset_id: source.assetID,
+                resource_key: source.assetID == nil ? resourceKey(for: source) : nil,
                 layer: layer(for: source),
                 loop: !source.isVoice,
                 start_seconds: start,
@@ -71,6 +71,8 @@ enum SceneCompositionMapper {
             return SpatialEditorSource(
                 id: track.id,
                 materialID: material?.id,
+                assetID: track.asset_id,
+                resourceName: track.asset_id == nil ? track.resource_key : nil,
                 name: material?.name ?? (track.resource_key ?? "声源"),
                 iconName: material?.iconName ?? "waveform",
                 theme: material?.theme ?? theme(forLayer: track.layer),
@@ -108,13 +110,9 @@ enum SceneCompositionMapper {
         at time: Double
     ) -> [SoundSource] {
         sources.compactMap { source in
-            let key = resourceKey(for: source)
+            let key = source.resourceName ?? resourceKey(for: source)
             guard !key.hasPrefix("create_") else { return nil }
-            let point = SpatialTrajectory.position(
-                at: time,
-                keyPoints: source.keyPoints,
-                defaultPosition: source.defaultPosition
-            )
+            let point = SpatialTrajectory.position(at: time, source: source)
             let radius = min(max(hypot(point.x, point.y), 0), 1)
             let angle = atan2(-point.y, point.x)
             let inWindow = time >= source.audioStartTime && time < source.audioEndTime
@@ -189,7 +187,7 @@ enum SceneCompositionMapper {
         start: Double,
         end: Double
     ) -> [APIContentDTO.CompositionKeyframe] {
-        let points = source.keyPoints.sorted { $0.time < $1.time }
+        let points = SpatialTrajectory.flattenedKeyPoints(for: source)
         var frames: [APIContentDTO.CompositionKeyframe] = []
         var lastT: Double?
 
