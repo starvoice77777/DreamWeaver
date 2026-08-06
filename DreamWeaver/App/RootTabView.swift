@@ -17,8 +17,7 @@ struct RootTabView: View {
                     NowView()
                 case .create:
                     CreateHubView()
-                        // Every tab entry starts at the hub instead of restoring a
-                        // previously presented blank-scene editor or creation flow.
+                        // Every tab entry starts with a fresh blank workspace.
                         .id(createHubEntryID)
                 case .profile:
                     ProfileView()
@@ -72,8 +71,9 @@ struct DreamTabBar: View {
     @State private var isTrackingDrag = false
     @State private var barWidth: CGFloat = 0
 
-    private let barHeight: CGFloat = 56
-    private let barMaxWidth: CGFloat = 280
+    private let barHeight: CGFloat = 66
+    private let barMaxWidth: CGFloat = 218
+    private let barContentInset: CGFloat = 2
 
     private var displayedSelection: AppTab {
         draggedTab ?? selected
@@ -90,7 +90,7 @@ struct DreamTabBar: View {
     }
 
     private var selectionDiameter: CGFloat {
-        barHeight - 8
+        barHeight - 4
     }
 
     var body: some View {
@@ -114,8 +114,8 @@ struct DreamTabBar: View {
         }
         .frame(maxWidth: barMaxWidth)
         .frame(height: barHeight)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
+        .padding(.horizontal, barContentInset)
+        .padding(.vertical, barContentInset)
         .dreamRefractiveLiquidGlassCapsule(
             accent: appState.currentScene.palette.accentColor,
             intensity: 0.84,
@@ -161,10 +161,10 @@ struct DreamTabBar: View {
             select(tab)
         } label: {
             ZStack {
-                Image(systemName: tab.systemImageOutline)
+                tabGlyph(tab, filled: false)
                     .foregroundStyle(DreamTheme.moonWhite.opacity(0.60))
 
-                Image(systemName: tab.systemImageFill)
+                tabGlyph(tab, filled: true)
                     .foregroundStyle(DreamTheme.moonWhite.opacity(0.98))
                     .mask {
                         Rectangle()
@@ -184,6 +184,28 @@ struct DreamTabBar: View {
         .accessibilityLabel(tab.title)
         .accessibilityHint(tab == .create ? "创建或保存个人场景" : "切换到\(tab.title)")
         .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private func tabGlyph(_ tab: AppTab, filled: Bool) -> some View {
+        if tab == .now {
+            ZStack {
+                ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                    DreamWeaverMarkPath(stroke: stroke)
+                        .stroke(
+                            .primary,
+                            style: StrokeStyle(
+                                lineWidth: 2.1,
+                                lineCap: .round,
+                                lineJoin: .round
+                            )
+                        )
+                }
+            }
+            .frame(width: 18, height: 30)
+        } else {
+            Image(systemName: filled ? tab.systemImageFill : tab.systemImageOutline)
+        }
     }
 
     private var tabDragGesture: some Gesture {

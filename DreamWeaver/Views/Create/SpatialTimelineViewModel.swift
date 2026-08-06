@@ -16,6 +16,10 @@ final class SpatialTimelineViewModel: ObservableObject {
     @Published var selectedKeyPointID: UUID?
     @Published private(set) var draggingSourceID: UUID?
     @Published private(set) var dragPositions: [UUID: CGPoint] = [:]
+    @Published private(set) var armedTrajectorySourceID: UUID?
+    @Published private(set) var recordingTrajectorySourceID: UUID?
+    @Published private(set) var liveRecordingSamples: [SpatialMotionSample] = []
+    @Published private(set) var canUndoTrajectoryRecording = false
     @Published var textDraft: String = ""
     @Published private(set) var textCues: [SpatialTextCue] = []
     @Published var selectedTextCueID: UUID?
@@ -32,10 +36,20 @@ final class SpatialTimelineViewModel: ObservableObject {
     private var toastTask: Task<Void, Never>?
     private let previewPlayback: LocalPlaybackService
     private var previewGraphSignature: String?
+    private var recordingSourceSnapshot: SpatialEditorSource?
+    private var trajectoryUndoState: TrajectoryUndoState?
+    private let recordingSampleInterval: Double = 0.05
     /// Raw normalized pull distance required before a dragged source is removed.
     private let sourceRemovalRadius: CGFloat = 1.28
 
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
+    var isTrajectoryRecordingArmed: Bool { armedTrajectorySourceID != nil }
+    var isRecordingTrajectory: Bool { recordingTrajectorySourceID != nil }
+
+    var recordingDuration: Double {
+        guard let first = liveRecordingSamples.first else { return 0 }
+        return max(currentTime - first.time, 0)
+    }
 
     init(seed providedSeed: SpatialEditorSeed? = nil) {
         let seed = providedSeed ?? .blank
@@ -110,25 +124,35 @@ final class SpatialTimelineViewModel: ObservableObject {
         if let dragging = dragPositions[source.id] {
             return dragging
         }
-        return SpatialTrajectory.position(
-            at: time ?? currentTime,
-            keyPoints: source.keyPoints,
-            defaultPosition: source.defaultPosition
-        )
+        return SpatialTrajectory.position(at: time ?? currentTime, source: source)
+    }
+
+    func hasTrajectory(for source: SpatialEditorSource) -> Bool {
+        source.keyPoints.count >= 2
+            || !(source.motionClips ?? []).isEmpty
+            || (recordingTrajectorySourceID == source.id && liveRecordingSamples.count >= 2)
     }
 
     func selectSource(_ sourceID: UUID) {
         selectedSourceID = sourceID
+        if let armedTrajectorySourceID, armedTrajectorySourceID != sourceID {
+            self.armedTrajectorySourceID = nil
+        }
         if source(id: sourceID)?.keyPoints.contains(where: { $0.id == selectedKeyPointID }) != true {
             selectedKeyPointID = nil
         }
     }
 
     func beginSourceDrag(_ sourceID: UUID) {
-        pause()
         selectSource(sourceID)
         timelineEditMode = .spatialTrajectory
         draggingSourceID = sourceID
+        if armedTrajectorySourceID == sourceID {
+            beginTrajectoryRecording(sourceID: sourceID)
+            return
+        }
+
+        pause()
         if let source = source(id: sourceID),
            let nearby = source.keyPoints.min(by: {
                abs($0.time - currentTime) < abs($1.time - currentTime)
@@ -144,9 +168,22 @@ final class SpatialTimelineViewModel: ObservableObject {
         guard draggingSourceID == sourceID else { return }
         // Keep the live finger position so the icon can leave the disk while dragging.
         dragPositions[sourceID] = position
+        if recordingTrajectorySourceID == sourceID {
+            captureRecordingSample(force: false)
+            syncPreviewAudio(playIfReady: true, showsEmptyWarning: false)
+        }
     }
 
     func endSourceDrag(_ sourceID: UUID, position: CGPoint) {
+        if recordingTrajectorySourceID == sourceID {
+            dragPositions[sourceID] = SpatialTrajectory.clampedToUnitCircle(position)
+            captureRecordingSample(force: true)
+            dragPositions[sourceID] = nil
+            draggingSourceID = nil
+            finishTrajectoryRecording()
+            return
+        }
+
         dragPositions[sourceID] = nil
         draggingSourceID = nil
 
@@ -162,6 +199,182 @@ final class SpatialTimelineViewModel: ObservableObject {
         showToast("已记录 \(SpatialTimeText.string(currentTime)) 的位置")
     }
 
+    func toggleTrajectoryRecording() {
+        if isRecordingTrajectory {
+            finishTrajectoryRecording()
+            return
+        }
+        if armedTrajectorySourceID != nil {
+            armedTrajectorySourceID = nil
+            showToast("已取消轨迹录制")
+            return
+        }
+        guard let selectedSourceID, source(id: selectedSourceID) != nil else {
+            showToast("请先选择一个音源")
+            return
+        }
+
+        pause()
+        timelineEditMode = .spatialTrajectory
+        armedTrajectorySourceID = selectedSourceID
+        selectedKeyPointID = nil
+        showToast("已就绪，拖动音源开始录制")
+    }
+
+    func undoLastTrajectoryRecording() {
+        pause()
+        guard let state = trajectoryUndoState,
+              let sourceIndex = soundSources.firstIndex(where: { $0.id == state.sourceID }) else {
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.24)) {
+            soundSources[sourceIndex].keyPoints = state.keyPoints
+            soundSources[sourceIndex].motionClips = state.motionClips
+            selectedSourceID = state.sourceID
+            selectedKeyPointID = nil
+        }
+        trajectoryUndoState = nil
+        canUndoTrajectoryRecording = false
+        showToast("已撤销上一段轨迹录制")
+    }
+
+    private func beginTrajectoryRecording(sourceID: UUID) {
+        guard let source = source(id: sourceID) else { return }
+        stopTimelinePlayback()
+        if currentTime >= duration {
+            currentTime = 0
+        }
+        recordingSourceSnapshot = source
+        recordingTrajectorySourceID = sourceID
+        armedTrajectorySourceID = nil
+        selectedKeyPointID = nil
+        let initialPosition = SpatialTrajectory.position(at: currentTime, source: source)
+        liveRecordingSamples = [
+            SpatialMotionSample(time: currentTime, position: initialPosition)
+        ]
+        startTimelinePlayback(requireAudio: false)
+    }
+
+    private func captureRecordingSample(force: Bool) {
+        guard let sourceID = recordingTrajectorySourceID,
+              let position = dragPositions[sourceID] else {
+            return
+        }
+
+        let sample = SpatialMotionSample(time: currentTime, position: position)
+        if let last = liveRecordingSamples.last {
+            let elapsed = sample.time - last.time
+            if elapsed < 0.01 {
+                liveRecordingSamples[liveRecordingSamples.count - 1] = sample
+                return
+            }
+            if !force && elapsed < recordingSampleInterval {
+                return
+            }
+        }
+        liveRecordingSamples.append(sample)
+    }
+
+    private func finishTrajectoryRecording() {
+        guard let sourceID = recordingTrajectorySourceID else {
+            stopTimelinePlayback()
+            return
+        }
+        captureRecordingSample(force: true)
+        stopTimelinePlayback()
+
+        let rawSamples = liveRecordingSamples
+        let finalPosition = rawSamples.last?.position
+        let snapshot = recordingSourceSnapshot
+        clearActiveRecording()
+
+        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }),
+              let snapshot else {
+            return
+        }
+
+        let processed = SpatialTrajectory.processedRecordingSamples(rawSamples)
+        guard processed.count >= 2,
+              let first = processed.first,
+              let last = processed.last,
+              last.time - first.time >= 0.05 else {
+            if let finalPosition {
+                addOrUpdatePosition(sourceID: sourceID, position: finalPosition)
+                showsFirstUseHint = false
+                showToast("录制时间较短，已记录当前位置")
+            }
+            return
+        }
+
+        let clip = SpatialMotionClip(samples: processed)
+        var clips = clipsReplacingRange(
+            in: snapshot.motionClips ?? [],
+            with: clip
+        )
+        clips.sort { $0.startTime < $1.startTime }
+
+        trajectoryUndoState = TrajectoryUndoState(
+            sourceID: sourceID,
+            keyPoints: snapshot.keyPoints,
+            motionClips: snapshot.motionClips
+        )
+        canUndoTrajectoryRecording = true
+
+        withAnimation(.easeOut(duration: 0.26)) {
+            soundSources[sourceIndex].keyPoints.removeAll {
+                $0.time >= clip.startTime && $0.time <= clip.endTime
+            }
+            soundSources[sourceIndex].motionClips = clips.isEmpty ? nil : clips
+            selectedSourceID = sourceID
+            selectedKeyPointID = nil
+        }
+        showsFirstUseHint = false
+        showToast(
+            "已录制 \(String(format: "%.1f", clip.duration)) 秒轨迹"
+                + " · \(clip.samples.count) 个采样点"
+        )
+    }
+
+    private func clearActiveRecording() {
+        recordingTrajectorySourceID = nil
+        recordingSourceSnapshot = nil
+        liveRecordingSamples = []
+        if let draggingSourceID {
+            dragPositions[draggingSourceID] = nil
+        }
+    }
+
+    private func clipsReplacingRange(
+        in clips: [SpatialMotionClip],
+        with replacement: SpatialMotionClip
+    ) -> [SpatialMotionClip] {
+        var result: [SpatialMotionClip] = []
+        for clip in clips {
+            if clip.endTime <= replacement.startTime || clip.startTime >= replacement.endTime {
+                result.append(clip)
+                continue
+            }
+            if clip.startTime < replacement.startTime,
+               let leading = SpatialTrajectory.sliced(
+                   clip,
+                   from: clip.startTime,
+                   through: replacement.startTime
+               ) {
+                result.append(leading)
+            }
+            if clip.endTime > replacement.endTime,
+               let trailing = SpatialTrajectory.sliced(
+                   clip,
+                   from: replacement.endTime,
+                   through: clip.endTime
+               ) {
+                result.append(trailing)
+            }
+        }
+        result.append(replacement)
+        return result
+    }
+
     func removeSource(_ sourceID: UUID) {
         pause()
         let name = source(id: sourceID)?.name
@@ -175,6 +388,13 @@ final class SpatialTimelineViewModel: ObservableObject {
             if draggingSourceID == sourceID {
                 draggingSourceID = nil
             }
+            if armedTrajectorySourceID == sourceID {
+                armedTrajectorySourceID = nil
+            }
+            if trajectoryUndoState?.sourceID == sourceID {
+                trajectoryUndoState = nil
+                canUndoTrajectoryRecording = false
+            }
         }
         showToast(name.map { "已移除 \($0)" } ?? "音源已移除")
     }
@@ -185,6 +405,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         }
 
         let clamped = SpatialTrajectory.clampedToUnitCircle(position)
+        makeRoomForManualPoint(sourceIndex: sourceIndex, at: currentTime)
         let nearbyIndex = soundSources[sourceIndex].keyPoints.indices.min {
             abs(soundSources[sourceIndex].keyPoints[$0].time - currentTime)
                 < abs(soundSources[sourceIndex].keyPoints[$1].time - currentTime)
@@ -264,6 +485,12 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func setTimelineEditMode(_ mode: SpatialTimelineEditMode) {
+        if mode != .spatialTrajectory {
+            if isRecordingTrajectory {
+                finishTrajectoryRecording()
+            }
+            armedTrajectorySourceID = nil
+        }
         withAnimation(.easeInOut(duration: 0.22)) {
             timelineEditMode = mode
             if mode == .audioTiming {
@@ -398,12 +625,20 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func play() {
+        startTimelinePlayback(requireAudio: true)
+    }
+
+    private func startTimelinePlayback(requireAudio: Bool) {
         guard !isPlaying else { return }
         if currentTime >= duration {
             currentTime = 0
         }
 
-        guard syncPreviewAudio(playIfReady: true) else {
+        let audioReady = syncPreviewAudio(
+            playIfReady: true,
+            showsEmptyWarning: requireAudio
+        )
+        guard audioReady || !requireAudio else {
             return
         }
 
@@ -423,9 +658,17 @@ final class SpatialTimelineViewModel: ObservableObject {
 
                 let elapsed = Date().timeIntervalSince(startedAt)
                 self.currentTime = min(startedTime + elapsed, self.duration)
-                self.syncPreviewAudio(playIfReady: true)
+                self.captureRecordingSample(force: false)
+                self.syncPreviewAudio(
+                    playIfReady: true,
+                    showsEmptyWarning: !self.isRecordingTrajectory
+                )
                 if self.currentTime >= self.duration {
-                    self.pause()
+                    if self.isRecordingTrajectory {
+                        self.finishTrajectoryRecording()
+                    } else {
+                        self.pause()
+                    }
                     return
                 }
             }
@@ -433,6 +676,14 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func pause() {
+        if isRecordingTrajectory {
+            finishTrajectoryRecording()
+            return
+        }
+        stopTimelinePlayback()
+    }
+
+    private func stopTimelinePlayback() {
         isPlaying = false
         playbackTask?.cancel()
         playbackTask = nil
@@ -448,6 +699,12 @@ final class SpatialTimelineViewModel: ObservableObject {
         currentTime = 0
         timelineEditMode = .audioTiming
         dragPositions.removeAll()
+        armedTrajectorySourceID = nil
+        recordingTrajectorySourceID = nil
+        liveRecordingSamples = []
+        recordingSourceSnapshot = nil
+        trajectoryUndoState = nil
+        canUndoTrajectoryRecording = false
         textDraft = ""
         textCues = []
         showsFirstUseHint = true
@@ -462,11 +719,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                     || $0.symbolName == editorSource.iconName
                     || $0.resourceName == mappedKey
             })
-            let point = SpatialTrajectory.position(
-                at: 0,
-                keyPoints: editorSource.keyPoints,
-                defaultPosition: editorSource.defaultPosition
-            )
+            let point = SpatialTrajectory.position(at: 0, source: editorSource)
             let radius = min(max(Double(hypot(point.x, point.y)), 0), 1)
             let angle = atan2(Double(point.x), Double(-point.y))
             let layer: AudioLayerKind = {
@@ -479,6 +732,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 }
             }()
             let resourceName: String? = {
+                if let libraryResource = editorSource.resourceName { return libraryResource }
                 if let existing = baseSource?.resourceName { return existing }
                 return mappedKey.hasPrefix("create_") ? nil : mappedKey
             }()
@@ -490,7 +744,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 isEnabled: true,
                 initialEnvelope: 1,
                 position: SpatialPosition(angle: angle, radius: radius),
-                assetId: baseSource?.assetId,
+                assetId: editorSource.assetID ?? baseSource?.assetId,
                 resourceName: resourceName,
                 layer: layer
             )
@@ -501,8 +755,11 @@ final class SpatialTimelineViewModel: ObservableObject {
         SpatialEditorMaterial.catalog
     }
 
-    func isMaterialInUse(_ materialID: String) -> Bool {
-        soundSources.contains { $0.materialID == materialID }
+    func isMaterialInUse(_ material: SpatialEditorMaterial) -> Bool {
+        soundSources.contains {
+            $0.materialID == material.id
+                || (material.assetID != nil && $0.assetID == material.assetID)
+        }
     }
 
     var hasVoiceSource: Bool {
@@ -511,7 +768,10 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func addMaterial(_ material: SpatialEditorMaterial) {
         pause()
-        if let existing = soundSources.first(where: { $0.materialID == material.id }) {
+        if let existing = soundSources.first(where: {
+            $0.materialID == material.id
+                || (material.assetID != nil && $0.assetID == material.assetID)
+        }) {
             selectSource(existing.id)
             showToast("已选中 \(material.name)")
             return
@@ -524,6 +784,8 @@ final class SpatialTimelineViewModel: ObservableObject {
         )
         let source = SpatialEditorSource(
             materialID: material.id,
+            assetID: material.assetID,
+            resourceName: material.resourceName,
             name: material.name,
             iconName: material.iconName,
             theme: material.theme,
@@ -531,7 +793,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             keyPoints: [point],
             audioStartTime: min(currentTime, duration - minimumAudioDuration),
             audioDuration: min(
-                30,
+                max(material.audioDuration ?? 30, minimumAudioDuration),
                 duration - min(currentTime, duration - minimumAudioDuration)
             ),
             isVoice: material.isVoice
@@ -580,10 +842,21 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     /// Loads / updates Create preview audio. Returns false when nothing can play.
     @discardableResult
-    private func syncPreviewAudio(playIfReady: Bool) -> Bool {
-        let sources = SceneCompositionMapper.playbackSources(from: soundSources, at: currentTime)
+    private func syncPreviewAudio(
+        playIfReady: Bool,
+        showsEmptyWarning: Bool = true
+    ) -> Bool {
+        var sources = SceneCompositionMapper.playbackSources(from: soundSources, at: currentTime)
+        for index in sources.indices {
+            guard let dragged = dragPositions[sources[index].id] else { continue }
+            let point = SpatialTrajectory.clampedToUnitCircle(dragged)
+            sources[index].position = SpatialPosition(
+                angle: atan2(-point.y, point.x),
+                radius: min(max(hypot(point.x, point.y), 0), 1)
+            )
+        }
         guard !sources.isEmpty else {
-            if playIfReady {
+            if playIfReady && showsEmptyWarning {
                 showToast("请先加入可播放的材料（雨/风/竹叶/流水等）")
             }
             previewPlayback.pause()
@@ -649,4 +922,43 @@ final class SpatialTimelineViewModel: ObservableObject {
     private func sortKeyPoints(sourceIndex: Int) {
         soundSources[sourceIndex].keyPoints.sort { $0.time < $1.time }
     }
+
+    private func makeRoomForManualPoint(sourceIndex: Int, at time: Double) {
+        let clips = soundSources[sourceIndex].motionClips ?? []
+        guard clips.contains(where: { time >= $0.startTime && time <= $0.endTime }) else {
+            return
+        }
+
+        let halfGap = 0.025
+        var next: [SpatialMotionClip] = []
+        for clip in clips {
+            guard time >= clip.startTime && time <= clip.endTime else {
+                next.append(clip)
+                continue
+            }
+            if let leading = SpatialTrajectory.sliced(
+                clip,
+                from: clip.startTime,
+                through: time - halfGap
+            ) {
+                next.append(leading)
+            }
+            if let trailing = SpatialTrajectory.sliced(
+                clip,
+                from: time + halfGap,
+                through: clip.endTime
+            ) {
+                next.append(trailing)
+            }
+        }
+        soundSources[sourceIndex].motionClips = next.isEmpty
+            ? nil
+            : next.sorted { $0.startTime < $1.startTime }
+    }
+}
+
+private struct TrajectoryUndoState {
+    let sourceID: UUID
+    let keyPoints: [SpatialKeyPoint]
+    let motionClips: [SpatialMotionClip]?
 }

@@ -13,12 +13,15 @@ struct SpatialCanvasView: View {
                 soundFieldBackground(side: side)
 
                 if let selected = viewModel.selectedSource,
-                   selected.keyPoints.count >= 2,
-                   !viewModel.isPlaying {
+                   viewModel.hasTrajectory(for: selected),
+                   !viewModel.isPlaying || viewModel.isRecordingTrajectory {
                     SpatialPathView(
                         source: selected,
                         currentTime: viewModel.currentTime,
-                        fieldRadius: fieldRadius
+                        fieldRadius: fieldRadius,
+                        liveSamples: viewModel.recordingTrajectorySourceID == selected.id
+                            ? viewModel.liveRecordingSamples
+                            : []
                     )
                     .frame(width: side, height: side)
                     .transition(.opacity)
@@ -33,6 +36,7 @@ struct SpatialCanvasView: View {
                         position: viewModel.position(for: source),
                         isSelected: viewModel.selectedSourceID == source.id,
                         isPlaying: viewModel.isPlaying,
+                        isRecording: viewModel.recordingTrajectorySourceID == source.id,
                         side: side,
                         fieldRadius: fieldRadius,
                         viewModel: viewModel
@@ -127,6 +131,7 @@ private struct SoundSourceNodeView: View {
     let position: CGPoint
     let isSelected: Bool
     let isPlaying: Bool
+    let isRecording: Bool
     let side: CGFloat
     let fieldRadius: CGFloat
     @ObservedObject var viewModel: SpatialTimelineViewModel
@@ -153,8 +158,10 @@ private struct SoundSourceNodeView: View {
                     )
                 Circle()
                     .stroke(
-                        source.themeColor.opacity(isSelected ? 0.95 : 0.58),
-                        lineWidth: isSelected ? 1.5 : 1
+                        isRecording
+                            ? DreamTheme.warmApricot
+                            : source.themeColor.opacity(isSelected ? 0.95 : 0.58),
+                        lineWidth: isRecording ? 2.2 : (isSelected ? 1.5 : 1)
                     )
                 Image(systemName: source.iconName)
                     .font(.system(size: 18, weight: .medium))
@@ -163,9 +170,17 @@ private struct SoundSourceNodeView: View {
             .frame(width: 48, height: 48)
             .scaleEffect(isSelected || isDragging ? 1.08 : 1)
             .shadow(
-                color: source.themeColor.opacity(isSelected || isDragging ? 0.55 : 0.20),
-                radius: isSelected || isDragging ? 12 : 5
+                color: (isRecording ? DreamTheme.warmApricot : source.themeColor)
+                    .opacity(isSelected || isDragging ? 0.55 : 0.20),
+                radius: isSelected || isDragging || isRecording ? 12 : 5
             )
+
+            if isRecording {
+                Circle()
+                    .fill(Color.red.opacity(0.92))
+                    .frame(width: 6, height: 6)
+                    .shadow(color: Color.red.opacity(0.55), radius: 4)
+            }
 
             Text(source.name)
                 .font(.system(size: 10, weight: .medium))
@@ -229,7 +244,11 @@ private struct SoundSourceNodeView: View {
         .opacity(isOutsideField ? 0.55 : 1)
         .animation(.easeInOut(duration: 0.24), value: isSelected)
         .accessibilityLabel("\(source.name)，\(distanceText)")
-        .accessibilityHint("拖动记录位置；拖出圆盘可移除音源")
+        .accessibilityHint(
+            isRecording
+                ? "正在实时记录拖动轨迹"
+                : "拖动记录位置；拖出圆盘可移除音源"
+        )
     }
 
     private var isOutsideField: Bool {
@@ -307,54 +326,54 @@ private struct SpatialPathView: View {
     let source: SpatialEditorSource
     let currentTime: Double
     let fieldRadius: CGFloat
+    let liveSamples: [SpatialMotionSample]
 
     var body: some View {
         Canvas { context, size in
-            let sorted = source.keyPoints.sorted { $0.time < $1.time }
-            guard sorted.count >= 2 else { return }
-
-            var path = Path()
-            var hasMoved = false
-            for segmentIndex in 0..<(sorted.count - 1) {
-                let start = sorted[segmentIndex]
-                let end = sorted[segmentIndex + 1]
-                let samples = 18
-                for sampleIndex in 0...samples {
-                    let progress = Double(sampleIndex) / Double(samples)
-                    let sampleTime = start.time + (end.time - start.time) * progress
-                    let normalized = SpatialTrajectory.position(
-                        at: sampleTime,
-                        keyPoints: sorted,
-                        defaultPosition: source.defaultPosition
-                    )
+            let side = min(size.width, size.height)
+            let trajectory = sampledTrajectory
+            if trajectory.count >= 2 {
+                var path = Path()
+                for (index, normalized) in trajectory.enumerated() {
                     let point = SpatialCanvasTransform.canvasPoint(
                         from: normalized,
-                        side: min(size.width, size.height),
+                        side: side,
                         fieldRadius: fieldRadius
                     )
-                    if hasMoved {
-                        path.addLine(to: point)
-                    } else {
-                        path.move(to: point)
-                        hasMoved = true
-                    }
+                    index == 0 ? path.move(to: point) : path.addLine(to: point)
                 }
+                context.stroke(
+                    path,
+                    with: .color(source.themeColor.opacity(0.32)),
+                    style: StrokeStyle(
+                        lineWidth: 1.4,
+                        lineCap: .round,
+                        lineJoin: .round,
+                        dash: [5, 7]
+                    )
+                )
             }
 
-            context.stroke(
-                path,
-                with: .color(source.themeColor.opacity(0.32)),
-                style: StrokeStyle(
-                    lineWidth: 1.4,
-                    lineCap: .round,
-                    lineJoin: .round,
-                    dash: [5, 7]
+            if liveSamples.count >= 2 {
+                var livePath = Path()
+                for (index, sample) in liveSamples.enumerated() {
+                    let point = SpatialCanvasTransform.canvasPoint(
+                        from: sample.position,
+                        side: side,
+                        fieldRadius: fieldRadius
+                    )
+                    index == 0 ? livePath.move(to: point) : livePath.addLine(to: point)
+                }
+                context.stroke(
+                    livePath,
+                    with: .color(DreamTheme.warmApricot.opacity(0.92)),
+                    style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
                 )
-            )
+            }
 
             let neighbors = SpatialTrajectory.neighboringPoints(
                 at: currentTime,
-                keyPoints: sorted
+                keyPoints: source.keyPoints
             )
             for point in [neighbors.previous, neighbors.next].compactMap({ $0 }) {
                 let canvasPoint = SpatialCanvasTransform.canvasPoint(
@@ -378,6 +397,27 @@ private struct SpatialPathView: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
+    }
+
+    private var sampledTrajectory: [CGPoint] {
+        let anchors = SpatialTrajectory.flattenedKeyPoints(for: source)
+        guard anchors.count >= 2 else { return anchors.map(\.position) }
+
+        var result: [CGPoint] = []
+        for index in 0..<(anchors.count - 1) {
+            let start = anchors[index]
+            let end = anchors[index + 1]
+            let count = min(max(Int(ceil((end.time - start.time) / 0.25)), 1), 18)
+            for sampleIndex in 0..<count {
+                let progress = Double(sampleIndex) / Double(count)
+                let time = start.time + (end.time - start.time) * progress
+                result.append(SpatialTrajectory.position(at: time, source: source))
+            }
+        }
+        if let endTime = anchors.last?.time {
+            result.append(SpatialTrajectory.position(at: endTime, source: source))
+        }
+        return result
     }
 }
 

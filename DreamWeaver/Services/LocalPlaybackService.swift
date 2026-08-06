@@ -260,18 +260,19 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     func startSleepTimer(
-        option: TimerOption,
+        duration: TimeInterval,
+        usesAcceleratedFade: Bool,
         onTick: @escaping (Double) -> Void,
         onFinished: @escaping () -> Void
     ) {
         cancelSleepTimer()
-        guard let seconds = option.countdownSeconds, seconds > 0 else { return }
+        guard duration > 0 else { return }
         onSleepTick = onTick
         onSleepFinished = onFinished
-        sleepDuration = seconds
+        sleepDuration = duration
         sleepStartedAt = Date()
 
-        if option == .demoAccelerated {
+        if usesAcceleratedFade {
             // Layered fade for film takes; wall-clock `tickSleep` is the hard stop.
             performLayeredFade(phases: DemoFadeSchedule.accelerated) { [weak self] in
                 self?.finishSleepTimer()

@@ -58,7 +58,11 @@ struct SceneBackdropHost: View {
                     reduceMotion: reduceMotion
                 )
             case .moonLake:
-                MoonLakeBackdrop(intensity: intensity)
+                MoonLakeBackdrop(
+                    intensity: intensity,
+                    isPlaying: isPlaying,
+                    reduceMotion: reduceMotion
+                )
             case .warmLamp:
                 WarmLampBackdrop(intensity: intensity)
             case .fireplaceWhisper:

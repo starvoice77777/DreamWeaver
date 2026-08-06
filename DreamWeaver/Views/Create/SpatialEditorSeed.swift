@@ -37,6 +37,8 @@ struct SpatialEditorSeed: Equatable {
             sources.append(
                 SpatialEditorSource(
                     materialID: matched?.id,
+                    assetID: source.assetId,
+                    resourceName: source.resourceName,
                     name: source.name,
                     iconName: source.symbolName,
                     theme: matched?.theme ?? theme(for: source),

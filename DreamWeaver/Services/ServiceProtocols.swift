@@ -22,14 +22,6 @@ protocol UserLibraryService: AnyObject {
     func resetToFixture() async throws
 }
 
-protocol SeedPipelineService: AnyObject {
-    func analyze(durationSeconds: Int) async throws -> SeedQualityReport
-    func authorize(confirmed: Bool) async throws
-    func startProcess(durationSeconds: Int) async throws -> SeedJob
-    func pollJob(id: UUID) async throws -> SeedJob
-    func finalize(jobId: UUID, name: String, relation: PersonRelation) async throws -> SoundAsset
-}
-
 protocol AnalyticsService: AnyObject {
     func summary() async throws -> UsageRecord
     func record(_ event: AnalyticsEvent) async throws
@@ -54,7 +46,12 @@ protocol PlaybackService: AnyObject {
     func markManualOverride(trackId: UUID)
     func preview(resourceName: String?)
     func stopPreview()
-    func startSleepTimer(option: TimerOption, onTick: @escaping (Double) -> Void, onFinished: @escaping () -> Void)
+    func startSleepTimer(
+        duration: TimeInterval,
+        usesAcceleratedFade: Bool,
+        onTick: @escaping (Double) -> Void,
+        onFinished: @escaping () -> Void
+    )
     func cancelSleepTimer()
     func performLayeredFade(phases: [FadePhase], onFinished: @escaping () -> Void)
 }

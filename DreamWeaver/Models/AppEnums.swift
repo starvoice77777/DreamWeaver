@@ -54,6 +54,22 @@ enum SceneCategory: String, CaseIterable, Identifiable, Codable, Hashable {
     case whisper = "耳语"
 
     var id: String { rawValue }
+
+    var systemImage: String {
+        switch self {
+        case .frequent: return "clock.fill"
+        case .favorites: return "heart.fill"
+        case .nature: return "leaf.fill"
+        case .rainyNight: return "cloud.rain.fill"
+        case .ocean: return "water.waves"
+        case .forest: return "tree.fill"
+        case .voice: return "waveform"
+        case .companion: return "person.2.fill"
+        case .breath: return "wind"
+        case .lightMusic: return "music.note"
+        case .whisper: return "ear.badge.waveform"
+        }
+    }
 }
 
 enum TimerOption: String, CaseIterable, Identifiable, Codable {

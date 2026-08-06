@@ -179,6 +179,15 @@ private struct TimelineTrackView: View {
                         trackWidth: timelineWidth
                     )
 
+                    TimelineMotionClipRangesView(
+                        clips: source.motionClips ?? [],
+                        liveSamples: viewModel.recordingTrajectorySourceID == source.id
+                            ? viewModel.liveRecordingSamples
+                            : [],
+                        duration: duration,
+                        color: source.themeColor
+                    )
+
                     TimelinePointConnectionView(
                         keyPoints: source.keyPoints,
                         duration: duration,
@@ -226,8 +235,60 @@ private struct TimelineTrackView: View {
             return "\(SpatialTimeText.string(source.audioStartTime))"
                 + "–\(SpatialTimeText.string(source.audioEndTime))"
         case .spatialTrajectory:
+            let clipCount = (source.motionClips ?? []).count
+            if clipCount > 0 {
+                return "\(source.keyPoints.count) 个定位点 · \(clipCount) 段录制"
+            }
             return "\(source.keyPoints.count) 个定位点"
         }
+    }
+}
+
+private struct TimelineMotionClipRangesView: View {
+    let clips: [SpatialMotionClip]
+    let liveSamples: [SpatialMotionSample]
+    let duration: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .topLeading) {
+                ForEach(clips) { clip in
+                    clipRange(
+                        start: clip.startTime,
+                        end: clip.endTime,
+                        width: proxy.size.width,
+                        fill: color.opacity(0.34)
+                    )
+                }
+
+                if let first = liveSamples.first, let last = liveSamples.last {
+                    clipRange(
+                        start: first.time,
+                        end: max(last.time, first.time + 0.05),
+                        width: proxy.size.width,
+                        fill: DreamTheme.warmApricot.opacity(0.88)
+                    )
+                    .shadow(color: DreamTheme.warmApricot.opacity(0.55), radius: 4)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func clipRange(
+        start: Double,
+        end: Double,
+        width: CGFloat,
+        fill: Color
+    ) -> some View {
+        let startX = CGFloat(min(max(start / duration, 0), 1)) * width
+        let endX = CGFloat(min(max(end / duration, 0), 1)) * width
+        return Capsule(style: .continuous)
+            .fill(fill)
+            .frame(width: max(endX - startX, 3), height: 8)
+            .offset(x: startX, y: 25)
     }
 }
 

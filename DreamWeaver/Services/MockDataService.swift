@@ -708,16 +708,6 @@ enum MockDataService {
         )
     }
 
-    static func makeSeedQuality(durationSeconds: Int) -> SeedQualityReport {
-        SeedQualityReport(
-            clarity: "良好",
-            noiseLevel: "较低",
-            effectiveDurationSeconds: max(durationSeconds, 3),
-            recommendation: "可以直接继续",
-            passed: true
-        )
-    }
-
     // MARK: - Helpers
 
     private static func scene(
