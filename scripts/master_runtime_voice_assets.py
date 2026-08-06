@@ -125,7 +125,9 @@ def main() -> int:
             # reaching the nominal target. -24 LUFS remains clearly foreground
             # relative to the distant beds and avoids destructive compression.
             if not (-24.0 <= output_i <= -17.0):
-                raise RuntimeError(f"{source.name}: output loudness {output_i} LUFS is out of range")
+                raise RuntimeError(
+                    f"{source.name}: output loudness {output_i} LUFS is out of range"
+                )
             if output_tp > -2.8:
                 raise RuntimeError(f"{source.name}: output true peak {output_tp} dBTP is unsafe")
             pending.append((source, temporary))
