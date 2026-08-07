@@ -310,28 +310,109 @@ enum APIContentDTO {
         let saved_sources: [PresetSource]?
         let draft_timeline: SceneTimeline?
         let saved_timeline: SceneTimeline?
-        /// User create-mode document (`scene_composition_v1`); optional until Create Tab lands.
+        /// User create-mode document (v1 compatibility or v2 group/clip model).
         let draft_composition: SceneComposition?
         let saved_composition: SceneComposition?
     }
 
-    /// Sparse keyframe composition for Create mode. Playback interpolator is separate.
-    struct SceneComposition: Codable {
+    /// Persisted Create document. v2 separates source groups from audio clips.
+    nonisolated struct SceneComposition: Codable, Sendable {
         let schema: String
         let version: Int
         let duration_seconds: Double?
         let tracks: [CompositionTrack]
+        /// v2 separates disk identity from independently editable clips.
+        var source_groups: [CompositionSourceGroup]? = nil
+        var clips: [CompositionClip]? = nil
         /// Optional text-cue track for Create editor; preserved by server validate_composition.
         var text_cues: [CompositionTextCue]? = nil
+
+        private enum CodingKeys: String, CodingKey {
+            case schema, version, duration_seconds, tracks, source_groups, clips, text_cues
+        }
+
+        init(
+            schema: String,
+            version: Int,
+            duration_seconds: Double?,
+            tracks: [CompositionTrack] = [],
+            source_groups: [CompositionSourceGroup]? = nil,
+            clips: [CompositionClip]? = nil,
+            text_cues: [CompositionTextCue]? = nil
+        ) {
+            self.schema = schema
+            self.version = version
+            self.duration_seconds = duration_seconds
+            self.tracks = tracks
+            self.source_groups = source_groups
+            self.clips = clips
+            self.text_cues = text_cues
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            schema = try container.decode(String.self, forKey: .schema)
+            version = try container.decode(Int.self, forKey: .version)
+            duration_seconds = try container.decodeIfPresent(Double.self, forKey: .duration_seconds)
+            tracks = try container.decodeIfPresent([CompositionTrack].self, forKey: .tracks) ?? []
+            source_groups = try container.decodeIfPresent(
+                [CompositionSourceGroup].self,
+                forKey: .source_groups
+            )
+            clips = try container.decodeIfPresent([CompositionClip].self, forKey: .clips)
+            text_cues = try container.decodeIfPresent(
+                [CompositionTextCue].self,
+                forKey: .text_cues
+            )
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(schema, forKey: .schema)
+            try container.encode(version, forKey: .version)
+            try container.encodeIfPresent(duration_seconds, forKey: .duration_seconds)
+            if schema != "scene_composition_v2" || !tracks.isEmpty {
+                try container.encode(tracks, forKey: .tracks)
+            }
+            try container.encodeIfPresent(source_groups, forKey: .source_groups)
+            try container.encodeIfPresent(clips, forKey: .clips)
+            try container.encodeIfPresent(text_cues, forKey: .text_cues)
+        }
     }
 
-    struct CompositionTextCue: Codable, Equatable {
+    nonisolated struct CompositionSourceGroup: Codable, Sendable {
+        let id: UUID
+        let name: String
+        let symbol_name: String?
+        let layer: String
+        let display_policy: String?
+        let position_keyframes: [CompositionKeyframe]
+    }
+
+    nonisolated struct CompositionClip: Codable, Sendable {
+        let id: UUID
+        let source_group_id: UUID
+        let asset_id: UUID?
+        let resource_key: String?
+        let start_seconds: Double
+        let end_seconds: Double
+        let source_offset_seconds: Double?
+        let playback_mode: String
+        let crossfade_ms: Int?
+        let fade_in_ms: Int?
+        let fade_out_ms: Int?
+        let phrase_id: UUID?
+        let text_cue_id: UUID?
+        let mastering_profile_key: String?
+    }
+
+    nonisolated struct CompositionTextCue: Codable, Equatable, Sendable {
         let id: UUID
         let time: Double
         let text: String
     }
 
-    struct CompositionTrack: Codable {
+    nonisolated struct CompositionTrack: Codable, Sendable {
         let id: UUID
         let asset_id: UUID?
         let resource_key: String?
@@ -343,10 +424,11 @@ enum APIContentDTO {
         let keyframes: [CompositionKeyframe]
     }
 
-    struct CompositionKeyframe: Codable {
+    nonisolated struct CompositionKeyframe: Codable, Sendable {
         let t: Double
         let angle: Double
         let radius: Double
+        var interpolation: String? = nil
     }
 
     struct PrivateSceneCreate: Encodable {
@@ -358,7 +440,7 @@ enum APIContentDTO {
         let palette: [String: UInt32]?
         let visual_style: String
         let sources: [MixSourcePayload]
-        /// Optional create-mode document (`scene_composition_v1`).
+        /// Optional create-mode document (v1 compatibility or v2 group/clip model).
         var composition: SceneComposition? = nil
     }
 

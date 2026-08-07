@@ -98,6 +98,10 @@ enum SceneVisualStyle: String, Codable, Hashable, CaseIterable {
     case summerNight = "summerInsects"
     case fireplaceWhisper
     case hairCare
+    case alpsCableCar
+    case twilight
+    case prelude
+    case ornateArchitecture
     /// Reusable immersive emotional-fluid visual style.
     case emotionalFluid
 }

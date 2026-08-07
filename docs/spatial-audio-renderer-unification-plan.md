@@ -1,9 +1,9 @@
 # 空间声场、创建页与播放页统一渲染改造计划
 
-状态：阶段 0 已完成；前端定稿与音频功能已同步，等待从阶段 1 开始重构
+状态：阶段 1–7 主体代码已落地并通过后端验证；等待 macOS/Xcode 编译、设备试听和金标验收
 编写日期：2026-08-07
 适用范围：iOS 创建页、播放页、本地音频引擎、场景 Composition/Timeline 契约、官方预设迁移
-当前分支：integration/frontend-backend
+当前分支：codex/spatial-audio-render-unification
 已同步前端提交：f6e05eb3a7800bb90c0568f567e8e7a1db6bf722
 已同步音频提交：38b0e19
 
@@ -11,7 +11,25 @@
 
 本计划用于在上下文被压缩、任务跨会话或前端大改合并后，仍可从一个稳定真相源恢复开发。
 
-前端大改与现有音频功能已经同步到联调分支，冲突已按前端交互定稿和后端音频约束完成审查。当前任务只完成同步与计划修订，不启动阶段 1 之后的渲染器业务重构；下一轮应直接从纯领域模型和算法开始。
+前端大改与现有音频功能已经同步到联调分支，冲突已按前端交互定稿和后端音频约束完成审查。2026-08-07 已从阶段 1 开始实施统一渲染器；当前代码已覆盖模型、编译器、共享时钟、SourceGroup 音频图、循环交叉淡化、创建页/播放页接线与 v2 后端契约。Windows 环境不能替代 Xcode 编译和设备听感验收，因此最终完成状态仍以第 18 节的剩余项目为准。
+
+### 0.1 2026-08-07 实施记录
+
+- 新增 `SceneSourceGroup`、`SceneAudioClip`、`SceneRenderPlan`、自动化曲线与离散事件模型。
+- 新增 `SpatialTrajectoryEvaluator`：官方轨迹 linear、用户稀疏点 smoothstep、录制轨迹 recordedLinear；角度使用最短路径。
+- 新增 `RadialGainCurve` 与反函数；`SpatialMixMapping` 只转发这一条半径增益曲线。
+- 新增 `ScenePlanCompiler`，官方 timeline、composition v1/v2、Create 编辑状态都编译为同一 RenderPlan。
+- 新增 `SceneRenderer` 单调 60 Hz 时钟；创建预览和播放页读取同一 RendererState。
+- 新增 `AudioGraphController`：每个 SourceGroup 一个空间 mixer，clip 独立响度校准，同组多 clip 共用一次半径增益。
+- 仅 loop 素材预解码可复用 PCM buffer；20 句人声与其他 oneshot 按文件分段调度，避免无必要的峰值内存。
+- loop clip 使用内部 equal-power crossfade；真机实现预合成为单个逐采样连续缓冲，不生成额外 UI 身份，也不依赖主线程定时切换节点。
+- A/B 调度按“下一次 overlap 起点”循环，seek 落在 overlap 内时会恢复双节点相位与剩余淡化进度。
+- `SpatialEditorSource` 作为兼容行模型增加 `sourceGroupID`；时间轴继续显示 clip，圆盘与上方声源条按 group 去重。
+- 新创建内容保存为 `scene_composition_v2`；服务端继续接受 v1，并新增 v2 引用、时间窗、插值和 crossfade 校验。
+- v2 还校验 layer、淡入淡出时长及其总和；保存后不再降级写入旧 timeline 缓存。
+- 新增契约文档 `docs/scene-composition-v2-contract.md`。
+- 官方快照门禁固定洗头 138 cues/242 actions、20 句人声和 10 次 oneshot，雨景 27 cues/55 actions/26 个位置动作。
+- 后端全量 pytest 已通过；本次涉及的 composition 文件 Ruff 已通过。全仓 Ruff 仍报告 Alembic 历史格式问题，与本次重构无关。
 
 本计划解决以下已确认问题：
 
@@ -987,9 +1005,8 @@ flowchart LR
 - 记录 group 最终增益与总线峰值。
 - 两个官方场景分别建立金标试听清单。
 
-## 17. 本轮明确不做的事
+## 17. 重构边界
 
-- 本次同步任务不启动阶段 1 之后的渲染器重构。
 - 不重新编码或覆盖交付音频母带。
 - 不把 20 句人声合并成一个新长 WAV。
 - 不通过复制 UI 图标表达内部播放节点。
@@ -1019,14 +1036,14 @@ flowchart LR
 14. 代码 review 无高优先级问题。
 15. 提交、推送和 PR 按协作规则完成。
 
-## 19. 恢复开发时的第一条指令
+## 19. 后续恢复开发时的第一条指令
 
 当用户要求开始重构时，首先执行：
 
-1. 阅读本文件全文，确认阶段 0 已完成。
-2. git status / branch / log / fetch，确认 integration/frontend-backend 同时包含 f6e05eb 和 38b0e19。
+1. 阅读本文件全文，确认阶段 1–7 的代码已落地，但 Xcode/设备验收仍待完成。
+2. git status / branch / log / fetch，确认重构提交位于 `codex/spatial-audio-render-unification` 或已合入联调分支。
 3. 保护 docs/integration-remote-test-checklist.md、docs/unpack.md、tmp/ 与用户文档，不夹带或清理。
-4. 再次确认前端未恢复修改 DreamWeaver/Views/Create、DreamWeaver/Views/Now、AppState 或 Models。
-5. 从阶段 1 的纯模型、算法和快照测试开始；不要直接先改 SpatialEditorView、SoundMixCircleEditor 或大拆 LocalPlaybackService。
-6. 第一批实现应只建立 SourceGroup、AudioClip、AutomationCurve、SceneRenderPlan、轨迹求值器与 compiler，并为洗头/雨景生成稳定快照。
-7. 阶段 1 通过 review 和测试后，再进入共享时钟与音频图阶段。
+4. 在 macOS/Xcode 先执行 Swift 6 编译，修复编译问题后再做行为调整。
+5. 在真机分别试听洗头和雨景：连续移动、20 句人声、远雨、循环接缝、暂停/恢复、seek 和场景退出。
+6. 对照第 12、13 节补齐自动化/设备验收结果；不要用 Windows 检查替代听感结论。
+7. 验收通过后再将状态改为“完成”，并按协作规则合入 `integration/frontend-backend`。

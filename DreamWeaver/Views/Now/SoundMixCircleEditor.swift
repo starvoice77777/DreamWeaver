@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Read-only spatial-position stage for the Now tab.
 struct SoundMixCircleEditor: View {
@@ -117,7 +118,12 @@ struct SoundMixCircleEditor: View {
         let side: CGFloat = 58 * scale
         let iconOpacity = 0.40 + gain * 0.30
 
-        return Image(systemName: symbol)
+        let candidate = symbol.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSymbol = !candidate.isEmpty && UIImage(systemName: candidate) != nil
+            ? candidate
+            : "waveform"
+
+        return Image(systemName: resolvedSymbol)
             .font(.system(size: iconSize))
             .foregroundStyle(DreamTheme.moonWhite.opacity(iconOpacity))
             .frame(width: side, height: side)

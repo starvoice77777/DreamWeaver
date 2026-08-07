@@ -6,17 +6,22 @@ struct SpatialKeyPoint: Identifiable, Equatable, Codable {
     var time: Double
     var position: CGPoint
     var createdByUser: Bool
+    /// Segment interpolation from this point to the next. Optional keeps older
+    /// local drafts decodable; manual sparse points default to smoothstep.
+    var interpolation: SceneInterpolationMode?
 
     init(
         id: UUID = UUID(),
         time: Double,
         position: CGPoint,
-        createdByUser: Bool = true
+        createdByUser: Bool = true,
+        interpolation: SceneInterpolationMode? = nil
     ) {
         self.id = id
         self.time = time
         self.position = position
         self.createdByUser = createdByUser
+        self.interpolation = interpolation
     }
 }
 
@@ -105,7 +110,7 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
     var assetID: UUID? = nil
     var resourceName: String? = nil
     var audioDuration: Double? = nil
-    /// Voice tracks are exclusive per scene; natural sounds may stack.
+    /// Voice clips remain independent timeline rows but share one source group.
     var isVoice: Bool = false
 
     var themeColor: Color { theme.color }
@@ -239,6 +244,9 @@ enum SpatialTimelineEditMode: String, CaseIterable, Identifiable {
 /// composition demo does not mutate the existing playback `SoundSource` model.
 struct SpatialEditorSource: Identifiable, Equatable, Codable {
     let id: UUID
+    /// Stable disk identity. Several clips (for example narration phrases) may
+    /// share one source group while remaining separate timeline rows.
+    var sourceGroupID: UUID?
     var materialID: String?
     var assetID: UUID?
     var resourceName: String?
@@ -255,13 +263,19 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
     /// Preserves whether the imported clip is a continuous bed or a one-shot.
     /// Optional keeps drafts created before official-timeline import decodable.
     var isLooping: Bool?
+    var sourceOffsetSeconds: Double?
+    var crossfadeMilliseconds: Int?
+    var fadeInMilliseconds: Int?
+    var fadeOutMilliseconds: Int?
     var isVoice: Bool
 
     var themeColor: Color { theme.color }
     var audioEndTime: Double { audioStartTime + audioDuration }
+    var effectiveSourceGroupID: UUID { sourceGroupID ?? id }
 
     init(
         id: UUID = UUID(),
+        sourceGroupID: UUID? = nil,
         materialID: String? = nil,
         assetID: UUID? = nil,
         resourceName: String? = nil,
@@ -274,9 +288,14 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
         audioStartTime: Double = 0,
         audioDuration: Double = 120,
         isLooping: Bool? = nil,
+        sourceOffsetSeconds: Double = 0,
+        crossfadeMilliseconds: Int? = nil,
+        fadeInMilliseconds: Int = 0,
+        fadeOutMilliseconds: Int = 0,
         isVoice: Bool = false
     ) {
         self.id = id
+        self.sourceGroupID = sourceGroupID
         self.materialID = materialID
         self.assetID = assetID
         self.resourceName = resourceName
@@ -289,6 +308,10 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
         self.audioStartTime = max(0, audioStartTime)
         self.audioDuration = max(1, audioDuration)
         self.isLooping = isLooping
+        self.sourceOffsetSeconds = max(sourceOffsetSeconds, 0)
+        self.crossfadeMilliseconds = crossfadeMilliseconds.map { max($0, 0) }
+        self.fadeInMilliseconds = max(fadeInMilliseconds, 0)
+        self.fadeOutMilliseconds = max(fadeOutMilliseconds, 0)
         self.isVoice = isVoice
     }
 }
@@ -362,14 +385,22 @@ enum SpatialTrajectory {
         let end = points[upperIndex]
         let interval = max(end.time - start.time, 0.000_1)
         let progress = min(max((time - start.time) / interval, 0), 1)
-        let smoothProgress = progress * progress * (3 - 2 * progress)
+        let evaluatedProgress: Double
+        switch start.interpolation ?? .smoothstep {
+        case .linear, .recordedLinear:
+            evaluatedProgress = progress
+        case .smoothstep:
+            evaluatedProgress = progress * progress * (3 - 2 * progress)
+        case .hold:
+            evaluatedProgress = progress < 1 ? 0 : 1
+        }
 
         return clampedToUnitCircle(
             CGPoint(
                 x: start.position.x
-                    + (end.position.x - start.position.x) * smoothProgress,
+                    + (end.position.x - start.position.x) * evaluatedProgress,
                 y: start.position.y
-                    + (end.position.y - start.position.y) * smoothProgress
+                    + (end.position.y - start.position.y) * evaluatedProgress
             )
         )
     }
@@ -419,7 +450,8 @@ enum SpatialTrajectory {
                 SpatialKeyPoint(
                     time: $0.time,
                     position: $0.position,
-                    createdByUser: false
+                    createdByUser: false,
+                    interpolation: .recordedLinear
                 )
             })
         }

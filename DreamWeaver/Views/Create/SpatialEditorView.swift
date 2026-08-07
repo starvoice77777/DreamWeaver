@@ -613,7 +613,7 @@ struct SpatialEditorView: View {
                     showsSoundTray = true
                 }
 
-                ForEach(viewModel.soundSources) { source in
+                ForEach(viewModel.sourceGroupRepresentatives, id: \.effectiveSourceGroupID) { source in
                     sourceStripButton(source)
                 }
             }
@@ -644,7 +644,7 @@ struct SpatialEditorView: View {
     }
 
     private func sourceStripButton(_ source: SpatialEditorSource) -> some View {
-        let isSelected = viewModel.selectedSourceID == source.id
+        let isSelected = viewModel.isSourceGroupSelected(source)
 
         return Button {
             viewModel.selectSource(source.id)
@@ -835,16 +835,12 @@ struct SpatialEditorView: View {
             Image(systemName: section.symbol)
                 .font(.system(size: DreamIconSize.secondary, weight: .medium))
                 .foregroundStyle(sceneAccent)
-                .frame(width: 46, height: 46)
-                .background {
-                    Circle()
-                        .fill(Color.white.opacity(0.065))
-                }
+                .frame(width: 30, height: 30)
                 .padding(.horizontal, 20)
                 .accessibilityLabel(section.title)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
+                LazyHStack(spacing: 10) {
                     ForEach(section.materials) { material in
                         soundTrayCard(material)
                     }
@@ -885,9 +881,9 @@ struct SpatialEditorView: View {
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: material.iconName)
-                    .font(.system(size: DreamIconSize.secondary, weight: .medium))
+                    .font(.system(size: DreamIconSize.content, weight: .medium))
                     .foregroundStyle(sceneAccent)
-                    .frame(width: 64, height: 64)
+                    .frame(width: 52, height: 52)
                     .background {
                         Circle()
                             .fill(Color.white.opacity(inUse ? 0.12 : 0.055))
@@ -903,17 +899,17 @@ struct SpatialEditorView: View {
                     }
 
                 Text(material.name)
-                    .font(.system(size: 12, weight: inUse ? .semibold : .medium))
+                    .font(.system(size: 11, weight: inUse ? .semibold : .medium))
                     .foregroundStyle(
                         inUse
                             ? DreamTheme.moonWhite
                             : DreamTheme.secondaryText
                     )
                     .lineLimit(1)
-                    .frame(width: 82)
+                    .frame(width: 68)
                     .multilineTextAlignment(.center)
             }
-            .frame(width: 82)
+            .frame(width: 68)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

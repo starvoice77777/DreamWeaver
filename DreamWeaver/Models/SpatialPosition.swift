@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-struct SpatialPosition: Hashable, Codable, Equatable {
+nonisolated struct SpatialPosition: Hashable, Codable, Equatable, Sendable {
     /// Angle in radians: 0 = front / screen-up, π/2 = right, -π/2 = left.
     var angle: Double
     /// Normalized distance from listener, ``SpatialMixMapping.minRadius``...``SpatialMixMapping.maxRadius``.

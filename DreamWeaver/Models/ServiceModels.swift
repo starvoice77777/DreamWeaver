@@ -55,7 +55,7 @@ enum LoadState: Equatable {
     case failed(String)
 }
 
-enum AudioLayerKind: String, Codable, Hashable {
+nonisolated enum AudioLayerKind: String, Codable, Hashable, Sendable {
     case environment
     case trigger
     case voice

@@ -14,7 +14,7 @@ enum DreamTypography {
     }
 
     /// Immersive scene title; intentionally fixed to preserve the cinematic composition.
-    static let dreamDisplay = Font.custom(sourceHanSansCN, size: 34).weight(.light)
+    static let dreamDisplay = Font.custom(sourceHanSansCN, size: 30).weight(.light)
     static let largeTitle = sourceHan(size: 28, relativeTo: .largeTitle, weight: .light)
     static let pageTitle = sourceHan(size: 24, relativeTo: .title2, weight: .light)
     static let sectionTitle = sourceHan(size: 18, relativeTo: .headline, weight: .medium)

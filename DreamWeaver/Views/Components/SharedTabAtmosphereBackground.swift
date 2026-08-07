@@ -31,7 +31,11 @@ struct SharedTabAtmosphereBackground: View {
                     scene: scene,
                     isPlaying: isPlaying && selectedTab == .now,
                     reduceMotion: reduceMotion || selectedTab != .now,
-                    intensity: intensity
+                    intensity: intensity,
+                    // Keep the same overscan and device-tilt transform while
+                    // moving between tabs. Animation playback may pause, but
+                    // the source artwork must not jump before it abstracts.
+                    depthMotionEnabled: !reduceMotion
                 )
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .scaleEffect(

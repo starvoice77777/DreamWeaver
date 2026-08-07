@@ -52,6 +52,7 @@ async def test_scene_timeline_hair_care(client) -> None:
     assert body["override_policy"] == "per_source_manual_exit"
     assert body["manual_override_track_ids"] == []
     assert body["duration_hint_seconds"] == 620
+    assert len(body["cues"]) == 138
 
     assert len(body["phrases"]) == 20
     phrase_ids = {item["id"] for item in body["phrases"]}
@@ -79,6 +80,11 @@ async def test_scene_timeline_hair_care(client) -> None:
     assert any(
         a.get("type") == "set_position" for c in body["cues"] for a in c.get("actions", [])
     )
+    actions = [action for cue in body["cues"] for action in cue.get("actions", [])]
+    assert len(actions) == 242
+    assert sum(action["type"] == "set_position" for action in actions) == 106
+    assert sum(action["type"] == "play_phrase" for action in actions) == 20
+    assert sum(action["type"] == "play_oneshot" for action in actions) == 10
     assert not any(a["type"] == "set_volume" for c in body["cues"] for a in c["actions"])
     assert _position_at(body, HAIR_WATER_TRACK_ID, 0)["radius"] == 0.8
     assert _position_at(body, HAIR_ROOMTONE_TRACK_ID, 30)["radius"] == 0.74
@@ -97,6 +103,7 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert body["version"] == 10
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
+    assert len(body["cues"]) == 27
     assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
     assert any(
         a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
@@ -111,6 +118,9 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert any(a["type"] == "set_envelope" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "set_position" for c in body["cues"] for a in c["actions"])
+    actions = [action for cue in body["cues"] for action in cue.get("actions", [])]
+    assert len(actions) == 55
+    assert sum(action["type"] == "set_position" for action in actions) == 26
     # Package sc_rain_v1 v8: soft fade-in 0.22; parasol enters farther; A04 wind_gust oneshots
     soft_envelopes = [
         a["envelope"]

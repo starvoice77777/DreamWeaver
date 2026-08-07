@@ -79,10 +79,6 @@ struct NowView: View {
                                     .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
-                            .animation(
-                                .easeInOut(duration: 0.36),
-                                value: appState.currentScene.palette
-                            )
                             .accessibilityLabel("浏览全部场景")
                         }
 
@@ -324,7 +320,7 @@ struct SceneTitleOverlay: View {
                 .font(DreamTypography.dreamDisplay)
                 .foregroundStyle(DreamTheme.moonWhite)
             Text(subtitle)
-                .font(DreamTypography.body)
+                .font(DreamTypography.callout)
                 .foregroundStyle(DreamTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
@@ -352,10 +348,6 @@ struct NowControlsOverlay: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .animation(
-                    .easeInOut(duration: 0.36),
-                    value: appState.currentScene.palette
-                )
                 .accessibilityLabel(appState.isPlaying ? "暂停" : "播放")
 
                 PlaybackProgressSlider(value: $appState.playbackProgress) { isEditing in
@@ -363,6 +355,7 @@ struct NowControlsOverlay: View {
                         appState.userIsInteracting = true
                         appState.revealControls()
                     } else {
+                        appState.seekPlayback(toProgress: appState.playbackProgress)
                         appState.bumpInteraction()
                     }
                 }
@@ -404,11 +397,13 @@ private struct PlaybackProgressSlider: View {
     var onEditingChanged: (Bool) -> Void
 
     @State private var isDragging = false
+    @State private var dragValue: Double = 0
 
     var body: some View {
         GeometryReader { proxy in
             let width = max(proxy.size.width, 1)
-            let clampedValue = min(max(value, 0), 1)
+            let displayedValue = isDragging ? dragValue : value
+            let clampedValue = min(max(displayedValue, 0), 1)
             let fillWidth = width * clampedValue
             let waveformHeight: CGFloat = isDragging ? 26 : 22
             let waveformBarCount = max(15, min(42, Int(width / 5.8)))
@@ -477,12 +472,14 @@ private struct PlaybackProgressSlider: View {
                     .onChanged { gesture in
                         if !isDragging {
                             isDragging = true
+                            dragValue = value
                             onEditingChanged(true)
                         }
-                        value = min(max(gesture.location.x / width, 0), 1)
+                        dragValue = min(max(gesture.location.x / width, 0), 1)
                     }
                     .onEnded { gesture in
-                        value = min(max(gesture.location.x / width, 0), 1)
+                        dragValue = min(max(gesture.location.x / width, 0), 1)
+                        value = dragValue
                         isDragging = false
                         onEditingChanged(false)
                     }
@@ -571,10 +568,6 @@ struct NowTimerButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .animation(
-            .easeInOut(duration: 0.36),
-            value: appState.currentScene.palette
-        )
         .accessibilityLabel("定时")
         .accessibilityValue("\(appState.sleepTimerDurationMinutes)分钟")
         .accessibilityHint("点按在右侧展开或收起计时刻度")

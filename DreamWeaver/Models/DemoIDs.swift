@@ -17,6 +17,10 @@ enum DemoIDs {
     static let flightScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110B")!
     static let summerNightScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110C")!
     static let fireplaceScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110D")!
+    static let alpsScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110F")!
+    static let twilightScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111110")!
+    static let preludeScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111111")!
+    static let ornateArchitectureScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111112")!
     static let seedMom = UUID(uuidString: "B2222222-2222-4222-8222-222222222201")!
     static let seedFriend = UUID(uuidString: "B2222222-2222-4222-8222-222222222202")!
     static let seedPartner = UUID(uuidString: "B2222222-2222-4222-8222-222222222203")!
