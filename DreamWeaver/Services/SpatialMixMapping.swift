@@ -62,11 +62,20 @@ enum SpatialMixMapping {
         position: SpatialPosition,
         environment: AVAudioEnvironmentNode
     ) {
-        node.position = worldPoint(from: position)
+        applySourcePosition(to: node, position: position)
         node.pan = 0
         node.reverbBlend = sourceReverbBlend
         node.renderingAlgorithm = preferredRenderingAlgorithm(in: environment)
         node.sourceMode = .spatializeIfMono
+    }
+
+    /// Real-time trajectory update. Graph-wide spatial configuration is set
+    /// once by `applySourceSpatialization` and deliberately left untouched.
+    static func applySourcePosition(
+        to node: any AVAudioMixing,
+        position: SpatialPosition
+    ) {
+        node.position = worldPoint(from: position)
     }
 
     private static func preferredRenderingAlgorithm(

@@ -16,7 +16,7 @@ enum ScenePlanCompiler {
                 return SceneSourceGroup(
                     id: raw.id,
                     name: raw.name,
-                    symbolName: raw.symbol_name ?? "waveform",
+                    symbolName: normalizedSymbolName(raw.symbol_name),
                     layer: AudioLayerKind(rawValue: raw.layer) ?? .ambience,
                     displayPolicy: SourceGroupDisplayPolicy(rawValue: raw.display_policy ?? "")
                         ?? .selectedOrActive,
@@ -101,7 +101,7 @@ enum ScenePlanCompiler {
             return SceneSourceGroup(
                 id: groupID,
                 name: base?.name ?? (representative.isVoice ? "轻声陪伴" : representative.name),
-                symbolName: base?.symbolName ?? representative.iconName,
+                symbolName: normalizedSymbolName(base?.symbolName ?? representative.iconName),
                 layer: base?.layer ?? layer(for: representative),
                 displayPolicy: representative.isVoice ? .alwaysInWindow : .selectedOrActive,
                 defaultPosition: frames.first?.position ?? polar(from: representative.defaultPosition),
@@ -190,6 +190,14 @@ enum ScenePlanCompiler {
             position: SpatialPosition(angle: raw.angle, radius: raw.radius),
             interpolation: SceneInterpolationMode(rawValue: raw.interpolation ?? "") ?? .linear
         )
+    }
+
+    nonisolated private static func normalizedSymbolName(_ raw: String?) -> String {
+        guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return "waveform"
+        }
+        return value
     }
 
     private static func mergedPositionKeyframes(

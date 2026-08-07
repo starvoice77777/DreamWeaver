@@ -36,6 +36,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private let renderer = SceneRenderer()
     private var renderGraph: AudioGraphController?
     private var activeRenderPlan: SceneRenderPlan?
+    private var activeSceneID: UUID?
     private var manualGroupEnabled: [UUID: Bool] = [:]
     private var isSeekingRenderer = false
 
@@ -44,10 +45,13 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     /// Fired when timeline automation mutates a source (position / enable).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
-    var onTimelineSourceChange: ((UUID, SoundSource) -> Void)?
+    var onTimelineSourceChange: ((UUID, UUID, SoundSource) -> Void)?
     var onRendererStateChange: ((RendererState) -> Void)?
     var hasPlayableAudio: Bool {
         renderGraph?.hasPlayableClips ?? !players.isEmpty
+    }
+    var currentDurationSeconds: Double? {
+        activeRenderPlan?.durationSeconds
     }
 
     init() {
@@ -77,6 +81,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         // Rebuild the graph from a stopped state. Detaching nodes while the
         // engine is running can leave AVAudioEngine with an invalid graph.
         stopInternal(keepEngine: false)
+        activeSceneID = scene.id
         lastErrorMessage = nil
         do {
             try configureSession()
@@ -113,6 +118,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     func load(scene: DreamScene, plan: SceneRenderPlan) throws {
         stopInternal(keepEngine: false)
+        activeSceneID = scene.id
         lastErrorMessage = nil
         do {
             try configureSession()
@@ -674,8 +680,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     private func publishTimelineSource(_ id: UUID) {
-        guard let source = currentSources[id] else { return }
-        onTimelineSourceChange?(id, source)
+        guard let sceneID = activeSceneID, let source = currentSources[id] else { return }
+        onTimelineSourceChange?(sceneID, id, source)
     }
 
     private func setTimelineSourceEnabled(_ id: UUID, enabled: Bool) {
@@ -963,7 +969,9 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             let isVisible = displayPolicy == .alwaysInWindow || rendered.isActive
             source.isEnabled = isVisible && (manualGroupEnabled[rendered.id] ?? true)
             currentSources[rendered.id] = source
-            onTimelineSourceChange?(rendered.id, source)
+            if let sceneID = activeSceneID {
+                onTimelineSourceChange?(sceneID, rendered.id, source)
+            }
         }
         if isPlaying, !state.isPlaying, state.time > 0 {
             isPlaying = false
@@ -980,6 +988,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         renderer.stop()
         renderGraph = nil
         activeRenderPlan = nil
+        activeSceneID = nil
         manualGroupEnabled = [:]
         isSeekingRenderer = false
         if engine.isRunning {

@@ -84,6 +84,8 @@ final class AppState: ObservableObject {
     /// Warm timelines for swipe targets so playback reload skips a network/disk round-trip.
     private var timelineCache: [UUID: APIContentDTO.SceneTimeline] = [:]
     private var swipePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    /// Invalidates async timeline fetch/load work from an outgoing scene.
+    private var playbackLoadGeneration: UInt = 0
     /// Official catalog tracks (stable DemoIDs) before personal-mix overlay — used to align presets.
     private var catalogSourcesByScene: [UUID: [SoundSource]] = [:]
     /// Prevents Settings `onChange` → `persistSettings` from racing while hydrating remote prefs.
@@ -211,8 +213,8 @@ final class AppState: ObservableObject {
             }
         }
 
-        playback.onTimelineSourceChange = { [weak self] id, source in
-            self?.applyTimelineSourceChange(id: id, source: source)
+        playback.onTimelineSourceChange = { [weak self] sceneID, id, source in
+            self?.applyTimelineSourceChange(sceneID: sceneID, id: id, source: source)
         }
         playback.onRendererStateChange = { [weak self] _ in
             guard let self else { return }
@@ -561,6 +563,13 @@ final class AppState: ObservableObject {
         bumpInteraction()
     }
 
+    func seekPlayback(toProgress progress: Double) {
+        guard let duration = playback.currentDurationSeconds, duration > 0 else { return }
+        let clamped = min(max(progress, 0), 1)
+        playback.seek(to: clamped * duration)
+        playbackProgress = clamped
+    }
+
     func setTimerOption(_ option: TimerOption) {
         timerOption = option
         if let minutes = option.minutes {
@@ -631,6 +640,12 @@ final class AppState: ObservableObject {
         // only 远雨 and made all later cues no-ops.
         let sources = scene.soundSources.filter { $0.resourceName != nil }
         let sceneId = currentSceneId
+        playbackLoadGeneration &+= 1
+        let loadGeneration = playbackLoadGeneration
+        // Do not let the outgoing scene continue audibly while the incoming
+        // timeline is fetched or compiled.
+        playback.stop()
+        isPlaying = false
         Task { @MainActor [weak self] in
             guard let self else { return }
             var renderPlan: SceneRenderPlan?
@@ -648,6 +663,10 @@ final class AppState: ObservableObject {
                 timeline = fetched
             } else {
                 timeline = nil
+            }
+            guard self.currentSceneId == sceneId,
+                  self.playbackLoadGeneration == loadGeneration else {
+                return
             }
             do {
                 self.isSleepTimerArmed = false
@@ -697,7 +716,14 @@ final class AppState: ObservableObject {
     }
 
     /// Mirror timeline automation onto the mix disk. Does not persist personal mix or mark overrides.
-    private func applyTimelineSourceChange(id: UUID, source: SoundSource) {
+    private func applyTimelineSourceChange(
+        sceneID: UUID,
+        id: UUID,
+        source: SoundSource
+    ) {
+        // A renderer callback may arrive while a swipe is replacing its graph.
+        // Never let the outgoing scene append sources into the incoming scene.
+        guard sceneID == currentSceneId else { return }
         // Only suppress position while dragging the disk. `userIsInteracting` also covers
         // preset-chip taps (markMixInteraction ~500ms) and would drop t=0 set_position cues.
         let appliedPosition = !isMixDragging

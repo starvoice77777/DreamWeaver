@@ -12,6 +12,7 @@ final class AudioGraphController {
         let mixer = AVAudioMixerNode()
         var isEnabled = true
         var nextInputBus: AVAudioNodeBus = 0
+        var lastAppliedPosition: SpatialPosition?
 
         init(group: SceneSourceGroup) {
             self.group = group
@@ -21,29 +22,23 @@ final class AudioGraphController {
     private final class ClipGraph {
         let clip: SceneAudioClip
         let loopBuffer: AVAudioPCMBuffer?
-        let sourceDuration: Double
         let resourceURL: URL
         let players: [AVAudioPlayerNode]
         let masteringUnits: [AVAudioUnitEQ]
-        var primaryIndex = 0
         var envelope: Float = 1
-        var instanceWeights: [Float]
 
         init(
             clip: SceneAudioClip,
             loopBuffer: AVAudioPCMBuffer?,
-            sourceDuration: Double,
             resourceURL: URL,
             players: [AVAudioPlayerNode],
             masteringUnits: [AVAudioUnitEQ]
         ) {
             self.clip = clip
             self.loopBuffer = loopBuffer
-            self.sourceDuration = sourceDuration
             self.resourceURL = resourceURL
             self.players = players
             self.masteringUnits = masteringUnits
-            self.instanceWeights = players.indices.map { $0 == 0 ? 1 : 0 }
         }
     }
 
@@ -53,7 +48,6 @@ final class AudioGraphController {
     private var groups: [UUID: GroupGraph] = [:]
     private var clips: [UUID: ClipGraph] = [:]
     private var activeClipIDs: Set<UUID> = []
-    private var crossfadeTasks: [UUID: Task<Void, Never>] = [:]
     private var latestState: RendererState = .empty
     private var nextEnvironmentInputBus: AVAudioNodeBus = 0
     private var layerFadeMultipliers: [AudioLayerKind: Float] = [:]
@@ -87,6 +81,7 @@ final class AudioGraphController {
                 position: group.defaultPosition,
                 environment: environment
             )
+            graph.lastAppliedPosition = group.defaultPosition
             graph.mixer.outputVolume = 0
             groups[group.id] = graph
         }
@@ -102,11 +97,12 @@ final class AudioGraphController {
             }
             do {
                 let file = try AVAudioFile(forReading: url)
-                let sourceDuration = Double(file.length) / file.processingFormat.sampleRate
                 let loopBuffer: AVAudioPCMBuffer?
                 if clip.playbackMode == .oneshot {
                     loopBuffer = nil
-                } else if let cached = buffersByResource[resource] {
+                } else if let cached = buffersByResource[
+                    loopBufferCacheKey(resource: resource, clip: clip)
+                ] {
                     loopBuffer = cached
                 } else {
                     guard let loaded = AVAudioPCMBuffer(
@@ -117,10 +113,20 @@ final class AudioGraphController {
                         continue
                     }
                     try file.read(into: loaded)
-                    buffersByResource[resource] = loaded
-                    loopBuffer = loaded
+                    let prepared = seamlessLoopBuffer(
+                        from: monoBuffer(from: loaded),
+                        crossfadeMilliseconds: clip.crossfadeMilliseconds
+                    )
+                    buffersByResource[
+                        loopBufferCacheKey(resource: resource, clip: clip)
+                    ] = prepared
+                    loopBuffer = prepared
                 }
-                let instanceCount = clip.crossfadeMilliseconds > 0 ? 2 : 1
+                // Crossfade loops are precomposed into one sample-continuous
+                // buffer. Starting/stopping A/B nodes from the main actor made
+                // every seam vulnerable to UI stalls on a real device.
+                let instanceCount = 1
+                let playbackFormat = loopBuffer?.format ?? file.processingFormat
                 var players: [AVAudioPlayerNode] = []
                 var masteringUnits: [AVAudioUnitEQ] = []
                 for _ in 0..<instanceCount {
@@ -132,13 +138,13 @@ final class AudioGraphController {
                     )
                     engine.attach(player)
                     engine.attach(mastering)
-                    engine.connect(player, to: mastering, format: file.processingFormat)
+                    engine.connect(player, to: mastering, format: playbackFormat)
                     engine.connect(
                         mastering,
                         to: group.mixer,
                         fromBus: 0,
                         toBus: group.nextInputBus,
-                        format: file.processingFormat
+                        format: playbackFormat
                     )
                     group.nextInputBus += 1
                     players.append(player)
@@ -147,7 +153,6 @@ final class AudioGraphController {
                 clips[clip.id] = ClipGraph(
                     clip: clip,
                     loopBuffer: loopBuffer,
-                    sourceDuration: sourceDuration,
                     resourceURL: url,
                     players: players,
                     masteringUnits: masteringUnits
@@ -178,7 +183,6 @@ final class AudioGraphController {
 
     func pause() {
         isPlaying = false
-        cancelCrossfades()
         for graph in clips.values {
             graph.players.forEach { $0.pause() }
         }
@@ -186,7 +190,6 @@ final class AudioGraphController {
 
     func stop() {
         isPlaying = false
-        cancelCrossfades()
         for graph in clips.values {
             graph.players.forEach { $0.stop() }
         }
@@ -198,11 +201,16 @@ final class AudioGraphController {
         latestState = state
         for sourceState in state.sourceGroups {
             guard let group = groups[sourceState.id] else { continue }
-            SpatialMixMapping.applySourceSpatialization(
-                to: group.mixer,
-                position: sourceState.position,
-                environment: environment
-            )
+            if shouldApplyPosition(sourceState.position, previous: group.lastAppliedPosition) {
+                // Rendering algorithm/source mode are graph configuration and
+                // must not be reassigned at 60 Hz. Doing so caused short HRTF
+                // rebuilds that sounded like a loop glitch or bearing jump.
+                SpatialMixMapping.applySourcePosition(
+                    to: group.mixer,
+                    position: sourceState.position
+                )
+                group.lastAppliedPosition = sourceState.position
+            }
             let layerFade = Double(layerFadeMultipliers[group.group.layer] ?? 1)
             let gain = group.isEnabled
                 ? sourceState.radialGain * sourceState.automationGain * layerFade
@@ -213,8 +221,8 @@ final class AudioGraphController {
         for id in state.activeClipIDs {
             guard let graph = clips[id] else { continue }
             graph.envelope = clipEnvelope(for: graph.clip, at: state.time)
-            for index in graph.players.indices {
-                graph.players[index].volume = graph.instanceWeights[index] * graph.envelope
+            for player in graph.players {
+                player.volume = graph.envelope
             }
         }
 
@@ -253,7 +261,6 @@ final class AudioGraphController {
         guard let graph = clips[id], !graph.players.isEmpty else { return }
         stopClip(id)
         graph.envelope = clipEnvelope(for: graph.clip, at: sceneTime)
-        graph.instanceWeights = graph.players.indices.map { $0 == 0 ? 1 : 0 }
         let offset = max(sceneTime - graph.clip.startSeconds + graph.clip.sourceOffsetSeconds, 0)
         switch graph.clip.playbackMode {
         case .oneshot:
@@ -284,14 +291,12 @@ final class AudioGraphController {
     }
 
     private func scheduleLoop(_ graph: ClipGraph, offset: Double) {
-        guard graph.loopBuffer != nil else { return }
+        guard let loopBuffer = graph.loopBuffer else { return }
         let primary = graph.players[0]
         primary.volume = graph.envelope
-        let sourceDuration = graph.sourceDuration
-        let phase = sourceDuration > 0 ? offset.truncatingRemainder(dividingBy: sourceDuration) : 0
+        let loopDuration = Double(loopBuffer.frameLength) / loopBuffer.format.sampleRate
+        let phase = loopDuration > 0 ? offset.truncatingRemainder(dividingBy: loopDuration) : 0
         scheduleRepeating(graph, player: primary, phase: phase)
-        guard graph.players.count == 2 else { return }
-        startCrossfadeCycle(for: graph, initialPhase: phase)
     }
 
     private func scheduleRepeating(
@@ -300,111 +305,19 @@ final class AudioGraphController {
         phase: Double
     ) {
         guard let buffer = graph.loopBuffer else { return }
-        if phase > 0,
-           let file = try? AVAudioFile(forReading: graph.resourceURL) {
-            let startFrame = min(
-                AVAudioFramePosition(phase * file.processingFormat.sampleRate),
-                max(file.length - 1, 0)
-            )
-            player.scheduleSegment(
-                file,
-                startingFrame: startFrame,
-                frameCount: AVAudioFrameCount(max(file.length - startFrame, 0)),
-                at: nil,
-                completionHandler: nil
-            )
-        }
-        player.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+        let scheduledBuffer = rotatedLoopBuffer(buffer, startingAtSeconds: phase)
+        player.scheduleBuffer(
+            scheduledBuffer,
+            at: nil,
+            options: .loops,
+            completionHandler: nil
+        )
         player.play()
     }
 
-    private func startCrossfadeCycle(for graph: ClipGraph, initialPhase: Double) {
-        let clipID = graph.clip.id
-        crossfadeTasks[clipID]?.cancel()
-        let sourceDuration = graph.sourceDuration
-        let overlap = LoopCrossfadeController.validatedDuration(
-            milliseconds: graph.clip.crossfadeMilliseconds,
-            sourceDurationSeconds: sourceDuration
-        )
-        guard overlap > 0, sourceDuration > overlap else { return }
-        let overlapStart = sourceDuration - overlap
-        let resumeProgress = initialPhase > overlapStart
-            ? min(max((initialPhase - overlapStart) / overlap, 0), 1)
-            : 0
-        if resumeProgress > 0 {
-            let weights = LoopCrossfadeController.gains(at: resumeProgress)
-            graph.instanceWeights[graph.primaryIndex] = weights.outgoing
-            graph.instanceWeights[graph.primaryIndex == 0 ? 1 : 0] = weights.incoming
-            graph.players[graph.primaryIndex].volume = weights.outgoing * graph.envelope
-        }
-        crossfadeTasks[clipID] = Task { @MainActor [weak self, clipID] in
-            guard let self, let graph = self.clips[clipID] else { return }
-            var delay = max(overlapStart - initialPhase, 0)
-            var transitionStart = resumeProgress
-            while self.isPlaying,
-                  self.activeClipIDs.contains(clipID) || self.latestState.activeClipIDs.contains(clipID),
-                  !Task.isCancelled {
-                do {
-                    try await Task.sleep(
-                        nanoseconds: UInt64(delay * 1_000_000_000)
-                    )
-                } catch { return }
-                guard self.isPlaying, !Task.isCancelled else { return }
-                let outgoing = graph.primaryIndex
-                let incoming = outgoing == 0 ? 1 : 0
-                let incomingPlayer = graph.players[incoming]
-                incomingPlayer.stop()
-                let startingGains = LoopCrossfadeController.gains(at: transitionStart)
-                graph.instanceWeights[outgoing] = startingGains.outgoing
-                graph.instanceWeights[incoming] = startingGains.incoming
-                incomingPlayer.volume = startingGains.incoming * graph.envelope
-                self.scheduleRepeating(
-                    graph,
-                    player: incomingPlayer,
-                    phase: transitionStart * overlap
-                )
-                let remainingOverlap = overlap * (1 - transitionStart)
-                let steps = max(Int(remainingOverlap * 60), 2)
-                for step in 0...steps {
-                    guard self.isPlaying, !Task.isCancelled else { return }
-                    let progress = transitionStart
-                        + (1 - transitionStart) * Double(step) / Double(steps)
-                    let gains = LoopCrossfadeController.gains(
-                        at: progress
-                    )
-                    graph.instanceWeights[outgoing] = gains.outgoing
-                    graph.instanceWeights[incoming] = gains.incoming
-                    graph.players[outgoing].volume = gains.outgoing * graph.envelope
-                    graph.players[incoming].volume = gains.incoming * graph.envelope
-                    if step < steps {
-                        do {
-                            try await Task.sleep(
-                                nanoseconds: UInt64(
-                                    remainingOverlap / Double(steps) * 1_000_000_000
-                                )
-                            )
-                        } catch { return }
-                    }
-                }
-                graph.players[outgoing].stop()
-                graph.primaryIndex = incoming
-                graph.instanceWeights[outgoing] = 0
-                graph.instanceWeights[incoming] = 1
-                transitionStart = 0
-                // The incoming player has already advanced by `overlap` during
-                // the transition. Wake again when it reaches its own overlap.
-                delay = max(sourceDuration - 2 * overlap, 0)
-            }
-        }
-    }
-
     private func stopClip(_ id: UUID) {
-        crossfadeTasks[id]?.cancel()
-        crossfadeTasks[id] = nil
         guard let graph = clips[id] else { return }
         graph.players.forEach { $0.stop() }
-        graph.primaryIndex = 0
-        graph.instanceWeights = graph.players.indices.map { $0 == 0 ? 1 : 0 }
     }
 
     private func clipEnvelope(for clip: SceneAudioClip, at time: Double) -> Float {
@@ -434,13 +347,7 @@ final class AudioGraphController {
         SpatialMixMapping.configureEnvironment(environment)
     }
 
-    private func cancelCrossfades() {
-        crossfadeTasks.values.forEach { $0.cancel() }
-        crossfadeTasks = [:]
-    }
-
     private func tearDownGraph() {
-        cancelCrossfades()
         if engine.isRunning { engine.stop() }
         for graph in clips.values {
             for node in graph.players where engine.attachedNodes.contains(node) {
@@ -466,5 +373,143 @@ final class AudioGraphController {
             engine.detach(environment)
         }
         engine.reset()
+    }
+
+    private func loopBufferCacheKey(resource: String, clip: SceneAudioClip) -> String {
+        "\(resource)#crossfade=\(clip.crossfadeMilliseconds)"
+    }
+
+    /// Spatial beds must enter AVAudioEnvironmentNode as true mono sources.
+    /// Downmix explicitly instead of relying on graph format negotiation; a
+    /// stereo rain master can otherwise leak its own momentary left/right image.
+    private func monoBuffer(from source: AVAudioPCMBuffer) -> AVAudioPCMBuffer {
+        guard source.format.channelCount > 1,
+              let sourceChannels = source.floatChannelData,
+              let monoFormat = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: source.format.sampleRate,
+                channels: 1,
+                interleaved: false
+              ), let output = AVAudioPCMBuffer(
+                pcmFormat: monoFormat,
+                frameCapacity: source.frameLength
+              ), let outputChannel = output.floatChannelData?[0] else {
+            return source
+        }
+        output.frameLength = source.frameLength
+        let channelCount = Int(source.format.channelCount)
+        let scale = Float(1) / Float(channelCount)
+        for frame in 0..<Int(source.frameLength) {
+            var sample: Float = 0
+            for channel in 0..<channelCount {
+                sample += sourceChannels[channel][frame]
+            }
+            outputChannel[frame] = sample * scale
+        }
+        return output
+    }
+
+    private func shouldApplyPosition(
+        _ position: SpatialPosition,
+        previous: SpatialPosition?
+    ) -> Bool {
+        guard let previous else { return true }
+        return abs(
+            SpatialTrajectoryEvaluator.shortestAngleDelta(
+                from: previous.angle,
+                to: position.angle
+            )
+        ) > 0.000_01 || abs(previous.radius - position.radius) > 0.000_01
+    }
+
+    /// Produces one loop whose boundary is already an equal-power blend of
+    /// the source tail and head. AVAudioPlayerNode can then repeat it with the
+    /// sample-accurate `.loops` option; no wall-clock task participates in a seam.
+    private func seamlessLoopBuffer(
+        from source: AVAudioPCMBuffer,
+        crossfadeMilliseconds: Int
+    ) -> AVAudioPCMBuffer {
+        let sourceDuration = Double(source.frameLength) / source.format.sampleRate
+        let overlapSeconds = LoopCrossfadeController.validatedDuration(
+            milliseconds: crossfadeMilliseconds,
+            sourceDurationSeconds: sourceDuration
+        )
+        let overlapFrames = min(
+            AVAudioFrameCount((overlapSeconds * source.format.sampleRate).rounded()),
+            source.frameLength / 2
+        )
+        guard overlapFrames > 1,
+              source.frameLength > overlapFrames * 2,
+              let sourceChannels = source.floatChannelData else {
+            return source
+        }
+
+        let outputLength = source.frameLength - overlapFrames
+        guard let output = AVAudioPCMBuffer(
+            pcmFormat: source.format,
+            frameCapacity: outputLength
+        ), let outputChannels = output.floatChannelData else {
+            return source
+        }
+        output.frameLength = outputLength
+
+        let channelCount = Int(source.format.channelCount)
+        let overlapCount = Int(overlapFrames)
+        let sourceCount = Int(source.frameLength)
+        let outputCount = Int(outputLength)
+        let middleCount = outputCount - overlapCount
+
+        for channel in 0..<channelCount {
+            let input = sourceChannels[channel]
+            let target = outputChannels[channel]
+            for frame in 0..<overlapCount {
+                let progress = Double(frame) / Double(overlapCount - 1)
+                let gains = LoopCrossfadeController.gains(at: progress)
+                target[frame] = input[sourceCount - overlapCount + frame] * gains.outgoing
+                    + input[frame] * gains.incoming
+            }
+            if middleCount > 0 {
+                target.advanced(by: overlapCount).update(
+                    from: input.advanced(by: overlapCount),
+                    count: middleCount
+                )
+            }
+        }
+        return output
+    }
+
+    /// Rotates a prepared seamless loop so resume/seek begins at the requested
+    /// phase without scheduling a non-crossfaded file tail in front of it.
+    private func rotatedLoopBuffer(
+        _ source: AVAudioPCMBuffer,
+        startingAtSeconds phase: Double
+    ) -> AVAudioPCMBuffer {
+        let frameCount = Int(source.frameLength)
+        guard phase > 0,
+              frameCount > 1,
+              let sourceChannels = source.floatChannelData else {
+            return source
+        }
+        let start = min(
+            max(Int((phase * source.format.sampleRate).rounded()), 0),
+            frameCount - 1
+        )
+        guard start > 0,
+              let output = AVAudioPCMBuffer(
+                pcmFormat: source.format,
+                frameCapacity: source.frameLength
+              ), let outputChannels = output.floatChannelData else {
+            return source
+        }
+        output.frameLength = source.frameLength
+
+        for channel in 0..<Int(source.format.channelCount) {
+            let input = sourceChannels[channel]
+            let target = outputChannels[channel]
+            let tailCount = frameCount - start
+            target.update(from: input.advanced(by: start), count: tailCount)
+            target.advanced(by: tailCount).update(from: input, count: start)
+        }
+        return output
     }
 }

@@ -47,7 +47,10 @@ struct SpiralSceneCarousel: View {
                 wheelStage(in: proxy.size)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .gesture(dragGesture)
+                    // Card buttons otherwise win gesture arbitration on a
+                    // nearly full-card hit area and make vertical wheel drags
+                    // appear unresponsive.
+                    .highPriorityGesture(dragGesture, including: .all)
                     .clipped()
                     .onReceive(frameTicker, perform: advanceMotion)
                     .onAppear(perform: alignToCurrentScene)

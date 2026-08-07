@@ -74,4 +74,4 @@
 - v1 在客户端编译为“一条 track 对应一个 SourceGroup 与一个 AudioClip”。
 - 官方 timeline 暂不改 endpoint，由 `ScenePlanCompiler` 编译为相同的 `SceneRenderPlan`。
 - 创建预览和播放页只执行 `SceneRenderPlan`；不再直接把 cue 或编辑器行解释为播放器节点。
-- 半径增益只施加在 SourceGroup mixer 一次。素材响度补偿、clip 淡入淡出、duck 和循环 A/B crossfade 属于内部处理，不生成额外圆盘图标。
+- 半径增益只施加在 SourceGroup mixer 一次。素材响度补偿、clip 淡入淡出、duck 和循环内部的等功率交叉淡化缓冲属于内部处理，不生成额外圆盘图标。

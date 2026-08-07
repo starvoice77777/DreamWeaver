@@ -22,7 +22,7 @@
 - 新增 `SceneRenderer` 单调 60 Hz 时钟；创建预览和播放页读取同一 RendererState。
 - 新增 `AudioGraphController`：每个 SourceGroup 一个空间 mixer，clip 独立响度校准，同组多 clip 共用一次半径增益。
 - 仅 loop 素材预解码可复用 PCM buffer；20 句人声与其他 oneshot 按文件分段调度，避免无必要的峰值内存。
-- loop clip 使用内部 A/B 节点和 equal-power crossfade；内部节点不生成 UI 身份。
+- loop clip 使用内部 equal-power crossfade；真机实现预合成为单个逐采样连续缓冲，不生成额外 UI 身份，也不依赖主线程定时切换节点。
 - A/B 调度按“下一次 overlap 起点”循环，seek 落在 overlap 内时会恢复双节点相位与剩余淡化进度。
 - `SpatialEditorSource` 作为兼容行模型增加 `sourceGroupID`；时间轴继续显示 clip，圆盘与上方声源条按 group 去重。
 - 新创建内容保存为 `scene_composition_v2`；服务端继续接受 v1，并新增 v2 引用、时间窗、插值和 crossfade 校验。

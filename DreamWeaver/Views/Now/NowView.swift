@@ -363,6 +363,7 @@ struct NowControlsOverlay: View {
                         appState.userIsInteracting = true
                         appState.revealControls()
                     } else {
+                        appState.seekPlayback(toProgress: appState.playbackProgress)
                         appState.bumpInteraction()
                     }
                 }
@@ -404,11 +405,13 @@ private struct PlaybackProgressSlider: View {
     var onEditingChanged: (Bool) -> Void
 
     @State private var isDragging = false
+    @State private var dragValue: Double = 0
 
     var body: some View {
         GeometryReader { proxy in
             let width = max(proxy.size.width, 1)
-            let clampedValue = min(max(value, 0), 1)
+            let displayedValue = isDragging ? dragValue : value
+            let clampedValue = min(max(displayedValue, 0), 1)
             let fillWidth = width * clampedValue
             let waveformHeight: CGFloat = isDragging ? 26 : 22
             let waveformBarCount = max(15, min(42, Int(width / 5.8)))
@@ -477,12 +480,14 @@ private struct PlaybackProgressSlider: View {
                     .onChanged { gesture in
                         if !isDragging {
                             isDragging = true
+                            dragValue = value
                             onEditingChanged(true)
                         }
-                        value = min(max(gesture.location.x / width, 0), 1)
+                        dragValue = min(max(gesture.location.x / width, 0), 1)
                     }
                     .onEnded { gesture in
-                        value = min(max(gesture.location.x / width, 0), 1)
+                        dragValue = min(max(gesture.location.x / width, 0), 1)
+                        value = dragValue
                         isDragging = false
                         onEditingChanged(false)
                     }
