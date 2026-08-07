@@ -63,6 +63,18 @@ enum SceneCoverArt {
             return ("summer_night_bg", "Scenes/SummerNight", "summer_night_bg.jpg")
         case .rainEaves:
             return ("rain_eaves_bg", "Scenes/RainEaves", "bg.jpg")
+        case .alpsCableCar:
+            return ("alps_bg", "Scenes/Alps", "alps_bg.png")
+        case .twilight:
+            return ("twilight_bg", "Scenes/Twilight", "twilight_bg.png")
+        case .prelude:
+            return ("prelude_bg", "Scenes/Prelude", "prelude_bg.jpg")
+        case .ornateArchitecture:
+            return (
+                "ornate_architecture_bg",
+                "Scenes/OrnateArchitecture",
+                "ornate_architecture_bg.jpg"
+            )
         default:
             return nil
         }

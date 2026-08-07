@@ -33,6 +33,14 @@ enum SceneBackdropKind: Equatable {
     case fireplaceWhisper
     /// Painted forest-night backdrop for「夏夜」.
     case summerNight
+    /// Looping alpine cable-car footage for「阿尔卑斯」.
+    case alpsCableCar
+    /// Looping dusk footage for「黄昏」.
+    case twilight
+    /// Still cinematic opening frame for「序幕」.
+    case prelude
+    /// Still monochrome architectural frame for「雕梁画栋」.
+    case ornateArchitecture
     /// Procedural Canvas motifs (snow, tide, …).
     case canvasMotif
 }
@@ -69,6 +77,14 @@ extension SceneVisualStyle {
             return .fireplaceWhisper
         case .summerNight:
             return .summerNight
+        case .alpsCableCar:
+            return .alpsCableCar
+        case .twilight:
+            return .twilight
+        case .prelude:
+            return .prelude
+        case .ornateArchitecture:
+            return .ornateArchitecture
         default:
             return .canvasMotif
         }

@@ -20,7 +20,7 @@ iOS 侧的场景 UUID 保持稳定；场景改名不会让用户收藏、最近�
 
 ## 3. 官方场景目录变化
 
-官方目录由 14 个场景调整为 13 个。以下场景复用原 UUID，并更换名称、文案、图片与客户端枚举名称：
+官方目录当前为 15 个场景。第一轮改版中，以下场景复用原 UUID，并更换名称、文案、图片与客户端枚举名称：
 
 | UUID 后缀 | 原场景 | 新场景 | API `visual_style` | iOS 枚举 |
 | --- | --- | --- | --- | --- |
@@ -34,19 +34,27 @@ iOS 侧的场景 UUID 保持稳定；场景改名不会让用户收藏、最近�
 
 兼容原则：后端 `visual_style` 字符串没有随产品名称改动。iOS 通过显式 raw value 映射到新的枚举名称，因此旧数据库、旧缓存和远端响应仍可正常解码。
 
+本轮新增 4 个使用全新稳定 UUID 的场景：
+
+| UUID 后缀 | 场景 | 文案 | API `visual_style` | 背景类型 |
+| --- | --- | --- | --- | --- |
+| `110F` | 阿尔卑斯 | 坐缆车上山滑雪 | `alpsCableCar` | 8.5 秒循环视频 + 同源封面帧 |
+| `1110` | 黄昏 | 明天又是新的一天 | `twilight` | 7.9 秒循环视频 + 同源封面帧 |
+| `1111` | 序幕 | INTRO... | `prelude` | 静态图片 |
+| `1112` | 雕梁画栋 | 建筑是大地的文字 | `ornateArchitecture` | 静态图片 |
+
 ### 退役场景
 
-- UUID：`a1111111-1111-4111-8111-11111111110e`
-- 名称：流光溢彩
-- 后端行为：加入 `RETIRED_SCENE_IDS`；已有数据库中的记录会被设置为 `is_published = false`。
+- UUID：`...1107`（星河远眠）、`...1109`（雪夜书房）、`...110e`（流光溢彩）。
+- 后端行为：三者均加入 `RETIRED_SCENE_IDS`；已有数据库中的记录会被设置为 `is_published = false`。
 - API 行为：不再出现在 `GET /v1/scenes`，访问 `GET /v1/scenes/{id}` 返回 404。
-- iOS 行为：`emotionalFluid` 渲染器继续保留为可复用视觉能力，但不再作为官方场景展示。
+- iOS 行为：旧枚举和渲染资源继续保留，用于兼容用户已有收藏、缓存和私有场景，但不再作为官方场景展示。
 
 ## 4. API 与数据兼容性
 
 接口字段结构没有变化。需要注意以下行为变化：
 
-1. `GET /v1/bootstrap` 和 `GET /v1/scenes` 返回 13 个官方场景。
+1. `GET /v1/bootstrap` 和 `GET /v1/scenes` 返回 15 个官方场景。
 2. 若用户保存的默认场景已经退役，bootstrap 会回退到 `DEFAULT_SCENE_ID`（洗头陪伴）。
 3. 顶层 `default_scene_id` 与 `settings.default_scene_id` 会返回同一个有效 ID，避免客户端状态不一致。
 4. `ensure_official_catalog()` 会自动下架退役场景，但不会在 production 请求路径中覆盖所有现有官方场景元数据。
@@ -75,15 +83,15 @@ DW_FORCE_RESEED_CATALOG=true
 `POST /v1/admin/reseed-catalog` 在 production 固定返回 403，`DW_FORCE_RESEED_CATALOG` 也会被忽略。上线前请后端通过受控的一次性部署任务调用 `reseed_official_catalog(session)`，或提供等价的数据迁移：
 
 1. 更新表中上述稳定 UUID 对应的名称、文案、分类、标签与 palette。
-2. 将 `...110e` 的 `is_published` 设为 `false`。
+2. 将 `...1107`、`...1109`、`...110e` 的 `is_published` 设为 `false`。
 3. 保持 `visual_style` 为表格中的兼容字符串。
 4. 不要删除旧场景行，避免破坏用户收藏、默认场景和私有场景来源引用。
 
-即使没有执行完整 reseed，部署后的普通 API 请求也会自动下架 `...110e`；但其他场景的新名称和 palette 需要完整 reseed 或数据迁移才能进入已有 production 数据库。
+即使没有执行完整 reseed，部署后的普通 API 请求也会自动下架上述三个 UUID；但四个新增场景和其他场景的新名称、palette 需要完整 reseed 或数据迁移才能进入已有 production 数据库。
 
 ## 6. iOS 改动摘要
 
-- 替换并新增多张沉浸式场景图片，删除已退役的旧场景图片与专用 backdrop。
+- 替换并新增沉浸式场景图片与两段循环视频；视频场景同时包含同源静态封面，避免首帧与卡片黑屏。
 - 首页、创建页和个人页共享同一持续存在的场景背景，跨 Tab 时以模糊、缩放和暗化完成过渡。
 - 底部导航可在空闲后收拢为当前页面图标，并支持左右停靠。
 - 构件强调色统一为中性雾银灰，不再按场景动态跳色。
@@ -101,7 +109,7 @@ DW_FORCE_RESEED_CATALOG=true
 
 - `DreamWeaver/App/AppState.swift`：仅调整新场景枚举与预设的对应关系。
 - `DreamWeaver/Services/APIContentDTO.swift`：未知 `visual_style` 的客户端回退改为 `.longRoad`。
-- `server/app/services/seed_catalog.py`：官方目录内容、13 场景计数与退役场景逻辑。
+- `server/app/services/seed_catalog.py`：官方目录内容、15 场景计数、新增 UUID 与三项退役场景逻辑。
 - `server/app/services/content.py`：退役默认场景的 bootstrap 回退与嵌套 settings 一致性。
 
 ## 8. 本分支验证结果
@@ -109,7 +117,7 @@ DW_FORCE_RESEED_CATALOG=true
 - iOS 完整无签名 Debug 构建（包含 Asset Catalog）：通过。
 - 全部 Swift 文件语法检查：通过。
 - Asset Catalog JSON 校验与场景图片格式检查：通过。
-- Server pytest：54 项通过。
+- Server pytest：55 项通过。
 - 修改涉及的 Python 文件 Ruff：通过。
 - `git diff --check`：通过。
 
@@ -117,8 +125,9 @@ DW_FORCE_RESEED_CATALOG=true
 
 ## 9. 后端验收清单
 
-- [ ] `/v1/scenes` 不返回 `...110e`。
-- [ ] `/v1/scenes/...110e` 返回 404。
+- [ ] `/v1/scenes` 不返回 `...1107`、`...1109`、`...110e`。
+- [ ] 上述三个退役场景的详情接口均返回 404。
+- [ ] `/v1/scenes` 包含 `...110f`、`...1110`、`...1111`、`...1112` 四个新增场景。
 - [ ] 新目录名称、标签和 palette 与 `official_scene_specs()` 一致。
 - [ ] `visual_style` 仍使用兼容字符串，没有改成新的 iOS 枚举名称。
 - [ ] 退役场景原本作为默认场景的用户可正常回退到洗头陪伴。

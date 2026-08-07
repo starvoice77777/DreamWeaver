@@ -79,10 +79,6 @@ struct NowView: View {
                                     .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
-                            .animation(
-                                .easeInOut(duration: 0.36),
-                                value: appState.currentScene.palette
-                            )
                             .accessibilityLabel("浏览全部场景")
                         }
 
@@ -324,7 +320,7 @@ struct SceneTitleOverlay: View {
                 .font(DreamTypography.dreamDisplay)
                 .foregroundStyle(DreamTheme.moonWhite)
             Text(subtitle)
-                .font(DreamTypography.body)
+                .font(DreamTypography.callout)
                 .foregroundStyle(DreamTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
@@ -352,10 +348,6 @@ struct NowControlsOverlay: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .animation(
-                    .easeInOut(duration: 0.36),
-                    value: appState.currentScene.palette
-                )
                 .accessibilityLabel(appState.isPlaying ? "暂停" : "播放")
 
                 PlaybackProgressSlider(value: $appState.playbackProgress) { isEditing in
@@ -571,10 +563,6 @@ struct NowTimerButton: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .animation(
-            .easeInOut(duration: 0.36),
-            value: appState.currentScene.palette
-        )
         .accessibilityLabel("定时")
         .accessibilityValue("\(appState.sleepTimerDurationMinutes)分钟")
         .accessibilityHint("点按在右侧展开或收起计时刻度")
