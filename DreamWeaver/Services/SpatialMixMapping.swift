@@ -21,9 +21,9 @@ enum SpatialMixMapping {
     /// so removing a source just beyond the disk does not create an audible jump.
     static let farEdgeGain: Double = 0.01
 
-    /// Shapes the radial fade while preserving useful resolution near the listener.
-    /// Values above 1 make the outer part of the disk fall away more quickly.
-    static let radialFalloffExponent: Double = 1.5
+    /// Keeps most of the disk usable, then tapers decisively near the edge.
+    /// The edge itself still lands at `farEdgeGain` and is effectively silent.
+    static let radialFalloffExponent: Double = 3
 
     /// Soft send into the environment's factory reverb.
     static let sourceReverbBlend: Float = 0.14
@@ -40,9 +40,9 @@ enum SpatialMixMapping {
     /// Deterministic user gain for a point on the mix disk.
     /// Equal radii always return equal gains, regardless of bearing.
     static func gain(for radius: Double) -> Double {
-        let remainingDistance = 1 - radiusNormalized(radius)
+        let normalizedRadius = radiusNormalized(radius)
         return farEdgeGain
-            + (1 - farEdgeGain) * pow(remainingDistance, radialFalloffExponent)
+            + (1 - farEdgeGain) * (1 - pow(normalizedRadius, radialFalloffExponent))
     }
 
     static func configureEnvironment(_ environment: AVAudioEnvironmentNode) {
@@ -60,7 +60,7 @@ enum SpatialMixMapping {
     }
 
     static func applySourceSpatialization(
-        to node: AVAudioPlayerNode,
+        to node: any AVAudioMixing,
         position: SpatialPosition,
         environment: AVAudioEnvironmentNode
     ) {

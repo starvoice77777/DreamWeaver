@@ -2,4 +2,4 @@ resource_key,source_type,owner_or_provider,license_status,allowed_usage,export_a
 rain_soft,official,team,approved,DreamWeaver场景内播放,false,已确认可用于复赛演示；正式上架前复核归档凭证
 rain_parasol,official,team,approved,DreamWeaver场景内播放,false,已确认可用于复赛演示；正式上架前复核归档凭证
 rain_bamboo_leaf,official,team,approved,DreamWeaver场景内播放,false,已确认可用于复赛演示；正式上架前复核归档凭证
-wind_realistic,official,team,approved,DreamWeaver场景内播放,false,已确认可用于复赛演示；正式上架前复核归档凭证
+wind_gust,external,爱给网（原始作者待核）,pending_verification,仅在授权核验通过后用于DreamWeaver场景内播放,false,来源文件：foley-风-咆哮的阵风-大-音质量好-48000 1_爱给网_aigei_com.wav；原文件元数据显示acidplanet.com；需补下载页与许可证截图

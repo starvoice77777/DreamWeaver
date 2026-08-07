@@ -65,6 +65,35 @@ def validate(package, ffprobe):
         if start + playback > duration + 0.001:
             errors.append(f"{tid}: 轨道结束时间超过场景总时长")
 
+        playback_events = track.get("playback_events", [])
+        event_windows = []
+        if playback_events:
+            if not isinstance(playback_events, list):
+                errors.append(f"{tid}: playback_events 必须是数组")
+                playback_events = []
+            else:
+                event_starts = []
+                for event in playback_events:
+                    event_start = float(event.get("start_seconds", -1))
+                    event_duration = float(event.get("playback_duration_seconds", -1))
+                    event_volume = float(event.get("volume", track.get("default_volume", -1)))
+                    if event_start < 0 or event_duration <= 0:
+                        errors.append(f"{tid}: playback_events 时间字段不合法")
+                        continue
+                    if event_start + event_duration > duration + 0.001:
+                        errors.append(f"{tid}: playback_event 超出场景总时长: {event_start}")
+                    if not 0 <= event_volume <= 1:
+                        errors.append(f"{tid}: playback_event volume 超出0…1: {event_volume}")
+                    event_starts.append(event_start)
+                    event_windows.append((event_start, event_start + event_duration))
+                if event_starts != sorted(event_starts) or len(event_starts) != len(set(event_starts)):
+                    errors.append(f"{tid}: playback_events 必须按时间严格递增")
+                if event_starts and abs(event_starts[0] - start) > 0.001:
+                    errors.append(f"{tid}: start_seconds 必须等于第一条 playback_event")
+                for previous, current in zip(event_windows, event_windows[1:]):
+                    if current[0] < previous[1] - 0.001:
+                        errors.append(f"{tid}: 同一轨道的 playback_events 不得重叠")
+
         keyframes = track.get("position_keyframes", [])
         if not keyframes:
             errors.append(f"{tid}: 缺少 position_keyframes")
@@ -78,7 +107,10 @@ def validate(package, ffprobe):
                 at = float(item.get("at_seconds", -1))
                 angle = float(item.get("angle", 99))
                 radius = float(item.get("radius", -1))
-                if at < start or at > start + playback + 0.001:
+                if event_windows:
+                    if not any(window_start - 0.001 <= at <= window_end + 0.001 for window_start, window_end in event_windows):
+                        errors.append(f"{tid}: 位置关键帧未落在任何 playback_event 内: {at}")
+                elif at < start or at > start + playback + 0.001:
                     errors.append(f"{tid}: 位置关键帧超出本轨播放区间: {at}")
                 if not -math.pi <= angle <= math.pi:
                     errors.append(f"{tid}: angle 超出 -π…π: {angle}")
@@ -90,6 +122,8 @@ def validate(package, ffprobe):
         cross_ms = track.get("crossfade_ms")
         if not isinstance(loop, bool):
             errors.append(f"{tid}: loop 必须显式填写 Boolean")
+        if playback_events and loop is not False:
+            errors.append(f"{tid}: 使用 playback_events 的单次触发轨必须 loop=false")
         if loop is True and not isinstance(cross_required, bool):
             errors.append(f"{tid}: loop=true 时 requires_engine_crossfade 必填")
         if cross_required is True:
@@ -114,6 +148,20 @@ def validate(package, ffprobe):
         if abs(info["duration"] - asset_duration) > 0.02:
             errors.append(f"{tid}: JSON时长{asset_duration}与文件时长{info['duration']:.6f}不一致")
         checked_audio.append({"track_id": tid, "file": master.name, **info})
+
+        if playback_events:
+            for event in playback_events:
+                event_start = float(event.get("start_seconds", -1))
+                has_matching_cue = any(
+                    abs(float(cue.get("at_seconds", -999)) - event_start) <= 0.001
+                    and any(
+                        action.get("type") == "play_oneshot" and action.get("track_id") == tid
+                        for action in cue.get("actions", [])
+                    )
+                    for cue in timeline.get("cues", [])
+                )
+                if not has_matching_cue:
+                    errors.append(f"{tid}: playback_event {event_start} 缺少对应 play_oneshot cue")
 
     for row in track_rows:
         if row["track_id"] not in seen:

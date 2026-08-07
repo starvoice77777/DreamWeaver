@@ -315,7 +315,10 @@ final class AppState: ObservableObject {
 
             // Drop / repair stale personal mixes that no longer share official track IDs.
             for scene in loadedScenes {
-                reconcilePersonalMix(with: scene)
+                reconcilePersonalMix(
+                    with: scene,
+                    enforceOfficialVoiceScope: !createdIDs.contains(scene.id)
+                )
             }
 
             if let personal = personalMixByScene[currentSceneId] {
@@ -1097,14 +1100,66 @@ final class AppState: ObservableObject {
     }
 
     /// Replaces or repairs a stored personal mix when it drifts from the official catalog.
-    private func reconcilePersonalMix(with scene: DreamScene) {
+    private func reconcilePersonalMix(
+        with scene: DreamScene,
+        enforceOfficialVoiceScope: Bool
+    ) {
         let official = scene.soundSources
-        let remoteKeys = Set(official.compactMap(\.resourceName))
-        guard !remoteKeys.isEmpty else { return }
-        guard let personal = personalMixByScene[scene.id] else {
+        guard var personal = personalMixByScene[scene.id] else {
             personalMixByScene[scene.id] = official
             return
         }
+        if enforceOfficialVoiceScope {
+            let legacyResourceNames: Set<String>
+            switch scene.id {
+            case DemoIDs.hairCareScene:
+                legacyResourceNames = [
+                    "hair_dryer",
+                    "hair_wash",
+                    "hair_wash_care_spray",
+                    "hair_wash_care_tool",
+                    "hair_wash_scalp_massage",
+                    "voice_phrase_mom",
+                ]
+            case DemoIDs.rainEavesScene:
+                legacyResourceNames = ["wind_realistic", "rain_soft_legacy"]
+            default:
+                legacyResourceNames = []
+            }
+            let officialIDs = Set(official.map(\.id))
+            var scoped = personal.filter { $0.layer != .voice }
+            scoped.removeAll { source in
+                !officialIDs.contains(source.id)
+                    && source.resourceName.map(legacyResourceNames.contains) == true
+            }
+            if scene.id == DemoIDs.hairCareScene,
+               let officialVoice = official.first(where: { $0.layer == .voice }) {
+                // The timeline requires the canonical track ID and resource key.
+                scoped.append(officialVoice)
+            }
+
+            // Preserve the user's position/enabled state, but always rebind an
+            // official track to the current catalog metadata and mastered file.
+            // This repairs mixes persisted before a preset package upgrade.
+            let canonicalByID = Dictionary(
+                uniqueKeysWithValues: official.map { ($0.id, $0) }
+            )
+            for index in scoped.indices {
+                guard let canonical = canonicalByID[scoped[index].id] else { continue }
+                scoped[index].name = canonical.name
+                scoped[index].symbolName = canonical.symbolName
+                scoped[index].assetId = canonical.assetId
+                scoped[index].resourceName = canonical.resourceName
+                scoped[index].layer = canonical.layer
+            }
+            if scoped != personal {
+                personal = scoped
+                personalMixByScene[scene.id] = scoped
+                persistPersonalMix()
+            }
+        }
+        let remoteKeys = Set(official.compactMap(\.resourceName))
+        guard !remoteKeys.isEmpty else { return }
         let personalKeys = Set(personal.compactMap(\.resourceName))
         let officialResourceIds = Set(official.filter { $0.resourceName != nil }.map(\.id))
         let personalIds = Set(personal.map(\.id))

@@ -62,7 +62,7 @@ def _track(
 def official_scene_specs() -> list[dict]:
     """Official catalog aligned with iOS MockDataService / DemoIDs (13 scenes)."""
     pi = math.pi
-    return [
+    specs = [
         {
             "id": DEFAULT_SCENE_ID,
             "name": "洗头陪伴",
@@ -292,17 +292,6 @@ def official_scene_specs() -> list[dict]:
                     initial_envelope=0.5,
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(10303),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.4,
-                    radius=0.4,
-                    initial_envelope=0.4,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -337,17 +326,6 @@ def official_scene_specs() -> list[dict]:
                     initial_envelope=0.4,
                     resource_key="wind_realistic",
                     sort_order=1,
-                ),
-                _track(
-                    track_id=_tid(10403),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.3,
-                    radius=0.45,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
                 ),
             ],
         },
@@ -384,17 +362,6 @@ def official_scene_specs() -> list[dict]:
                     resource_key="wind_realistic",
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(10503),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=pi * 1.35,
-                    radius=0.42,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -430,17 +397,6 @@ def official_scene_specs() -> list[dict]:
                     resource_key="wind_realistic",
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(10603),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=pi * 1.4,
-                    radius=0.4,
-                    initial_envelope=0.3,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -475,17 +431,6 @@ def official_scene_specs() -> list[dict]:
                     resource_key="wind_realistic",
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(10703),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=pi * 1.2,
-                    radius=0.42,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -501,17 +446,6 @@ def official_scene_specs() -> list[dict]:
             "sort_order": 7,
             "mock_listener_count": 2031,
             "tracks": [
-                _track(
-                    track_id=_tid(10801),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.15,
-                    radius=0.35,
-                    initial_envelope=0.55,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=0,
-                ),
                 _track(
                     track_id=_tid(10802),
                     name="雨声",
@@ -565,17 +499,6 @@ def official_scene_specs() -> list[dict]:
                     resource_key="wind_realistic",
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(10903),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.35,
-                    radius=0.4,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -610,17 +533,6 @@ def official_scene_specs() -> list[dict]:
                     initial_envelope=0.4,
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(11003),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.4,
-                    radius=0.42,
-                    initial_envelope=0.3,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
@@ -645,17 +557,6 @@ def official_scene_specs() -> list[dict]:
                     initial_envelope=0.65,
                     resource_key="wind_realistic",
                     sort_order=0,
-                ),
-                _track(
-                    track_id=_tid(11102),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=pi * 0.9,
-                    radius=0.45,
-                    initial_envelope=0.45,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=1,
                 ),
                 _track(
                     track_id=_tid(11103),
@@ -701,24 +602,13 @@ def official_scene_specs() -> list[dict]:
                     resource_key="wind_realistic",
                     sort_order=1,
                 ),
-                _track(
-                    track_id=_tid(11203),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.35,
-                    radius=0.42,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=2,
-                ),
             ],
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-11111111110d"),
             "name": "炉边低语",
             "subtitle": "火光轻轻说着不重要的事。",
-            "description": "炉火细碎作响，低语与暖色把夜晚收得很近。",
+            "description": "炉火细碎作响，雨声与暖色把夜晚收得很近。",
             "category": "companion",
             "tags": ["炉火", "低语"],
             "palette": _palette(0x241810, 0x4A2C1A, 0x140E0A, 0xE09060),
@@ -737,17 +627,6 @@ def official_scene_specs() -> list[dict]:
                     sort_order=0,
                 ),
                 _track(
-                    track_id=_tid(11302),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=-pi * 0.25,
-                    radius=0.38,
-                    initial_envelope=0.5,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    sort_order=1,
-                ),
-                _track(
                     track_id=_tid(11303),
                     name="雨声",
                     symbol="cloud.rain.fill",
@@ -760,6 +639,13 @@ def official_scene_specs() -> list[dict]:
             ],
         },
     ]
+    # Product invariant: bundled narration belongs exclusively to hair care.
+    # Keep this guard at the catalog boundary so a future scene fixture cannot
+    # accidentally expose or schedule the mastered hair-care phrases.
+    for spec in specs:
+        if spec["id"] != DEFAULT_SCENE_ID:
+            spec["tracks"] = [track for track in spec["tracks"] if track["layer"] != "voice"]
+    return specs
 
 
 def official_preset_specs() -> list[dict]:
@@ -895,9 +781,10 @@ def _add_scene(session: AsyncSession, spec: dict) -> None:
 
 
 async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:
-    """Upsert official scene metadata/tracks/presets by id. Does not delete orphan tracks."""
+    """Make official scene metadata/tracks/presets match the authored catalog."""
     tracks_inserted = 0
     tracks_updated = 0
+    tracks_deleted = 0
     scenes_updated = 0
     presets_inserted = 0
     presets_updated = 0
@@ -910,6 +797,14 @@ async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:
             if key in spec:
                 setattr(scene, key, spec[key])
         scenes_updated += 1
+        desired_track_ids = {track_spec["id"] for track_spec in spec["tracks"]}
+        existing_tracks = list(
+            await session.scalars(select(SceneTrack).where(SceneTrack.scene_id == spec["id"]))
+        )
+        for row in existing_tracks:
+            if row.id not in desired_track_ids:
+                await session.delete(row)
+                tracks_deleted += 1
         for index, track_spec in enumerate(spec["tracks"]):
             row = await session.get(SceneTrack, track_spec["id"])
             if row is None:
@@ -936,6 +831,7 @@ async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:
         "scenes_updated": scenes_updated,
         "tracks_inserted": tracks_inserted,
         "tracks_updated": tracks_updated,
+        "tracks_deleted": tracks_deleted,
         "presets_inserted": presets_inserted,
         "presets_updated": presets_updated,
     }
@@ -958,7 +854,8 @@ async def ensure_official_catalog(
 ) -> None:
     """Insert any missing official scenes/presets (idempotent; safe for existing DBs).
 
-    When ``refresh_tracks`` is true, also upsert official track/preset fields (no deletes).
+    When ``refresh_tracks`` is true, also reconcile official tracks and presets,
+    including removal of stale official-track rows.
     """
     existing_scene_ids = set(await session.scalars(select(Scene.id)))
     existing_preset_ids = set(await session.scalars(select(MixPreset.id)))

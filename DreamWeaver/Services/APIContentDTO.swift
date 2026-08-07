@@ -2,19 +2,19 @@ import Foundation
 
 /// Snake_case DTOs matching FastAPI `/v1` JSON. Mapped into app models.
 enum APIContentDTO {
-    struct SpatialPosition: Codable {
+    nonisolated struct SpatialPosition: Codable, Sendable {
         let angle: Double
         let radius: Double
     }
 
-    struct Palette: Decodable {
+    nonisolated struct Palette: Decodable, Sendable {
         let top: UInt32
         let mid: UInt32
         let bottom: UInt32
         let accent: UInt32
     }
 
-    struct Track: Decodable {
+    nonisolated struct Track: Decodable, Sendable {
         let id: UUID
         let name: String
         let symbol_name: String
@@ -61,7 +61,7 @@ enum APIContentDTO {
         let sort_order: Int?
     }
 
-    struct SceneDetail: Decodable {
+    nonisolated struct SceneDetail: Decodable, Sendable {
         let id: UUID
         let name: String
         let subtitle: String
@@ -455,9 +455,14 @@ enum APIContentDTO {
 
 enum APIContentMapper {
     static func dreamScene(from detail: APIContentDTO.SceneDetail) -> DreamScene {
-        let sources = detail.tracks.map(soundSource(from:))
+        // The bundled phrase library is authored only for the official hair-care
+        // timeline. Defensively hide stale server voice rows from every other scene.
+        let tracks = detail.id == DemoIDs.hairCareScene
+            ? detail.tracks
+            : detail.tracks.filter { $0.layer != "voice" }
+        let sources = tracks.map(soundSource(from:))
         let manifest = SceneAudioManifest(
-            tracks: detail.tracks.map { track in
+            tracks: tracks.map { track in
                 AudioTrackRef(
                     id: track.id,
                     name: track.name,
@@ -473,7 +478,7 @@ enum APIContentMapper {
                     isRequired: true
                 )
             },
-            voicePhraseResourceName: detail.tracks.first(where: { $0.layer == "voice" })?.resource_key
+            voicePhraseResourceName: tracks.first(where: { $0.layer == "voice" })?.resource_key
         )
 
         return DreamScene(

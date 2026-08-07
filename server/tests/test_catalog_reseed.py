@@ -16,6 +16,8 @@ from app.services.seed_catalog import (
 RAIN_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
 BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
 FAR_RAIN_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
+HAIR_CARE_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
+STALE_RAIN_VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555559999")
 
 
 def test_official_catalog_avoids_silent_and_stale_runtime_resources() -> None:
@@ -34,6 +36,16 @@ def test_official_catalog_avoids_silent_and_stale_runtime_resources() -> None:
     assert "ac_hum" not in preset_resources
 
 
+def test_official_catalog_scopes_voice_to_hair_care() -> None:
+    for scene in official_scene_specs():
+        voice_tracks = [track for track in scene["tracks"] if track["layer"] == "voice"]
+        if scene["id"] == HAIR_CARE_SCENE_ID:
+            assert len(voice_tracks) == 1
+            assert voice_tracks[0]["resource_key"] == "voice_phrase_01"
+        else:
+            assert voice_tracks == []
+
+
 async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN001
     """Simulate an old rain-eaves rowset (3 tracks, stale resource_key) then force-refresh."""
     factory = client._transport.app.state.session_factory  # type: ignore[attr-defined]
@@ -48,6 +60,22 @@ async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN
         far = await session.get(SceneTrack, FAR_RAIN_TRACK_ID)
         assert far is not None
         far.resource_key = "rain_soft_legacy"
+        session.add(
+            SceneTrack(
+                id=STALE_RAIN_VOICE_TRACK_ID,
+                scene_id=RAIN_SCENE_ID,
+                name="stale voice",
+                symbol_name="person.wave.2.fill",
+                layer="voice",
+                initial_envelope=0.5,
+                angle=0,
+                radius=0.4,
+                resource_key="voice_phrase_01",
+                loop=False,
+                enabled_by_default=True,
+                sort_order=99,
+            )
+        )
         await session.commit()
 
     async with factory() as session:
@@ -58,6 +86,7 @@ async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN
         far = await session.get(SceneTrack, FAR_RAIN_TRACK_ID)
         assert far is not None
         assert far.resource_key == "rain_soft_legacy"
+        assert await session.get(SceneTrack, STALE_RAIN_VOICE_TRACK_ID) is not None
 
     response = await client.post("/v1/admin/reseed-catalog")
     assert response.status_code == 200, response.text
@@ -65,6 +94,7 @@ async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN
     assert body["status"] == "ok"
     assert body["tracks_inserted"] >= 1
     assert body["tracks_updated"] >= 1
+    assert body["tracks_deleted"] >= 1
 
     detail = await client.get(f"/v1/scenes/{RAIN_SCENE_ID}")
     assert detail.status_code == 200
@@ -72,6 +102,7 @@ async def test_reseed_inserts_missing_bamboo_track(client) -> None:  # noqa: ANN
     assert str(BAMBOO_TRACK_ID) in tracks
     assert tracks[str(BAMBOO_TRACK_ID)]["resource_key"] == "rain_bamboo_leaf"
     assert tracks[str(FAR_RAIN_TRACK_ID)]["resource_key"] == "rain_soft"
+    assert str(STALE_RAIN_VOICE_TRACK_ID) not in tracks
 
 
 async def test_reseed_forbidden_in_production(client, monkeypatch) -> None:  # noqa: ANN001
