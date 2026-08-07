@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 TRACK_ID = "e5555555-5555-4555-8555-555555555510"
+GROUP_ID = "e5555555-5555-4555-8555-555555555520"
+CLIP_ID = "e5555555-5555-4555-8555-555555555521"
 
 
 def _valid_composition(*, end_seconds: float = 120.0, keyframes: list[dict] | None = None) -> dict:
@@ -23,6 +25,49 @@ def _valid_composition(*, end_seconds: float = 120.0, keyframes: list[dict] | No
                     {"t": 0.0, "angle": 0.5, "radius": 0.8},
                     {"t": end_seconds / 2, "angle": 2.0, "radius": 0.35},
                 ],
+            }
+        ],
+    }
+
+
+def _valid_v2_composition() -> dict:
+    return {
+        "schema": "scene_composition_v2",
+        "version": 1,
+        "duration_seconds": 120.0,
+        "source_groups": [
+            {
+                "id": GROUP_ID,
+                "name": "轻声陪伴",
+                "symbol_name": "quote.bubble.fill",
+                "layer": "voice",
+                "display_policy": "always_in_window",
+                "position_keyframes": [
+                    {
+                        "t": 0.0,
+                        "angle": 3.1,
+                        "radius": 0.38,
+                        "interpolation": "linear",
+                    },
+                    {
+                        "t": 120.0,
+                        "angle": -3.1,
+                        "radius": 0.8,
+                        "interpolation": "smoothstep",
+                    },
+                ],
+            }
+        ],
+        "clips": [
+            {
+                "id": CLIP_ID,
+                "source_group_id": GROUP_ID,
+                "resource_key": "voice_phrase_01",
+                "start_seconds": 3.0,
+                "end_seconds": 7.1,
+                "source_offset_seconds": 0,
+                "playback_mode": "oneshot",
+                "crossfade_ms": 0,
             }
         ],
     }
@@ -89,6 +134,66 @@ def test_validate_composition_rejects_empty_tracks() -> None:
         assert "non-empty" in exc.message
 
 
+def test_validate_v2_preserves_group_clip_identity() -> None:
+    from app.services.composition import validate_composition
+
+    out = validate_composition(_valid_v2_composition())
+    assert out["schema"] == "scene_composition_v2"
+    assert out["source_groups"][0]["id"] == GROUP_ID
+    assert out["clips"][0]["source_group_id"] == GROUP_ID
+    assert out["source_groups"][0]["position_keyframes"][1]["interpolation"] == "smoothstep"
+
+
+def test_validate_v2_rejects_dangling_group_reference() -> None:
+    from app.services.composition import CompositionValidationError, validate_composition
+
+    doc = _valid_v2_composition()
+    doc["clips"][0]["source_group_id"] = TRACK_ID
+    try:
+        validate_composition(doc)
+        raise AssertionError("expected CompositionValidationError")
+    except CompositionValidationError as exc:
+        assert "does not reference" in exc.message
+
+
+def test_validate_v2_rejects_invalid_interpolation_and_crossfade() -> None:
+    from app.services.composition import CompositionValidationError, validate_composition
+
+    bad_interpolation = _valid_v2_composition()
+    bad_interpolation["source_groups"][0]["position_keyframes"][0]["interpolation"] = "jump"
+    try:
+        validate_composition(bad_interpolation)
+        raise AssertionError("expected CompositionValidationError")
+    except CompositionValidationError as exc:
+        assert "interpolation" in exc.message
+
+    bad_crossfade = _valid_v2_composition()
+    bad_crossfade["clips"][0]["playback_mode"] = "loop"
+    bad_crossfade["clips"][0]["crossfade_ms"] = 3000
+    try:
+        validate_composition(bad_crossfade)
+        raise AssertionError("expected CompositionValidationError")
+    except CompositionValidationError as exc:
+        assert "half the clip duration" in exc.message
+
+    bad_fade = _valid_v2_composition()
+    bad_fade["clips"][0]["fade_out_ms"] = 5000
+    try:
+        validate_composition(bad_fade)
+        raise AssertionError("expected CompositionValidationError")
+    except CompositionValidationError as exc:
+        assert "fade_out_ms" in exc.message
+
+    overlapping_fades = _valid_v2_composition()
+    overlapping_fades["clips"][0]["fade_in_ms"] = 2500
+    overlapping_fades["clips"][0]["fade_out_ms"] = 2500
+    try:
+        validate_composition(overlapping_fades)
+        raise AssertionError("expected CompositionValidationError")
+    except CompositionValidationError as exc:
+        assert "fade_in_ms + fade_out_ms" in exc.message
+
+
 async def test_compositions_validate_endpoint(client) -> None:
     tokens = await _login(client)
     headers = {"Authorization": f"Bearer {tokens['access_token']}"}
@@ -100,6 +205,14 @@ async def test_compositions_validate_endpoint(client) -> None:
     )
     assert ok.status_code == 200, ok.text
     assert ok.json()["composition"]["duration_seconds"] == 45.0
+
+    ok_v2 = await client.post(
+        "/v1/compositions/validate",
+        headers=headers,
+        json={"composition": _valid_v2_composition()},
+    )
+    assert ok_v2.status_code == 200, ok_v2.text
+    assert ok_v2.json()["composition"]["clips"][0]["source_group_id"] == GROUP_ID
 
     bad = await client.post(
         "/v1/compositions/validate",
@@ -172,3 +285,23 @@ async def test_private_scene_draft_and_save_composition(client) -> None:
     )
     assert bad_draft.status_code == 400, bad_draft.text
     assert bad_draft.json()["detail"]["message"] == "Keyframe t out of track range"
+
+
+async def test_private_scene_v2_draft_save_round_trip(client) -> None:
+    tokens = await _login(client, sub="composition-v2-save")
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    created = await client.post(
+        "/v1/users/me/scenes",
+        headers=headers,
+        json={"name": "v2 编排", "sources": [], "composition": _valid_v2_composition()},
+    )
+    assert created.status_code == 200, created.text
+    scene_id = created.json()["id"]
+    assert created.json()["draft_composition"]["schema"] == "scene_composition_v2"
+
+    saved = await client.post(f"/v1/users/me/scenes/{scene_id}/save", headers=headers)
+    assert saved.status_code == 200, saved.text
+    document = saved.json()["saved_composition"]
+    assert document["source_groups"][0]["id"] == GROUP_ID
+    assert document["clips"][0]["id"] == CLIP_ID
+    assert document["clips"][0]["source_group_id"] == GROUP_ID

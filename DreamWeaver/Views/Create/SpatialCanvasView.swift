@@ -37,11 +37,11 @@ struct SpatialCanvasView: View {
                 listenerNode
                     .position(x: side / 2, y: side / 2)
 
-                ForEach(viewModel.visibleSoundSources) { source in
+                ForEach(viewModel.visibleSoundSources, id: \.effectiveSourceGroupID) { source in
                     SoundSourceNodeView(
                         source: source,
                         position: viewModel.position(for: source),
-                        isSelected: viewModel.selectedSourceID == source.id,
+                        isSelected: viewModel.isSourceGroupSelected(source),
                         isPlaying: viewModel.isPlaying,
                         isRecording: viewModel.recordingTrajectorySourceID == source.id,
                         side: side,

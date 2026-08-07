@@ -33,6 +33,11 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private let timelineScheduler = SceneTimelineScheduler()
     private var activeTimeline: APIContentDTO.SceneTimeline?
     private var phraseById: [UUID: APIContentDTO.Phrase] = [:]
+    private let renderer = SceneRenderer()
+    private var renderGraph: AudioGraphController?
+    private var activeRenderPlan: SceneRenderPlan?
+    private var manualGroupEnabled: [UUID: Bool] = [:]
+    private var isSeekingRenderer = false
 
     private var onSleepTick: ((Double) -> Void)?
     private var onSleepFinished: (() -> Void)?
@@ -40,6 +45,16 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     /// Fired when timeline automation mutates a source (position / enable).
     /// AppState uses this to keep the mix disk in sync without marking manual overrides.
     var onTimelineSourceChange: ((UUID, SoundSource) -> Void)?
+    var onRendererStateChange: ((RendererState) -> Void)?
+    var hasPlayableAudio: Bool {
+        renderGraph?.hasPlayableClips ?? !players.isEmpty
+    }
+
+    init() {
+        renderer.onStateChange = { [weak self] state in
+            self?.applyRendererState(state)
+        }
+    }
 
     func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
@@ -52,6 +67,13 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     func load(scene: DreamScene, sources: [SoundSource], timeline: APIContentDTO.SceneTimeline?) throws {
+        if let timeline = resolvedTimeline(timeline, sceneID: scene.id) {
+            let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+            if !plan.clips.isEmpty {
+                try load(scene: scene, plan: plan)
+                return
+            }
+        }
         // Rebuild the graph from a stopped state. Detaching nodes while the
         // engine is running can leave AVAudioEngine with an invalid graph.
         stopInternal(keepEngine: false)
@@ -89,13 +111,78 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
     }
 
+    func load(scene: DreamScene, plan: SceneRenderPlan) throws {
+        stopInternal(keepEngine: false)
+        lastErrorMessage = nil
+        do {
+            try configureSession()
+        } catch {
+            lastErrorMessage = error.localizedDescription
+            throw ServiceError.invalidState("音频会话启动失败：\(error.localizedDescription)")
+        }
+
+        let graph = AudioGraphController()
+        graph.onError = { [weak self] message in
+            self?.lastErrorMessage = message
+        }
+        try graph.load(plan: plan)
+        renderGraph = graph
+        activeRenderPlan = plan
+        manualGroupEnabled = [:]
+        currentSources = Dictionary(uniqueKeysWithValues: plan.sourceGroups.map { group in
+            let resource = plan.clips.first(where: { $0.sourceGroupID == group.id })?.resourceKey
+            return (
+                group.id,
+                SoundSource(
+                    id: group.id,
+                    name: group.name,
+                    symbolName: group.symbolName,
+                    isEnabled: false,
+                    initialEnvelope: 1,
+                    position: group.defaultPosition,
+                    resourceName: resource,
+                    layer: group.layer
+                )
+            )
+        })
+        renderer.load(plan)
+        if !graph.hasPlayableClips {
+            lastErrorMessage = "当前场景暂无可播放的本地音频"
+        }
+    }
+
     /// User edited a track — exit official automation for that track only.
     func markManualOverride(trackId: UUID) {
+        if activeRenderPlan != nil {
+            return
+        }
         timelineScheduler.markManualOverride(trackId: trackId)
     }
 
     func play() {
+        play(allowSilentClock: false)
+    }
+
+    func play(allowSilentClock: Bool) {
         playbackRequested = true
+        if let renderGraph {
+            guard renderGraph.hasPlayableClips || allowSilentClock else {
+                isPlaying = false
+                lastErrorMessage = "当前场景暂无可播放的本地音频"
+                return
+            }
+            do {
+                if renderGraph.hasPlayableClips {
+                    try renderGraph.play(state: renderer.state)
+                }
+                renderer.play()
+                isPlaying = true
+            } catch {
+                isPlaying = false
+                lastErrorMessage = error.localizedDescription
+            }
+            return
+        }
         guard !players.isEmpty else {
             isPlaying = false
             lastErrorMessage = "当前场景暂无可播放的本地音频"
@@ -119,6 +206,16 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
 
     func pause() {
         playbackRequested = false
+        if let renderGraph {
+            renderer.pause()
+            if renderGraph.hasPlayableClips {
+                renderGraph.pause()
+            }
+            isPlaying = false
+            progressTimer?.invalidate()
+            progressTimer = nil
+            return
+        }
         for (_, node) in players {
             node.pause()
         }
@@ -135,7 +232,31 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         progress = 0.08
     }
 
+    func seek(to time: Double) {
+        guard let renderGraph, activeRenderPlan != nil else { return }
+        isSeekingRenderer = true
+        renderer.seek(to: time)
+        isSeekingRenderer = false
+        if isPlaying {
+            renderGraph.resynchronize(
+                at: renderer.state.time,
+                desiredClipIDs: renderer.state.activeClipIDs
+            )
+        }
+    }
+
     func updateSource(id: UUID, position: SpatialPosition, enabled: Bool) {
+        if let renderGraph, activeRenderPlan != nil {
+            renderer.setManualPosition(position, for: id)
+            manualGroupEnabled[id] = enabled
+            renderGraph.setGroupEnabled(enabled, id: id)
+            if var source = currentSources[id] {
+                source.position = position
+                source.isEnabled = enabled
+                currentSources[id] = source
+            }
+            return
+        }
         guard let node = players[id], var updated = currentSources[id] else { return }
         updated.position = position
         updated.isEnabled = enabled
@@ -145,6 +266,27 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     func syncSources(_ sources: [SoundSource]) {
+        if let renderGraph, activeRenderPlan != nil {
+            let incoming = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+            for id in Array(currentSources.keys) {
+                guard let source = incoming[id] else {
+                    manualGroupEnabled[id] = false
+                    renderGraph.setGroupEnabled(false, id: id)
+                    currentSources[id]?.isEnabled = false
+                    continue
+                }
+                let previousPosition = currentSources[id]?.position
+                manualGroupEnabled[id] = source.isEnabled
+                renderGraph.setGroupEnabled(source.isEnabled, id: id)
+                // A toggle/remove sync must not freeze every authored trajectory.
+                // Only an actual placement change becomes a manual position.
+                if previousPosition != source.position {
+                    renderer.setManualPosition(source.position, for: id)
+                }
+                currentSources[id] = source
+            }
+            return
+        }
         prepareSpatialGraph()
         let previousEnvelopes = automationEnvelopes
         currentSources = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
@@ -317,6 +459,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         for task in fadeTasks { task.cancel() }
         fadeTasks.removeAll()
         for id in fadeMultipliers.keys { fadeMultipliers[id] = 1 }
+        renderGraph?.resetLayerFades()
     }
 
     func performLayeredFade(phases: [FadePhase], onFinished: @escaping () -> Void) {
@@ -742,6 +885,17 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     }
 
     private func fadeLayer(_ layer: AudioLayerKind, duration: Double) async {
+        if let renderGraph {
+            let steps = 20
+            let stepTime = duration / Double(steps)
+            for step in 0...steps {
+                let value = Float(1 - Double(step) / Double(steps))
+                renderGraph.setLayerFade(value, layer: layer)
+                try? await Task.sleep(nanoseconds: UInt64(stepTime * 1_000_000_000))
+            }
+            renderGraph.setLayerFade(0, layer: layer)
+            return
+        }
         let ids = layers.filter { $0.value == layer }.map(\.key)
         let steps = 20
         let stepTime = duration / Double(steps)
@@ -793,8 +947,41 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         )
     }
 
+    private func applyRendererState(_ state: RendererState) {
+        renderGraph?.apply(state, reconcileClips: !isSeekingRenderer)
+        progress = activeRenderPlan.map {
+            guard $0.durationSeconds > 0 else { return 0 }
+            return min(max(state.time / $0.durationSeconds, 0), 1)
+        } ?? progress
+        onRendererStateChange?(state)
+        for rendered in state.sourceGroups {
+            guard var source = currentSources[rendered.id] else { continue }
+            source.position = rendered.position
+            let displayPolicy = activeRenderPlan?.sourceGroups.first {
+                $0.id == rendered.id
+            }?.displayPolicy ?? .selectedOrActive
+            let isVisible = displayPolicy == .alwaysInWindow || rendered.isActive
+            source.isEnabled = isVisible && (manualGroupEnabled[rendered.id] ?? true)
+            currentSources[rendered.id] = source
+            onTimelineSourceChange?(rendered.id, source)
+        }
+        if isPlaying, !state.isPlaying, state.time > 0 {
+            isPlaying = false
+            playbackRequested = false
+            renderGraph?.pause()
+            progressTimer?.invalidate()
+            progressTimer = nil
+        }
+    }
+
     private func stopInternal(keepEngine: Bool) {
         playbackRequested = false
+        renderGraph?.stop()
+        renderer.stop()
+        renderGraph = nil
+        activeRenderPlan = nil
+        manualGroupEnabled = [:]
+        isSeekingRenderer = false
         if engine.isRunning {
             engine.stop()
         }

@@ -613,7 +613,7 @@ struct SpatialEditorView: View {
                     showsSoundTray = true
                 }
 
-                ForEach(viewModel.soundSources) { source in
+                ForEach(viewModel.sourceGroupRepresentatives, id: \.effectiveSourceGroupID) { source in
                     sourceStripButton(source)
                 }
             }
@@ -644,7 +644,7 @@ struct SpatialEditorView: View {
     }
 
     private func sourceStripButton(_ source: SpatialEditorSource) -> some View {
-        let isSelected = viewModel.selectedSourceID == source.id
+        let isSelected = viewModel.isSourceGroupSelected(source)
 
         return Button {
             viewModel.selectSource(source.id)

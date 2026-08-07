@@ -2,7 +2,7 @@ import AVFoundation
 import CoreGraphics
 import Foundation
 
-/// Maps Create editor state ↔ `scene_composition_v1` for local reopen / remote draft sync.
+/// Maps Create editor state ↔ `scene_composition_v2` with v1 read compatibility.
 enum SceneCompositionMapper {
     static func duration(for timeline: APIContentDTO.SceneTimeline) -> Double {
         if let hinted = timeline.duration_hint_seconds, hinted > 0 {
@@ -26,7 +26,7 @@ enum SceneCompositionMapper {
         var positionsByTrack: [UUID: [TimedPosition]] = [:]
         for source in scene.soundSources {
             positionsByTrack[source.id] = [
-                TimedPosition(time: 0, position: source.position)
+                TimedPosition(time: 0, order: -1, position: source.position)
             ]
         }
         for event in events where event.action.type == "set_position" {
@@ -36,12 +36,25 @@ enum SceneCompositionMapper {
             positionsByTrack[trackID, default: []].append(
                 TimedPosition(
                     time: event.time,
+                    order: event.order,
                     position: SpatialPosition(angle: angle, radius: radius)
                 )
             )
         }
         for id in positionsByTrack.keys {
-            positionsByTrack[id]?.sort { $0.time < $1.time }
+            let ordered = (positionsByTrack[id] ?? []).sorted { lhs, rhs in
+                if abs(lhs.time - rhs.time) > 0.000_1 { return lhs.time < rhs.time }
+                return lhs.order < rhs.order
+            }
+            var unique: [TimedPosition] = []
+            for item in ordered {
+                if let last = unique.last, abs(last.time - item.time) < 0.000_1 {
+                    unique[unique.count - 1] = item
+                } else {
+                    unique.append(item)
+                }
+            }
+            positionsByTrack[id] = unique
         }
 
         let oneShotKeys = Set(events.compactMap { event -> ActivationKey? in
@@ -56,13 +69,27 @@ enum SceneCompositionMapper {
         var segments: [ImportedSegment] = []
         var usedSegmentIDs: Set<UUID> = []
 
-        func nextSegmentID(preferred: UUID?) -> UUID {
+        func nextSegmentID(preferred: UUID?, trackID: UUID, time: Double) -> UUID {
             if let preferred, usedSegmentIDs.insert(preferred).inserted {
                 return preferred
             }
-            var generated = UUID()
+            var bytes = trackID.uuid
+            var timeBits = UInt64(max((time * 1000).rounded(), 0)).littleEndian
+            withUnsafeBytes(of: &timeBits) { raw in
+                withUnsafeMutableBytes(of: &bytes) { target in
+                    for index in 0..<min(raw.count, 8) {
+                        target[index + 8] ^= raw[index]
+                    }
+                    target[6] = (target[6] & 0x0F) | 0x50
+                    target[8] = (target[8] & 0x3F) | 0x80
+                }
+            }
+            var generated = UUID(uuid: bytes)
             while !usedSegmentIDs.insert(generated).inserted {
-                generated = UUID()
+                withUnsafeMutableBytes(of: &bytes) { raw in
+                    raw[15] &+= 1
+                }
+                generated = UUID(uuid: bytes)
             }
             return generated
         }
@@ -73,7 +100,7 @@ enum SceneCompositionMapper {
                   let source = sourceByID[trackID] else { return }
             segments.append(
                 ImportedSegment(
-                    id: nextSegmentID(preferred: trackID),
+                    id: nextSegmentID(preferred: trackID, trackID: trackID, time: start),
                     trackID: trackID,
                     name: source.name,
                     resourceName: source.resourceName,
@@ -129,7 +156,11 @@ enum SceneCompositionMapper {
                 )
                 segments.append(
                     ImportedSegment(
-                        id: nextSegmentID(preferred: phrase?.id),
+                        id: nextSegmentID(
+                            preferred: phrase?.id,
+                            trackID: trackID,
+                            time: event.time
+                        ),
                         trackID: trackID,
                         name: phrase?.text ?? source.name,
                         resourceName: resourceName,
@@ -157,31 +188,22 @@ enum SceneCompositionMapper {
                 let positions = positionsByTrack[segment.trackID] ?? [
                     TimedPosition(time: 0, position: source.position)
                 ]
-                let startPosition = positions.last(where: { $0.time <= segment.start })?.position
-                    ?? source.position
-                var keyPoints = [
+                // Position belongs to the SourceGroup, not this clip window.
+                // Keep the complete authored curve on every compatibility row;
+                // v2 persistence de-duplicates it back to one group curve.
+                let keyPoints = positions.map { item in
                     SpatialKeyPoint(
-                        time: segment.start,
-                        position: point(
-                            angle: startPosition.angle,
-                            radius: startPosition.radius
-                        ),
-                        createdByUser: false
-                    )
-                ]
-                keyPoints.append(contentsOf: positions.compactMap { item in
-                    guard item.time > segment.start + 0.001,
-                          item.time <= segment.end + 0.001 else { return nil }
-                    return SpatialKeyPoint(
                         time: item.time,
                         position: point(angle: item.position.angle, radius: item.position.radius),
-                        createdByUser: false
+                        createdByUser: false,
+                        interpolation: .linear
                     )
-                })
+                }
                 let material = material(forResourceKey: segment.resourceName)
                     ?? material(for: source)
                 return SpatialEditorSource(
                     id: segment.id,
+                    sourceGroupID: segment.trackID,
                     materialID: material?.id,
                     // Official phrase actions may reuse one voice track/asset while
                     // selecting a different bundled resource for every sentence.
@@ -197,6 +219,11 @@ enum SceneCompositionMapper {
                     audioStartTime: segment.start,
                     audioDuration: segment.end - segment.start,
                     isLooping: segment.isLooping,
+                    crossfadeMilliseconds: segment.isLooping
+                        ? LoopCrossfadeController.preferredMilliseconds(
+                            for: segment.resourceName
+                        )
+                        : 0,
                     isVoice: source.layer == .voice
                 )
             }
@@ -221,33 +248,60 @@ enum SceneCompositionMapper {
         duration: Double,
         textCues: [SpatialTextCue] = []
     ) -> APIContentDTO.SceneComposition {
-        let tracks = sources.map { source -> APIContentDTO.CompositionTrack in
-            let start = max(0, source.audioStartTime)
-            let end = max(start + 1, min(source.audioEndTime, duration))
-            let keyframes = normalizedKeyframes(for: source, start: start, end: end)
-            return APIContentDTO.CompositionTrack(
+        let clips = sources.map { source -> APIContentDTO.CompositionClip in
+            let safeDuration = max(duration, 1)
+            let start = min(max(0, source.audioStartTime), safeDuration - 1)
+            let end = min(max(start + 1, source.audioEndTime), safeDuration)
+            return APIContentDTO.CompositionClip(
                 id: source.id,
+                source_group_id: source.effectiveSourceGroupID,
                 asset_id: source.assetID,
-                resource_key: source.assetID == nil ? resourceKey(for: source) : nil,
-                layer: layer(for: source),
-                loop: source.isLooping ?? !source.isVoice,
+                resource_key: source.resourceName
+                    ?? (source.assetID == nil ? resourceKey(for: source) : nil),
                 start_seconds: start,
                 end_seconds: end,
-                source_duration_seconds: source.audioDuration,
-                keyframes: keyframes
+                source_offset_seconds: source.sourceOffsetSeconds,
+                playback_mode: playbackMode(for: source).rawValue,
+                crossfade_ms: source.crossfadeMilliseconds,
+                fade_in_ms: source.fadeInMilliseconds,
+                fade_out_ms: source.fadeOutMilliseconds,
+                phrase_id: source.isVoice ? source.id : nil,
+                text_cue_id: nil,
+                mastering_profile_key: source.resourceName
             )
         }
-        let durationSeconds = tracks.map(\.end_seconds).max() ?? duration
+        let groups = Dictionary(grouping: sources, by: \.effectiveSourceGroupID)
+            .compactMap { groupID, members -> APIContentDTO.CompositionSourceGroup? in
+                guard let representative = members.first else { return nil }
+                let groupFrames = mergedGroupKeyframes(from: members, duration: duration)
+                return APIContentDTO.CompositionSourceGroup(
+                    id: groupID,
+                    name: groupName(for: members),
+                    symbol_name: representative.iconName,
+                    layer: layer(for: representative),
+                    display_policy: representative.isVoice
+                        ? SourceGroupDisplayPolicy.alwaysInWindow.rawValue
+                        : SourceGroupDisplayPolicy.selectedOrActive.rawValue,
+                    position_keyframes: groupFrames
+                )
+            }
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+        let durationSeconds = max(
+            max(duration, clips.map(\.end_seconds).max() ?? 0),
+            1
+        )
         let cues: [APIContentDTO.CompositionTextCue]? = textCues.isEmpty
             ? nil
             : textCues.map {
                 APIContentDTO.CompositionTextCue(id: $0.id, time: $0.time, text: $0.text)
             }
         return APIContentDTO.SceneComposition(
-            schema: "scene_composition_v1",
+            schema: "scene_composition_v2",
             version: 1,
             duration_seconds: durationSeconds,
-            tracks: tracks,
+            tracks: [],
+            source_groups: groups,
+            clips: clips,
             text_cues: cues
         )
     }
@@ -264,7 +318,48 @@ enum SceneCompositionMapper {
     static func editorSources(
         from composition: APIContentDTO.SceneComposition
     ) -> [SpatialEditorSource] {
-        composition.tracks.map { track in
+        if composition.schema == "scene_composition_v2",
+           let groups = composition.source_groups,
+           let clips = composition.clips {
+            let groupsByID = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+            return clips.compactMap { clip in
+                guard let group = groupsByID[clip.source_group_id] else { return nil }
+                let material = material(forResourceKey: clip.resource_key)
+                let frames = group.position_keyframes
+                let defaultPoint = frames.first.map {
+                    point(angle: $0.angle, radius: $0.radius)
+                } ?? material?.defaultPosition ?? .zero
+                return SpatialEditorSource(
+                    id: clip.id,
+                    sourceGroupID: group.id,
+                    materialID: material?.id,
+                    assetID: clip.asset_id,
+                    resourceName: clip.resource_key,
+                    name: material?.name ?? group.name,
+                    iconName: group.symbol_name ?? material?.iconName ?? "waveform",
+                    theme: material?.theme ?? theme(forLayer: group.layer),
+                    defaultPosition: defaultPoint,
+                    keyPoints: frames.map {
+                        SpatialKeyPoint(
+                            time: $0.t,
+                            position: point(angle: $0.angle, radius: $0.radius),
+                            createdByUser: true,
+                            interpolation: SceneInterpolationMode(rawValue: $0.interpolation ?? "")
+                                ?? .smoothstep
+                        )
+                    },
+                    audioStartTime: clip.start_seconds,
+                    audioDuration: max(clip.end_seconds - clip.start_seconds, 1),
+                    isLooping: clip.playback_mode != ScenePlaybackMode.oneshot.rawValue,
+                    sourceOffsetSeconds: clip.source_offset_seconds ?? 0,
+                    crossfadeMilliseconds: clip.crossfade_ms ?? 0,
+                    fadeInMilliseconds: clip.fade_in_ms ?? 0,
+                    fadeOutMilliseconds: clip.fade_out_ms ?? 0,
+                    isVoice: group.layer == AudioLayerKind.voice.rawValue
+                )
+            }
+        }
+        return composition.tracks.map { track in
             let material = material(forResourceKey: track.resource_key)
             let defaultPoint: CGPoint = {
                 if let first = track.keyframes.first {
@@ -276,16 +371,19 @@ enum SceneCompositionMapper {
                 SpatialKeyPoint(
                     time: frame.t,
                     position: point(angle: frame.angle, radius: frame.radius),
-                    createdByUser: true
+                    createdByUser: true,
+                    interpolation: SceneInterpolationMode(rawValue: frame.interpolation ?? "")
+                        ?? .smoothstep
                 )
             }
             let start = track.start_seconds
             let end = max(track.end_seconds, start + 1)
             return SpatialEditorSource(
                 id: track.id,
+                sourceGroupID: track.id,
                 materialID: material?.id,
                 assetID: track.asset_id,
-                resourceName: track.asset_id == nil ? track.resource_key : nil,
+                resourceName: track.resource_key,
                 name: material?.name ?? (track.resource_key ?? "声源"),
                 iconName: material?.iconName ?? "waveform",
                 theme: material?.theme ?? theme(forLayer: track.layer),
@@ -317,32 +415,6 @@ enum SceneCompositionMapper {
         case "towel": return "hair_towel"
         case let id?: return "create_\(id)"
         case nil: return "create_custom"
-        }
-    }
-
-    /// Flat `SoundSource` list for Create editor preview (LocalPlaybackService).
-    static func playbackSources(
-        from sources: [SpatialEditorSource],
-        at time: Double
-    ) -> [SoundSource] {
-        sources.compactMap { source in
-            let key = source.resourceName ?? resourceKey(for: source)
-            guard !key.hasPrefix("create_") else { return nil }
-            let point = SpatialTrajectory.position(at: time, source: source)
-            let radius = min(max(hypot(point.x, point.y), 0), 1)
-            let angle = atan2(point.x, -point.y)
-            let inWindow = time >= source.audioStartTime && time < source.audioEndTime
-            return SoundSource(
-                id: source.id,
-                name: source.name,
-                symbolName: source.iconName,
-                isEnabled: inWindow,
-                initialEnvelope: inWindow ? 1 : 0,
-                position: SpatialPosition(angle: angle, radius: radius),
-                resourceName: key,
-                // Preview uses continuous players; official `.voice` oneshots need a timeline.
-                layer: .ambience
-            )
         }
     }
 
@@ -395,6 +467,51 @@ enum SceneCompositionMapper {
                 return catalog.first { $0.id == materialID }
             }
             return nil
+        }
+    }
+
+    private static func playbackMode(for source: SpatialEditorSource) -> ScenePlaybackMode {
+        guard source.isLooping ?? !source.isVoice else { return .oneshot }
+        return .boundedLoop
+    }
+
+    private static func groupName(for members: [SpatialEditorSource]) -> String {
+        if members.contains(where: \.isVoice) { return "轻声陪伴" }
+        return members.first?.name ?? "声源"
+    }
+
+    private static func mergedGroupKeyframes(
+        from members: [SpatialEditorSource],
+        duration: Double
+    ) -> [APIContentDTO.CompositionKeyframe] {
+        let points = members.flatMap { SpatialTrajectory.flattenedKeyPoints(for: $0) }
+            .map { point in
+                var clamped = point
+                clamped.time = min(max(point.time, 0), duration)
+                return clamped
+            }
+            .sorted { $0.time < $1.time }
+        var deduplicated: [SpatialKeyPoint] = []
+        for point in points {
+            if let last = deduplicated.last, abs(last.time - point.time) < 0.001 {
+                deduplicated[deduplicated.count - 1] = point
+            } else {
+                deduplicated.append(point)
+            }
+        }
+        if deduplicated.isEmpty, let source = members.first {
+            deduplicated = [
+                SpatialKeyPoint(time: 0, position: source.defaultPosition, createdByUser: false)
+            ]
+        }
+        return deduplicated.map { point in
+            let polar = polar(from: point.position)
+            return APIContentDTO.CompositionKeyframe(
+                t: point.time,
+                angle: polar.angle,
+                radius: polar.radius,
+                interpolation: (point.interpolation ?? .smoothstep).rawValue
+            )
         }
     }
 
@@ -467,54 +584,6 @@ enum SceneCompositionMapper {
         return Double(file.length) / file.processingFormat.sampleRate
     }
 
-    private static func normalizedKeyframes(
-        for source: SpatialEditorSource,
-        start: Double,
-        end: Double
-    ) -> [APIContentDTO.CompositionKeyframe] {
-        let points = SpatialTrajectory.flattenedKeyPoints(for: source)
-        var frames: [APIContentDTO.CompositionKeyframe] = []
-        var lastT: Double?
-
-        let ensured: [SpatialKeyPoint]
-        if points.isEmpty {
-            ensured = [
-                SpatialKeyPoint(time: start, position: source.defaultPosition, createdByUser: true)
-            ]
-        } else {
-            ensured = points
-        }
-
-        for point in ensured {
-            var t = min(max(point.time, start), end)
-            if let lastT, t <= lastT {
-                t = min(lastT + 0.05, end)
-                if t <= lastT { continue }
-            }
-            let polar = polar(from: point.position)
-            frames.append(
-                APIContentDTO.CompositionKeyframe(
-                    t: t,
-                    angle: polar.angle,
-                    radius: polar.radius
-                )
-            )
-            lastT = t
-        }
-
-        if frames.isEmpty {
-            let polar = polar(from: source.defaultPosition)
-            frames = [
-                APIContentDTO.CompositionKeyframe(
-                    t: start,
-                    angle: polar.angle,
-                    radius: polar.radius
-                )
-            ]
-        }
-        return frames
-    }
-
     /// Canvas coords match the shared API contract: 0 is front / screen-up.
     private static func polar(from point: CGPoint) -> (angle: Double, radius: Double) {
         let radius = min(max(hypot(point.x, point.y), 0), 1)
@@ -535,6 +604,7 @@ enum SceneCompositionMapper {
 
     private struct TimedPosition {
         let time: Double
+        let order: Int
         let position: SpatialPosition
     }
 

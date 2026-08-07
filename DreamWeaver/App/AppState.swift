@@ -214,6 +214,10 @@ final class AppState: ObservableObject {
         playback.onTimelineSourceChange = { [weak self] id, source in
             self?.applyTimelineSourceChange(id: id, source: source)
         }
+        playback.onRendererStateChange = { [weak self] _ in
+            guard let self else { return }
+            self.playbackProgress = self.playback.progress
+        }
 
         Task { await self.bootstrap() }
     }
@@ -629,14 +633,14 @@ final class AppState: ObservableObject {
         let sceneId = currentSceneId
         Task { @MainActor [weak self] in
             guard let self else { return }
+            var renderPlan: SceneRenderPlan?
             let timeline: APIContentDTO.SceneTimeline?
             if let composition = self.store.loadCreatedComposition(sceneId: sceneId) {
-                let createdTimeline = SceneCompositionTimelineMapper.timeline(
-                    from: composition,
-                    sceneId: sceneId
+                renderPlan = ScenePlanCompiler.compile(
+                    composition: composition,
+                    sceneID: sceneId
                 )
-                self.timelineCache[sceneId] = createdTimeline
-                timeline = createdTimeline
+                timeline = nil
             } else if let cached = self.timelineCache[sceneId] {
                 timeline = cached
             } else if let fetched = try? await self.contentService.fetchTimeline(sceneId: sceneId) {
@@ -647,7 +651,11 @@ final class AppState: ObservableObject {
             }
             do {
                 self.isSleepTimerArmed = false
-                try self.playback.load(scene: scene, sources: sources, timeline: timeline)
+                if let renderPlan {
+                    try self.playback.load(scene: scene, plan: renderPlan)
+                } else {
+                    try self.playback.load(scene: scene, sources: sources, timeline: timeline)
+                }
                 self.playbackProgress = self.playback.progress
                 if autoPlay {
                     self.playback.play()
@@ -693,20 +701,18 @@ final class AppState: ObservableObject {
         // Only suppress position while dragging the disk. `userIsInteracting` also covers
         // preset-chip taps (markMixInteraction ~500ms) and would drop t=0 set_position cues.
         let appliedPosition = !isMixDragging
-        withAnimation(.easeInOut(duration: 0.45)) {
-            mutateCurrentSources { sources in
-                if let i = sources.firstIndex(where: { $0.id == id }) {
-                    if appliedPosition {
-                        sources[i].position = source.position
-                    }
-                    sources[i].isEnabled = source.isEnabled
-                    if sources[i].resourceName == nil {
-                        sources[i].resourceName = source.resourceName
-                    }
-                } else {
-                    // Official cue enabled a catalog track missing from the personal overlay.
-                    sources.append(source)
+        mutateCurrentSources { sources in
+            if let i = sources.firstIndex(where: { $0.id == id }) {
+                if appliedPosition {
+                    sources[i].position = source.position
                 }
+                sources[i].isEnabled = source.isEnabled
+                if sources[i].resourceName == nil {
+                    sources[i].resourceName = source.resourceName
+                }
+            } else {
+                // Official renderer activated a source group missing from the personal overlay.
+                sources.append(source)
             }
         }
     }
@@ -1349,7 +1355,7 @@ final class AppState: ObservableObject {
             }
             throw error
         }
-        if let composition {
+        if let composition, composition.schema != "scene_composition_v2" {
             timelineCache[id] = SceneCompositionTimelineMapper.timeline(
                 from: composition,
                 sceneId: id
@@ -1442,6 +1448,12 @@ final class AppState: ObservableObject {
         sceneId: UUID
     ) async throws -> APIContentDTO.SceneTimeline {
         if let composition = store.loadCreatedComposition(sceneId: sceneId) {
+            guard composition.schema != "scene_composition_v2" else {
+                // CreateHub imports v2 through storedSceneCompositionForCreate.
+                // Never silently flatten a v2 SourceGroup/clip document back to
+                // the compatibility timeline if another caller reaches here.
+                throw ServiceError.invalidState("v2 场景应通过 composition 导入")
+            }
             let timeline = SceneCompositionTimelineMapper.timeline(
                 from: composition,
                 sceneId: sceneId
