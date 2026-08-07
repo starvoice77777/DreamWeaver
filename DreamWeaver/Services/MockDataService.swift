@@ -93,22 +93,76 @@ enum MockDataService {
                 ]
             ),
             scene(
-                id: DemoIDs.starRiverScene,
-                name: "星河远眠",
-                subtitle: "把目光交给很远的光。",
-                description: "星河缓慢流动，像把白天的嘈杂一点点推到天边。",
-                category: .lightMusic,
-                tags: ["星空", "空灵"],
-                palette: ScenePalette(top: 0x090B18, mid: 0x1A1F3A, bottom: 0x0A0C16, accent: 0xE0A878),
-                style: .starRiver,
+                id: DemoIDs.alpsScene,
+                name: "阿尔卑斯",
+                subtitle: "坐缆车上山滑雪",
+                description: "坐缆车上山滑雪",
+                category: .nature,
+                tags: ["雪山", "缆车"],
+                palette: ScenePalette(top: 0xD7DDD8, mid: 0xA8B5B6, bottom: 0x273533, accent: 0xB9C8C4),
+                style: .alpsCableCar,
                 favorite: false,
-                listens: 44,
-                listeners: 1588,
+                listens: 28,
+                listeners: 912,
                 sources: [
-                    source("星声", "sparkles", angle: .pi * 0.6, radius: 0.75, initialEnvelope: 0.35),
-                    source("钢琴", "pianokeys", angle: -.pi * 0.2, radius: 0.48, initialEnvelope: 0.55),
-                    source("风声", "wind", angle: .pi * 0.15, radius: 0.7, initialEnvelope: 0.2),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.9, radius: 0.8, initialEnvelope: 0.12, enabled: false)
+                    source("高山风", "wind", angle: .pi * 0.2, radius: 0.72, initialEnvelope: 0.55, resourceName: "wind_realistic"),
+                    source("缆车", "cablecar.fill", angle: .pi * 0.85, radius: 0.5, initialEnvelope: 0.28),
+                    source("雪道", "figure.skiing.downhill", angle: -.pi * 0.35, radius: 0.62, initialEnvelope: 0.22),
+                    source("钢琴", "pianokeys", angle: .pi * 1.3, radius: 0.42, initialEnvelope: 0.26)
+                ]
+            ),
+            scene(
+                id: DemoIDs.twilightScene,
+                name: "黄昏",
+                subtitle: "明天又是新的一天",
+                description: "明天又是新的一天",
+                category: .breath,
+                tags: ["黄昏", "新一天"],
+                palette: ScenePalette(top: 0x3A294A, mid: 0xA96F5D, bottom: 0x12131C, accent: 0xC9A083),
+                style: .twilight,
+                favorite: true,
+                listens: 39,
+                listeners: 1264,
+                sources: [
+                    source("晚风", "wind", angle: .pi * 0.15, radius: 0.68, initialEnvelope: 0.42, resourceName: "wind_realistic"),
+                    source("远野", "leaf.fill", angle: .pi * 0.82, radius: 0.58, initialEnvelope: 0.24),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.25, radius: 0.44, initialEnvelope: 0.34)
+                ]
+            ),
+            scene(
+                id: DemoIDs.preludeScene,
+                name: "序幕",
+                subtitle: "INTRO...",
+                description: "INTRO...",
+                category: .lightMusic,
+                tags: ["序幕", "远空"],
+                palette: ScenePalette(top: 0x51484A, mid: 0xA57562, bottom: 0xD77A3B, accent: 0xC7A49B),
+                style: .prelude,
+                favorite: false,
+                listens: 24,
+                listeners: 768,
+                sources: [
+                    source("远空", "airplane", angle: .pi * 0.72, radius: 0.78, initialEnvelope: 0.22),
+                    source("风声", "wind", angle: .pi * 0.18, radius: 0.64, initialEnvelope: 0.3, resourceName: "wind_realistic"),
+                    source("钢琴", "pianokeys", angle: -.pi * 0.3, radius: 0.4, initialEnvelope: 0.38)
+                ]
+            ),
+            scene(
+                id: DemoIDs.ornateArchitectureScene,
+                name: "雕梁画栋",
+                subtitle: "建筑是大地的文字",
+                description: "建筑是大地的文字",
+                category: .companion,
+                tags: ["建筑", "东方"],
+                palette: ScenePalette(top: 0xB6B6B6, mid: 0x676767, bottom: 0x151515, accent: 0xA3AAA6),
+                style: .ornateArchitecture,
+                favorite: false,
+                listens: 20,
+                listeners: 694,
+                sources: [
+                    source("檐下风", "wind", angle: .pi * 0.22, radius: 0.7, initialEnvelope: 0.34, resourceName: "wind_realistic"),
+                    source("脚步", "shoeprints.fill", angle: .pi * 0.9, radius: 0.48, initialEnvelope: 0.18),
+                    source("檐铃", "bell.fill", angle: -.pi * 0.3, radius: 0.58, initialEnvelope: 0.24)
                 ]
             ),
             scene(
@@ -128,25 +182,6 @@ enum MockDataService {
                     source("雨声", "cloud.rain.fill", angle: .pi * 0.3, radius: 0.72, initialEnvelope: 0.25),
                     source("风声", "wind", angle: .pi * 1.3, radius: 0.7, initialEnvelope: 0.15, enabled: false),
                     source("炉火", "flame.fill", angle: .pi * 0.55, radius: 0.48, initialEnvelope: 0.3)
-                ]
-            ),
-            scene(
-                id: DemoIDs.snowStudyScene,
-                name: "雪夜书房",
-                subtitle: "窗外落雪，纸页很静。",
-                description: "雪夜把世界盖软，书房里只剩细小的翻页与远处风声。",
-                category: .whisper,
-                tags: ["雪夜", "安静"],
-                palette: ScenePalette(top: 0x1A2230, mid: 0x3A4658, bottom: 0x12161E, accent: 0xD8DEE8),
-                style: .snowStudy,
-                favorite: false,
-                listens: 9,
-                listeners: 687,
-                sources: [
-                    source("雪声", "snowflake", angle: .pi * 0.7, radius: 0.65, initialEnvelope: 0.5),
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.75, initialEnvelope: 0.3),
-                    source("钢琴", "pianokeys", angle: .pi * 1.25, radius: 0.52, initialEnvelope: 0.28),
-                    source("翻页", "book.closed.fill", angle: .pi * 0.45, radius: 0.38, initialEnvelope: 0.2)
                 ]
             ),
             scene(
@@ -631,20 +666,6 @@ enum MockDataService {
                 ],
                 sceneId: DemoIDs.fireplaceScene,
                 styleHint: SceneVisualStyle.fireplaceWhisper.rawValue
-            ),
-            MixPreset(
-                id: DemoIDs.presetStarRiver,
-                title: "空灵星河",
-                subtitle: "钢琴居中，风与星点散开",
-                authorType: .community,
-                authorName: "北岸",
-                sources: [
-                    source("钢琴", "pianokeys", angle: -.pi * 0.1, radius: 0.3, initialEnvelope: 0.68),
-                    source("风声", "wind", angle: .pi * 0.4, radius: 0.74, initialEnvelope: 0.28),
-                    source("虫鸣", "leaf.fill", angle: .pi * 0.75, radius: 0.8, initialEnvelope: 0.18)
-                ],
-                sceneId: DemoIDs.starRiverScene,
-                styleHint: SceneVisualStyle.starRiver.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetBreathOnly,

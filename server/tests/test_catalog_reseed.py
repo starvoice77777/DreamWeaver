@@ -20,6 +20,25 @@ HAIR_CARE_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
 STALE_RAIN_VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555559999")
 
 
+def test_official_scene_catalog_matches_ios_refresh() -> None:
+    specs = official_scene_specs()
+    by_name = {scene["name"]: scene for scene in specs}
+
+    assert len(specs) == 15
+    assert [scene["sort_order"] for scene in specs] == list(range(15))
+    assert "雪夜书房" not in by_name
+    assert "星河远眠" not in by_name
+    assert {
+        name: by_name[name]["visual_style"]
+        for name in ("阿尔卑斯", "黄昏", "序幕", "雕梁画栋")
+    } == {
+        "阿尔卑斯": "alpsCableCar",
+        "黄昏": "twilight",
+        "序幕": "prelude",
+        "雕梁画栋": "ornateArchitecture",
+    }
+
+
 def test_official_catalog_avoids_silent_and_stale_runtime_resources() -> None:
     scene_resources = {
         track["resource_key"]

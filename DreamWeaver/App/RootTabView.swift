@@ -32,6 +32,21 @@ struct RootTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Root-tab changes only drive the shared backdrop and navigation
+            // selection. Do not let that transaction leak into the newly
+            // mounted page and animate its controls, layout, opacity or scale.
+            .transaction(value: appState.selectedTab) { transaction in
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+            // Scene swipes may animate the shared backdrop, but the mounted
+            // page must update atomically. Keeping this transaction local to
+            // the foreground prevents palette changes from interpolating any
+            // control position, scale or layout.
+            .transaction(value: appState.currentSceneId) { transaction in
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
             .opacity(appState.isTransitioningScene ? 0.2 : 1)
             .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.7), value: appState.isTransitioningScene)
 
@@ -49,11 +64,14 @@ struct RootTabView: View {
         .background(DreamTheme.midnight.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .environment(\.sceneAdaptivePalette, appState.currentScene.palette)
-        .animation(.easeInOut(duration: 0.45), value: appState.currentScene.palette)
         .onChange(of: appState.selectedTab) { _, tab in
             if tab == .now {
-                // Returning to「此刻」always brings chrome / tab bar back out.
-                withAnimation(DreamTheme.chromeVisibilityAnimation) {
+                // Returning to「此刻」restores chrome immediately. The tab
+                // switch itself must not fade or scale foreground controls.
+                var transaction = Transaction()
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
                     appState.revealControls()
                 }
             } else if tab == .create {
@@ -449,11 +467,16 @@ struct DreamTabBar: View {
 
     private func select(_ tab: AppTab) {
         collapseTask?.cancel()
+
+        // Commit the page outside the navigation spring. Otherwise the newly
+        // inserted page inherits that transaction and briefly interpolates its
+        // vertical layout on device while a horizontal tab swipe settles.
+        selected = tab
+
         withAnimation(.spring(response: 0.36, dampingFraction: 0.78)) {
             isCollapsed = false
             draggedTab = nil
             dragProgress = nil
-            selected = tab
         }
         scheduleCollapse()
     }

@@ -41,33 +41,51 @@ async def test_bootstrap_and_scenes(client) -> None:
     assert any(item["name"] == "洗头轻声" for item in presets.json())
 
 
-async def test_emotional_fluid_scene_retired(client) -> None:
-    """An existing fluid row is unpublished while its reusable renderer remains."""
-    fluid_id = uuid.UUID("a1111111-1111-4111-8111-11111111110e")
+async def test_retired_official_scenes_hidden(client) -> None:
+    """Retired rows are unpublished while their legacy renderers remain reusable."""
+    retired = (
+        (
+            uuid.UUID("a1111111-1111-4111-8111-111111111107"),
+            "星河远眠",
+            "starRiver",
+        ),
+        (
+            uuid.UUID("a1111111-1111-4111-8111-111111111109"),
+            "雪夜书房",
+            "snowStudy",
+        ),
+        (
+            uuid.UUID("a1111111-1111-4111-8111-11111111110e"),
+            "流光溢彩",
+            "emotionalFluid",
+        ),
+    )
     factory = client._transport.app.state.session_factory  # type: ignore[attr-defined]
     async with factory() as session:
-        session.add(
-            Scene(
-                id=fluid_id,
-                name="流光溢彩",
-                subtitle="legacy",
-                description="legacy",
-                category="lightMusic",
-                tags=["色彩"],
-                palette={"top": 0x24324A, "mid": 0x4B4668, "bottom": 0x163A4A},
-                visual_style="emotionalFluid",
-                is_published=True,
+        for scene_id, name, visual_style in retired:
+            session.add(
+                Scene(
+                    id=scene_id,
+                    name=name,
+                    subtitle="legacy",
+                    description="legacy",
+                    category="lightMusic",
+                    tags=["legacy"],
+                    palette={"top": 0x24324A, "mid": 0x4B4668, "bottom": 0x163A4A},
+                    visual_style=visual_style,
+                    is_published=True,
+                )
             )
-        )
         await session.commit()
 
     scenes = await client.get("/v1/scenes")
     assert scenes.status_code == 200
-    match = next((item for item in scenes.json() if item["id"] == str(fluid_id)), None)
-    assert match is None
+    listed_ids = {item["id"] for item in scenes.json()}
 
-    detail = await client.get(f"/v1/scenes/{fluid_id}")
-    assert detail.status_code == 404
+    for scene_id, _, _ in retired:
+        assert str(scene_id) not in listed_ids
+        detail = await client.get(f"/v1/scenes/{scene_id}")
+        assert detail.status_code == 404
 
 
 async def test_apple_auth_dev_token(client) -> None:

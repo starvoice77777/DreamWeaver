@@ -7,13 +7,15 @@ struct SceneAtmosphereView: View {
     var isPlaying: Bool
     var reduceMotion: Bool
     var intensity: Double
+    var depthMotionEnabled: Bool? = nil
 
     var body: some View {
         SceneBackdropHost(
             scene: scene,
             isPlaying: isPlaying,
             reduceMotion: reduceMotion,
-            intensity: intensity
+            intensity: intensity,
+            depthMotionEnabled: depthMotionEnabled ?? !reduceMotion
         )
     }
 }
@@ -45,6 +47,8 @@ struct SceneAtmosphereCanvas: View {
                 case .fireplaceWhisper: drawFire(context: &context, size: size, t: t)
                 case .hairCare: drawWarmLamp(context: &context, size: size, t: t)
                 case .emotionalFluid: drawCloudBreath(context: &context, size: size, t: t)
+                case .alpsCableCar, .twilight, .prelude, .ornateArchitecture:
+                    break
                 }
             }
         }

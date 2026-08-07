@@ -8,10 +8,11 @@ struct SceneBackdropHost: View {
     var isPlaying: Bool
     var reduceMotion: Bool
     var intensity: Double
+    var depthMotionEnabled: Bool
 
     var body: some View {
         SceneDepthMotionContainer(
-            isEnabled: !reduceMotion,
+            isEnabled: depthMotionEnabled,
             maximumOffset: depthOffset
         ) {
             backdrop
@@ -69,6 +70,52 @@ struct SceneBackdropHost: View {
                 FireplaceWhisperBackdrop(intensity: intensity)
             case .summerNight:
                 SummerNightBackdrop(intensity: intensity)
+            case .alpsCableCar:
+                BundledVideoSceneBackdrop(
+                    style: .alpsCableCar,
+                    resourceName: "alps_cable_car",
+                    resourceSubdirectory: "Scenes/Alps",
+                    isActive: isPlaying && !reduceMotion,
+                    intensity: intensity,
+                    fallbackColors: [
+                        Color(hex: 0xD7DDD8),
+                        Color(hex: 0xA8B5B6),
+                        Color(hex: 0x273533)
+                    ]
+                )
+            case .twilight:
+                BundledVideoSceneBackdrop(
+                    style: .twilight,
+                    resourceName: "twilight_bg",
+                    resourceSubdirectory: "Scenes/Twilight",
+                    isActive: isPlaying && !reduceMotion,
+                    intensity: intensity,
+                    fallbackColors: [
+                        Color(hex: 0x3A294A),
+                        Color(hex: 0xA96F5D),
+                        Color(hex: 0x12131C)
+                    ]
+                )
+            case .prelude:
+                PaintedCoverBackdrop(
+                    style: .prelude,
+                    intensity: intensity,
+                    fallbackColors: [
+                        Color(hex: 0x51484A),
+                        Color(hex: 0xA57562),
+                        Color(hex: 0xD77A3B)
+                    ]
+                )
+            case .ornateArchitecture:
+                PaintedCoverBackdrop(
+                    style: .ornateArchitecture,
+                    intensity: intensity,
+                    fallbackColors: [
+                        Color(hex: 0xB6B6B6),
+                        Color(hex: 0x676767),
+                        Color(hex: 0x151515)
+                    ]
+                )
             case .canvasMotif:
                 SceneAtmosphereCanvas(
                     scene: scene,
