@@ -10,8 +10,8 @@ import Foundation
 /// Apple listener convention: +X right, +Y up, −Z forward.
 enum SpatialMixMapping {
     /// Board radius clamp (must match `SpatialPosition.from`).
-    static let minRadius = 0.0
-    static let maxRadius = 1.0
+    nonisolated static let minRadius = 0.0
+    nonisolated static let maxRadius = 1.0
 
     /// All sources stay at this physical distance so AVFoundation only supplies
     /// direction/HRTF. Loudness is calculated from board radius exactly once.

@@ -171,7 +171,7 @@ enum DistanceLabel: String, Codable {
     case medium = "适中"
     case far = "远处"
 
-    static func from(radius: Double) -> DistanceLabel {
+    nonisolated static func from(radius: Double) -> DistanceLabel {
         if radius < 0.38 { return .near }
         if radius < 0.68 { return .medium }
         return .far

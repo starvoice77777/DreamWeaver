@@ -182,7 +182,7 @@ enum ScenePlanCompiler {
         )
     }
 
-    private static func positionKeyframe(
+    nonisolated private static func positionKeyframe(
         _ raw: APIContentDTO.CompositionKeyframe
     ) -> ScenePositionKeyframe {
         ScenePositionKeyframe(

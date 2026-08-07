@@ -860,7 +860,7 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func isMaterialInUse(_ material: SpatialEditorMaterial) -> Bool {
         if material.isVoice { return false }
-        soundSources.contains {
+        return soundSources.contains {
             $0.materialID == material.id
                 || (material.assetID != nil && $0.assetID == material.assetID)
         }

@@ -183,10 +183,10 @@ enum SceneCompositionMapper {
                 if abs($0.start - $1.start) > 0.001 { return $0.start < $1.start }
                 return $0.name.localizedStandardCompare($1.name) == .orderedAscending
             }
-            .compactMap { segment in
+            .compactMap { segment -> SpatialEditorSource? in
                 guard let source = sourceByID[segment.trackID] else { return nil }
                 let positions = positionsByTrack[segment.trackID] ?? [
-                    TimedPosition(time: 0, position: source.position)
+                    TimedPosition(time: 0, order: -1, position: source.position)
                 ]
                 // Position belongs to the SourceGroup, not this clip window.
                 // Keep the complete authored curve on every compatibility row;
