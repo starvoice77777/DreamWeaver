@@ -13,6 +13,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private let environment = AVAudioEnvironmentNode()
     private var playbackRequested = false
     private var players: [UUID: AVAudioPlayerNode] = [:]
+    private var masteringUnits: [UUID: AVAudioUnitEQ] = [:]
+    private var spatialSources: [UUID: AVAudioMixerNode] = [:]
     private var layers: [UUID: AudioLayerKind] = [:]
     private var automationEnvelopes: [UUID: Double] = [:]
     private var fadeMultipliers: [UUID: Float] = [:]
@@ -27,6 +29,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     private var sleepDuration: TimeInterval = 0
     private var fadeTasks: [Task<Void, Never>] = []
     private var previewPlayer: AVAudioPlayerNode?
+    private var previewMasteringUnit: AVAudioUnitEQ?
     private let timelineScheduler = SceneTimelineScheduler()
     private var activeTimeline: APIContentDTO.SceneTimeline?
     private var phraseById: [UUID: APIContentDTO.Phrase] = [:]
@@ -138,11 +141,7 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         updated.isEnabled = enabled
         currentSources[id] = updated
         node.volume = renderedGain(for: id, source: updated)
-        SpatialMixMapping.applySourceSpatialization(
-            to: node,
-            position: position,
-            environment: environment
-        )
+        applySpatialization(for: id, position: position)
     }
 
     func syncSources(_ sources: [SoundSource]) {
@@ -240,11 +239,17 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             prepareSpatialGraph()
             let file = try AVAudioFile(forReading: url)
             let node = AVAudioPlayerNode()
+            let masteringUnit = AVAudioUnitEQ(numberOfBands: 1)
+            masteringUnit.bands.first?.bypass = true
+            masteringUnit.globalGain = AudioMasteringProfile.compensationDB(for: resourceName)
             engine.attach(node)
+            engine.attach(masteringUnit)
             // Preview stays non-spatial so library audition is consistent.
-            engine.connect(node, to: engine.mainMixerNode, format: file.processingFormat)
+            engine.connect(node, to: masteringUnit, format: file.processingFormat)
+            engine.connect(masteringUnit, to: engine.mainMixerNode, format: file.processingFormat)
             node.scheduleFile(file, at: nil, completionHandler: nil)
             previewPlayer = node
+            previewMasteringUnit = masteringUnit
             try startEngineIfNeeded()
             node.volume = 0.8
             node.play()
@@ -261,10 +266,17 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
     func stopPreview() {
         guard let previewPlayer else { return }
         self.previewPlayer = nil
+        let masteringUnit = previewMasteringUnit
+        previewMasteringUnit = nil
         previewPlayer.stop()
-        guard engine.attachedNodes.contains(previewPlayer) else { return }
-        engine.disconnectNodeOutput(previewPlayer)
-        engine.detach(previewPlayer)
+        var graphNodes: [AVAudioNode] = [previewPlayer]
+        if let masteringUnit {
+            graphNodes.append(masteringUnit)
+        }
+        for graphNode in graphNodes where engine.attachedNodes.contains(graphNode) {
+            engine.disconnectNodeOutput(graphNode)
+            engine.detach(graphNode)
+        }
     }
 
     func startSleepTimer(
@@ -619,12 +631,20 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
 
         let node = AVAudioPlayerNode()
+        let masteringUnit = AVAudioUnitEQ(numberOfBands: 1)
+        masteringUnit.bands.first?.bypass = true
+        masteringUnit.globalGain = AudioMasteringProfile.compensationDB(for: resourceName)
+        let spatialSource = AVAudioMixerNode()
         engine.attach(node)
-        engine.connect(node, to: environment, format: monoFormat)
+        engine.attach(masteringUnit)
+        engine.attach(spatialSource)
+        engine.connect(node, to: masteringUnit, format: file.processingFormat)
+        engine.connect(masteringUnit, to: spatialSource, format: file.processingFormat)
+        engine.connect(spatialSource, to: environment, format: monoFormat)
         resourceByNode[ObjectIdentifier(node)] = resourceName
 
         SpatialMixMapping.applySourceSpatialization(
-            to: node,
+            to: spatialSource,
             position: source.position,
             environment: environment
         )
@@ -639,6 +659,8 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         }
 
         players[source.id] = node
+        masteringUnits[source.id] = masteringUnit
+        spatialSources[source.id] = spatialSource
         layers[source.id] = source.layer
         automationEnvelopes[source.id] = automationEnvelopes[source.id] ?? source.initialEnvelope
         fadeMultipliers[source.id] = 1
@@ -696,12 +718,10 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
             let sourceID = source.id
             let playbackToken = UUID()
             oneShotPlaybackTokens[sourceID] = playbackToken
+            masteringUnits[sourceID]?.globalGain =
+                AudioMasteringProfile.compensationDB(for: resourceName)
             node.volume = renderedGain(for: sourceID, source: source)
-            SpatialMixMapping.applySourceSpatialization(
-                to: node,
-                position: source.position,
-                environment: environment
-            )
+            applySpatialization(for: sourceID, position: source.position)
             node.stop()
             node.scheduleFile(
                 file,
@@ -745,14 +765,32 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         guard let node = players[id] else { return }
         node.stop()
         resourceByNode.removeValue(forKey: ObjectIdentifier(node))
-        if engine.attachedNodes.contains(node) {
-            engine.disconnectNodeOutput(node)
-            engine.detach(node)
+        var graphNodes: [AVAudioNode] = [node]
+        if let masteringUnit = masteringUnits[id] {
+            graphNodes.append(masteringUnit)
+        }
+        if let spatialSource = spatialSources[id] {
+            graphNodes.append(spatialSource)
+        }
+        for graphNode in graphNodes where engine.attachedNodes.contains(graphNode) {
+            engine.disconnectNodeOutput(graphNode)
+            engine.detach(graphNode)
         }
         players[id] = nil
+        masteringUnits[id] = nil
+        spatialSources[id] = nil
         layers[id] = nil
         automationEnvelopes[id] = nil
         fadeMultipliers[id] = nil
+    }
+
+    private func applySpatialization(for id: UUID, position: SpatialPosition) {
+        guard let spatialSource = spatialSources[id] else { return }
+        SpatialMixMapping.applySourceSpatialization(
+            to: spatialSource,
+            position: position,
+            environment: environment
+        )
     }
 
     private func stopInternal(keepEngine: Bool) {

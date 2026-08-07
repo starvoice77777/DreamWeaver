@@ -1,9 +1,12 @@
 import hashlib
+import json
 import wave
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 AUDIO_ROOT = REPO_ROOT / "DreamWeaver" / "Resources" / "Audio"
+MASTERING_PROFILE_PATH = AUDIO_ROOT / "audio_mastering_profile.json"
+AUDIO_SUFFIXES = {".aiff", ".caf", ".m4a", ".mp3", ".wav"}
 
 LATEST_PRESET_AUDIO_SHA256 = {
     "rain_soft.wav": "215297a7ee333c798421525efa851b7cc31475ba9188aa0ab1bbf0bab6bb604c",
@@ -83,3 +86,49 @@ def test_latest_preset_audio_is_playable_non_silent_pcm() -> None:
             expected_sample_width = 3 if name == "wind_gust.wav" else 2
             assert audio.getsampwidth() == expected_sample_width
             assert any(audio.readframes(audio.getnframes()))
+
+
+def _mastering_profile() -> dict:
+    return json.loads(MASTERING_PROFILE_PATH.read_text(encoding="utf-8"))
+
+
+def test_mastering_profile_covers_every_bundled_audio() -> None:
+    profile = _mastering_profile()
+    measurements = profile["measurements"]
+    aliases = profile["aliases"]
+    bundled_resource_keys = {
+        path.stem for path in AUDIO_ROOT.iterdir() if path.suffix.lower() in AUDIO_SUFFIXES
+    }
+
+    assert bundled_resource_keys == set(measurements) | set(aliases)
+    assert set(aliases.values()) <= set(measurements)
+
+
+def test_mastering_compensation_respects_loudness_and_peak_limits() -> None:
+    profile = _mastering_profile()
+    target_loudness = profile["targetIntegratedLoudnessDB"]
+    maximum_true_peak = profile["maximumOutputTruePeakDB"]
+    minimum_compensation = profile["minimumCompensationDB"]
+    maximum_compensation = profile["maximumCompensationDB"]
+    assert -96 <= minimum_compensation <= maximum_compensation <= 24
+
+    for measurement in profile["measurements"].values():
+        loudness_compensation = (
+            target_loudness - measurement["integratedLoudnessDB"]
+        )
+        peak_safe_compensation = maximum_true_peak - measurement["truePeakDB"]
+        compensation = max(
+            min(
+                loudness_compensation,
+                peak_safe_compensation,
+                maximum_compensation,
+            ),
+            minimum_compensation,
+        )
+
+        assert minimum_compensation <= compensation <= maximum_compensation
+        assert measurement["truePeakDB"] + compensation <= maximum_true_peak + 1e-6
+        assert (
+            measurement["integratedLoudnessDB"] + compensation
+            <= target_loudness + 1e-6
+        )
