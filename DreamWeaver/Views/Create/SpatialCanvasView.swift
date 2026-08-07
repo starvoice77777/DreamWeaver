@@ -2,7 +2,14 @@ import SwiftUI
 import UIKit
 
 struct SpatialCanvasView: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
+
+    private var reduceMotion: Bool {
+        appState.reduceMotion || systemReduceMotion
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -51,60 +58,10 @@ struct SpatialCanvasView: View {
     }
 
     private func soundFieldBackground(side: CGFloat) -> some View {
-        ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(hex: 0x14233A).opacity(0.92),
-                            Color(hex: 0x0B1321).opacity(0.96),
-                            Color(hex: 0x060A12)
-                        ],
-                        center: .center,
-                        startRadius: 4,
-                        endRadius: side * 0.52
-                    )
-                )
-
-            ForEach([0.28, 0.50, 0.72, 0.92], id: \.self) { fraction in
-                Circle()
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                DreamTheme.warmApricot.opacity(0.26),
-                                DreamTheme.mistBlue.opacity(0.12),
-                                Color.white.opacity(0.04)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: fraction == 0.92 ? 1.1 : 0.7
-                    )
-                    .frame(width: side * fraction, height: side * fraction)
-            }
-
-            Circle()
-                .stroke(
-                    DreamTheme.warmApricot.opacity(0.22),
-                    style: StrokeStyle(lineWidth: 0.8, dash: [2, 8])
-                )
-                .frame(width: side * 0.98, height: side * 0.98)
-
-            Ellipse()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            DreamTheme.mistBlue.opacity(0.12),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: side * 0.40
-                    )
-                )
-                .frame(width: side * 0.92, height: side * 0.48)
-                .blur(radius: 18)
-        }
+        BreathingSpatialRings(
+            accent: sceneAccent,
+            reduceMotion: reduceMotion
+        )
         .frame(width: side, height: side)
     }
 
@@ -114,12 +71,13 @@ struct SpatialCanvasView: View {
                 .fill(Color.black.opacity(0.32))
                 .frame(width: 52, height: 52)
             Circle()
-                .stroke(DreamTheme.warmApricot.opacity(0.42), lineWidth: 1)
+                .stroke(sceneAccent.opacity(0.42), lineWidth: 1)
                 .frame(width: 52, height: 52)
-            Image(systemName: "person.fill")
-                .font(.system(size: 21, weight: .medium))
-                .foregroundStyle(DreamTheme.moonWhite.opacity(0.92))
-                .shadow(color: DreamTheme.warmApricot.opacity(0.40), radius: 8)
+            DreamWeaverListenerMark(
+                accent: sceneAccent,
+                lineWidth: 2.2
+            )
+            .frame(width: 18, height: 31)
         }
         .allowsHitTesting(false)
         .accessibilityLabel("聆听位置")
@@ -135,6 +93,7 @@ private struct SoundSourceNodeView: View {
     let side: CGFloat
     let fieldRadius: CGFloat
     @ObservedObject var viewModel: SpatialTimelineViewModel
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     @State private var isDragging = false
     @State private var edgeHaptics = EdgeProximityHaptics()
@@ -159,18 +118,18 @@ private struct SoundSourceNodeView: View {
                 Circle()
                     .stroke(
                         isRecording
-                            ? DreamTheme.warmApricot
+                            ? sceneAccent
                             : source.themeColor.opacity(isSelected ? 0.95 : 0.58),
                         lineWidth: isRecording ? 2.2 : (isSelected ? 1.5 : 1)
                     )
                 Image(systemName: source.iconName)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: DreamIconSize.content, weight: .medium))
                     .foregroundStyle(source.themeColor)
             }
             .frame(width: 48, height: 48)
             .scaleEffect(isSelected || isDragging ? 1.08 : 1)
             .shadow(
-                color: (isRecording ? DreamTheme.warmApricot : source.themeColor)
+                color: (isRecording ? sceneAccent : source.themeColor)
                     .opacity(isSelected || isDragging ? 0.55 : 0.20),
                 radius: isSelected || isDragging || isRecording ? 12 : 5
             )
@@ -327,6 +286,7 @@ private struct SpatialPathView: View {
     let currentTime: Double
     let fieldRadius: CGFloat
     let liveSamples: [SpatialMotionSample]
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     var body: some View {
         Canvas { context, size in
@@ -366,7 +326,7 @@ private struct SpatialPathView: View {
                 }
                 context.stroke(
                     livePath,
-                    with: .color(DreamTheme.warmApricot.opacity(0.92)),
+                    with: .color(sceneAccent.opacity(0.92)),
                     style: StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round)
                 )
             }

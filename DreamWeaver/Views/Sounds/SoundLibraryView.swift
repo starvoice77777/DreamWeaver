@@ -27,6 +27,7 @@ private enum AudioUploadChoice: String, CaseIterable, Identifiable {
 
 struct SoundLibraryView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     var title: String = "声音库"
     var onCreateRequested: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
@@ -76,24 +77,29 @@ struct SoundLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                SceneAdaptiveBackground(palette: appState.currentScene.palette)
+
                 VStack(alignment: .leading, spacing: 16) {
                     header
                     if showSearch {
                         TextField("搜索声音", text: $searchText)
                             .textFieldStyle(.plain)
-                            .padding(12)
-                            .dreamRefractiveLiquidGlassCapsule(
-                                accent: DreamTheme.mistBlue,
-                                intensity: 0.72,
-                                interactive: true
-                            )
+                            .padding(.horizontal, 14)
+                            .frame(height: 46)
+                            .background {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color.white.opacity(0.05))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .strokeBorder(sceneAccent.opacity(0.16), lineWidth: 0.8)
+                                    }
+                            }
                             .padding(.horizontal, 20)
                             .foregroundStyle(DreamTheme.moonWhite)
                     }
 
                     existingContent
                 }
-                .background(DreamTheme.backgroundGradient.ignoresSafeArea())
 
                 if isUploading || isPreparingDelete {
                     Color.black.opacity(0.35)
@@ -239,36 +245,44 @@ struct SoundLibraryView: View {
     // MARK: - Header & Switcher
 
     private var header: some View {
-        HStack {
-            if let onDismiss {
-                Button(action: onDismiss) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(DreamTheme.warmApricot)
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(Color.white.opacity(0.05)))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("返回创建")
-            }
+        ZStack {
+            Text(title)
+                .font(.system(size: 20, weight: .medium, design: .rounded))
+                .foregroundStyle(DreamTheme.moonWhite)
+                .allowsHitTesting(false)
 
-            SectionHeader(title: title)
-            GlassEffectContainer(spacing: 10) {
+            HStack {
+                if let onDismiss {
+                    Button(action: onDismiss) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: DreamIconSize.primary, weight: .semibold))
+                            .foregroundStyle(sceneAccent)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("返回创建")
+                }
+
+                Spacer()
+
                 Button {
                     withAnimation { showSearch.toggle() }
                 } label: {
                     Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
+                        .font(.system(size: DreamIconSize.primary, weight: .medium))
+                        .foregroundStyle(sceneAccent)
                         .frame(width: 44, height: 44)
-                        .background(Circle().fill(Color.white.opacity(showSearch ? 0.12 : 0.06)))
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("搜索")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+        .frame(height: 44)
+        .padding(.leading, 20)
+        .padding(.trailing, 28)
+        .padding(.top, 18)
     }
 
     private var sectionSwitcher: some View {
@@ -310,17 +324,37 @@ struct SoundLibraryView: View {
     private var existingContent: some View {
         Group {
             if materialAssets.isEmpty && seedAssets.isEmpty {
-                EmptyStateView(
-                    symbol: "waveform",
-                    message: "还没有声音素材。可以先去「创建」录制或上传声音。",
-                    actionTitle: "去创建"
-                ) {
-                    if let onCreateRequested {
-                        onCreateRequested()
-                    } else {
-                        appState.selectedTab = .create
+                VStack(spacing: 18) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: DreamIconSize.emptyState, weight: .light))
+                        .foregroundStyle(sceneAccent)
+
+                    Text("还没有声音素材。可以先去「创建」录制或上传声音。")
+                        .font(DreamTypography.body)
+                        .foregroundStyle(DreamTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+
+                    Button {
+                        if let onCreateRequested {
+                            onCreateRequested()
+                        } else {
+                            appState.selectedTab = .create
+                        }
+                    } label: {
+                        Text("去创建")
+                            .font(DreamTypography.callout)
+                            .foregroundStyle(DreamTheme.moonWhite)
+                            .padding(.horizontal, 22)
+                            .frame(height: 44)
+                            .background {
+                                Capsule(style: .continuous)
+                                    .fill(sceneAccent.opacity(0.18))
+                            }
                     }
+                    .buttonStyle(.plain)
                 }
+                .padding(32)
+                .frame(maxWidth: .infinity)
                 .padding(.top, 24)
                 Spacer()
             } else {
@@ -384,17 +418,19 @@ struct SoundLibraryView: View {
                                 .foregroundStyle(DreamTheme.tertiaryText)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: DreamIconSize.content, weight: .semibold))
                         }
                         .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
-                        .dreamRefractiveLiquidGlassRounded(
-                            cornerRadius: 14,
-                            accent: DreamTheme.mistBlue,
-                            intensity: 0.7,
-                            interactive: true
-                        )
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.white.opacity(0.045))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.07), lineWidth: 0.7)
+                                }
+                        }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("查看全部\(title)")
@@ -436,7 +472,7 @@ struct SoundLibraryView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .center, spacing: 14) {
                     Image(systemName: symbol)
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: DreamIconSize.primary, weight: .medium))
                         .foregroundStyle(DreamTheme.moonWhite)
                         .frame(width: 52, height: 52)
                         .background {
@@ -456,7 +492,7 @@ struct SoundLibraryView: View {
                     Spacer(minLength: 0)
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: DreamIconSize.content, weight: .semibold))
                         .foregroundStyle(DreamTheme.tertiaryText)
                 }
 
@@ -614,6 +650,7 @@ struct SoundLibraryView: View {
 }
 
 private struct ExistingLibraryFullList<Row: View>: View {
+    @Environment(\.sceneAdaptivePalette) private var scenePalette
     let title: String
     let items: [SoundAsset]
     @ViewBuilder var row: (SoundAsset) -> Row
@@ -630,7 +667,7 @@ private struct ExistingLibraryFullList<Row: View>: View {
                 .padding(20)
                 .padding(.bottom, 40)
             }
-            .background(DreamTheme.deepBlue.ignoresSafeArea())
+            .background(SceneAdaptiveBackground(palette: scenePalette))
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -645,6 +682,7 @@ private struct ExistingLibraryFullList<Row: View>: View {
 // MARK: - Shared rows
 
 struct SoundAssetRow: View {
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
     let asset: SoundAsset
     var isPreviewing: Bool
     var canAddToScene: Bool
@@ -662,6 +700,7 @@ struct SoundAssetRow: View {
                 .frame(width: 48, height: 48)
                 .overlay {
                     Image(systemName: asset.symbolName)
+                        .font(.system(size: DreamIconSize.secondary, weight: .medium))
                         .foregroundStyle(DreamTheme.moonWhite)
                 }
                 .accessibilityHidden(true)
@@ -681,22 +720,22 @@ struct SoundAssetRow: View {
                 HStack(spacing: 6) {
                     Button(action: onPreview) {
                         Image(systemName: isPreviewing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(DreamTheme.moonWhite)
+                            .font(.system(size: DreamIconSize.primary, weight: .semibold))
+                            .foregroundStyle(sceneAccent)
                             .frame(width: 44, height: 44)
-                            .dreamSpatialLiquidGlassCircle(
-                                accent: DreamTheme.mistBlue,
-                                intensity: isPreviewing ? 0.95 : 0.78
-                            )
+                            .background {
+                                Circle()
+                                    .fill(sceneAccent.opacity(isPreviewing ? 0.20 : 0.10))
+                            }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(isPreviewing ? "暂停试听" : "试听")
 
                     Button(action: onFavorite) {
                         Image(systemName: asset.isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: DreamIconSize.primary, weight: .semibold))
                             .foregroundStyle(
-                                asset.isFavorite ? DreamTheme.warmApricot : DreamTheme.moonWhite.opacity(0.85)
+                                asset.isFavorite ? sceneAccent : DreamTheme.moonWhite.opacity(0.85)
                             )
                             .frame(width: 40, height: 40)
                             .background(Circle().fill(Color.white.opacity(asset.isFavorite ? 0.10 : 0.04)))
@@ -718,7 +757,7 @@ struct SoundAssetRow: View {
                         Button("删除", role: .destructive, action: onDelete)
                     } label: {
                         Image(systemName: "ellipsis")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: DreamIconSize.primary, weight: .semibold))
                             .foregroundStyle(DreamTheme.moonWhite.opacity(0.85))
                             .frame(width: 40, height: 40)
                             .background(Circle().fill(Color.white.opacity(0.04)))
@@ -728,12 +767,14 @@ struct SoundAssetRow: View {
             }
         }
         .padding(14)
-        .dreamRefractiveLiquidGlassRounded(
-            cornerRadius: 18,
-            accent: DreamTheme.mistBlue,
-            intensity: 0.58,
-            interactive: false
-        )
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.045))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(sceneAccent.opacity(0.10), lineWidth: 0.7)
+                }
+        }
     }
 }
 

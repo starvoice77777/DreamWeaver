@@ -9,6 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.content import MixPreset, Scene, SceneTrack
 
 DEFAULT_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
+RETIRED_SCENE_IDS = frozenset(
+    {uuid.UUID("a1111111-1111-4111-8111-11111111110e")}
+)
 
 GREETINGS = [
     "晚上好，今天辛苦了。",
@@ -57,7 +60,7 @@ def _track(
 
 
 def official_scene_specs() -> list[dict]:
-    """Official catalog aligned with iOS MockDataService / DemoIDs (14 scenes)."""
+    """Official catalog aligned with iOS MockDataService / DemoIDs (13 scenes)."""
     pi = math.pi
     return [
         {
@@ -259,11 +262,11 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-111111111103"),
-            "name": "深林萤火",
-            "subtitle": "风穿过树梢，微光停在夜色里。",
-            "description": "林间微风与零星萤火交织，把呼吸带回更慢的节奏。",
+            "name": "喜马拉雅",
+            "subtitle": "离天空最近的地方",
+            "description": "离天空最近的地方",
             "category": "forest",
-            "tags": ["森林", "微光"],
+            "tags": ["雪山", "天空"],
             "palette": _palette(0x0B1A14, 0x163028, 0x0A1520, 0xC8E6A0),
             "visual_style": "fireflies",
             "is_demo_playable": False,
@@ -304,12 +307,12 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-111111111104"),
-            "name": "雾岸听潮",
-            "subtitle": "潮声从雾的另一边缓缓靠近。",
-            "description": "远岸潮水起伏，雾气把世界推远一点，只留下规律的海声。",
+            "name": "星期天",
+            "subtitle": "偷得浮生半日闲。",
+            "description": "偷得浮生半日闲。",
             "category": "ocean",
-            "tags": ["海洋", "雾"],
-            "palette": _palette(0x1A2533, 0x3A4E63, 0x1C2430, 0xA8C4D8),
+            "tags": ["星期天", "海边"],
+            "palette": _palette(0x72AAB8, 0x1688A0, 0x0A5063, 0xE7D7C5),
             "visual_style": "mistTide",
             "is_demo_playable": False,
             "sort_order": 3,
@@ -396,12 +399,12 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-111111111106"),
-            "name": "月下静湖",
-            "subtitle": "月光落在水面，夜色变得很薄。",
-            "description": "静湖倒映月光，几乎没有多余的声音，只留下一层柔和的回响。",
+            "name": "山色",
+            "subtitle": "山色有无中",
+            "description": "山色有无中。",
             "category": "nature",
-            "tags": ["月光", "湖"],
-            "palette": _palette(0x10182A, 0x243552, 0x0C1018, 0xE8E2D0),
+            "tags": ["山色", "湖"],
+            "palette": _palette(0xAEB9C4, 0x287F93, 0x003544, 0xB7D1D7),
             "visual_style": "moonLake",
             "is_demo_playable": False,
             "sort_order": 5,
@@ -487,11 +490,11 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-111111111108"),
-            "name": "暖灯陪伴",
-            "subtitle": "房间不大，灯光刚刚好。",
-            "description": "一盏暖灯、轻微人声与柔和钢琴，像有人静静坐在旁边。",
+            "name": "长路",
+            "subtitle": "行走于漫漫长路",
+            "description": "行走于漫漫长路",
             "category": "companion",
-            "tags": ["陪伴", "暖光"],
+            "tags": ["长路", "行走"],
             "palette": _palette(0x2A1E16, 0x4A3424, 0x18120E, 0xE0A878),
             "visual_style": "warmLamp",
             "is_demo_playable": False,
@@ -577,11 +580,11 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-11111111110a"),
-            "name": "风过麦田",
-            "subtitle": "风把白天的热气带走了。",
-            "description": "麦浪轻轻起伏，风声开阔而不喧闹，适合想要一点空间感的夜晚。",
+            "name": "麦浪",
+            "subtitle": "天地的两种色彩",
+            "description": "天地的两种色彩",
             "category": "nature",
-            "tags": ["田野", "风"],
+            "tags": ["麦浪", "天地"],
             "palette": _palette(0x1C2418, 0x3A4630, 0x141810, 0xC8B070),
             "visual_style": "wheatWind",
             "is_demo_playable": False,
@@ -622,11 +625,11 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-11111111110b"),
-            "name": "云间呼吸",
-            "subtitle": "跟着云层一起慢慢呼气。",
-            "description": "柔和的呼吸引导与轻薄氛围声，帮助身体一点点松下来。",
+            "name": "飞行",
+            "subtitle": "傍晚时分的落日飞行",
+            "description": "傍晚时分的落日飞行",
             "category": "breath",
-            "tags": ["呼吸", "放松"],
+            "tags": ["飞行", "落日"],
             "palette": _palette(0x182030, 0x2E3C52, 0x10161E, 0xA8B8D0),
             "visual_style": "cloudBreath",
             "is_demo_playable": False,
@@ -668,11 +671,11 @@ def official_scene_specs() -> list[dict]:
         },
         {
             "id": uuid.UUID("a1111111-1111-4111-8111-11111111110c"),
-            "name": "夏夜虫鸣",
-            "subtitle": "院子里，夏天还没走远。",
-            "description": "虫鸣层层叠叠，像夏天的夜还停在窗外，温柔而不打扰。",
+            "name": "夏夜",
+            "subtitle": "一个林间的夜晚",
+            "description": "一个林间的夜晚",
             "category": "nature",
-            "tags": ["夏夜", "虫鸣"],
+            "tags": ["夏夜", "林间"],
             "palette": _palette(0x142018, 0x243828, 0x101410, 0x88C878),
             "visual_style": "summerInsects",
             "is_demo_playable": False,
@@ -753,79 +756,6 @@ def official_scene_specs() -> list[dict]:
                     initial_envelope=0.3,
                     resource_key="rain_soft",
                     sort_order=2,
-                ),
-            ],
-        },
-        {
-            "id": uuid.UUID("a1111111-1111-4111-8111-11111111110e"),
-            "name": "流光溢彩",
-            "subtitle": "颜色在呼吸，像一团安静的情绪。",
-            "description": (
-                "缓慢流动的情绪色彩空间。云雾、水波与暖焰轮转，"
-                "没有文字打扰，只留下疗愈般的光色。"
-            ),
-            "category": "lightMusic",
-            "tags": ["色彩", "助眠", "氛围"],
-            "palette": _palette(0x24324A, 0x4B4668, 0x163A4A, 0xE8DCC5),
-            "visual_style": "emotionalFluid",
-            "is_demo_playable": True,
-            "sort_order": 13,
-            "mock_listener_count": 426,
-            "tracks": [
-                _track(
-                    track_id=_tid(11401),
-                    name="风声",
-                    symbol="wind",
-                    angle=pi * 0.2,
-                    radius=0.72,
-                    initial_envelope=0.35,
-                    layer="ambience",
-                    resource_key="wind_realistic",
-                    sort_order=0,
-                ),
-                _track(
-                    track_id=_tid(11402),
-                    name="雨声",
-                    symbol="cloud.rain.fill",
-                    angle=pi * 0.85,
-                    radius=0.58,
-                    initial_envelope=0.4,
-                    resource_key="rain_soft",
-                    sort_order=1,
-                ),
-                _track(
-                    track_id=_tid(11403),
-                    name="潮声",
-                    symbol="water.waves",
-                    angle=pi * 1.15,
-                    radius=0.65,
-                    initial_envelope=0.45,
-                    resource_key="stream_nature",
-                    sort_order=2,
-                ),
-                _track(
-                    track_id=_tid(11404),
-                    name="钢琴",
-                    symbol="pianokeys",
-                    angle=-pi * 0.35,
-                    radius=0.5,
-                    initial_envelope=0.28,
-                    layer="ambience",
-                    resource_key=None,
-                    enabled=False,
-                    sort_order=3,
-                ),
-                _track(
-                    track_id=_tid(11405),
-                    name="人声",
-                    symbol="person.wave.2.fill",
-                    angle=pi * 1.4,
-                    radius=0.4,
-                    initial_envelope=0.35,
-                    layer="voice",
-                    resource_key="voice_phrase_01",
-                    enabled=False,
-                    sort_order=4,
                 ),
             ],
         },
@@ -1033,6 +963,14 @@ async def ensure_official_catalog(
     existing_scene_ids = set(await session.scalars(select(Scene.id)))
     existing_preset_ids = set(await session.scalars(select(MixPreset.id)))
     added = False
+
+    retired_scenes = await session.scalars(
+        select(Scene).where(Scene.id.in_(RETIRED_SCENE_IDS))
+    )
+    for retired_scene in retired_scenes:
+        if retired_scene.is_published:
+            retired_scene.is_published = False
+            added = True
 
     for spec in official_scene_specs():
         if spec["id"] in existing_scene_ids:

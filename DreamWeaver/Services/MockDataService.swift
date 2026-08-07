@@ -17,14 +17,14 @@ enum MockDataService {
             hairCareScene(),
             rainEavesScene(),
             scene(
-                id: DemoIDs.firefliesScene,
-                name: "深林萤火",
-                subtitle: "风穿过树梢，微光停在夜色里。",
-                description: "林间微风与零星萤火交织，把呼吸带回更慢的节奏。",
+                id: DemoIDs.himalayaScene,
+                name: "喜马拉雅",
+                subtitle: "离天空最近的地方",
+                description: "离天空最近的地方",
                 category: .forest,
-                tags: ["森林", "微光"],
+                tags: ["雪山", "天空"],
                 palette: ScenePalette(top: 0x0B1A14, mid: 0x1A3A2E, bottom: 0x0A1520, accent: 0xE0A868),
-                style: .fireflies,
+                style: .himalaya,
                 favorite: true,
                 listens: 41,
                 listeners: 964,
@@ -38,12 +38,12 @@ enum MockDataService {
             ),
             scene(
                 id: DemoIDs.mistTideScene,
-                name: "雾岸听潮",
-                subtitle: "潮声从雾的另一边缓缓靠近。",
-                description: "远岸潮水起伏，雾气把世界推远一点，只留下规律的海声。",
+                name: "星期天",
+                subtitle: "偷得浮生半日闲。",
+                description: "偷得浮生半日闲。",
                 category: .ocean,
-                tags: ["海洋", "雾"],
-                palette: ScenePalette(top: 0x1B2736, mid: 0x4A5C6E, bottom: 0x15202C, accent: 0xE8B070),
+                tags: ["星期天", "海边"],
+                palette: ScenePalette(top: 0x72AAB8, mid: 0x1688A0, bottom: 0x0A5063, accent: 0xE7D7C5),
                 style: .mistTide,
                 favorite: false,
                 listens: 36,
@@ -78,12 +78,12 @@ enum MockDataService {
             ),
             scene(
                 id: DemoIDs.moonLakeScene,
-                name: "月夜静湖",
-                subtitle: "月光落在水面，夜色变得很薄。",
-                description: "静湖倒映月光，几乎没有多余的声音，只留下一层柔和的回响。",
+                name: "山色",
+                subtitle: "山色有无中",
+                description: "山色有无中。",
                 category: .nature,
-                tags: ["月光", "湖"],
-                palette: ScenePalette(top: 0x10182A, mid: 0x243552, bottom: 0x0C1018, accent: 0xE0B878),
+                tags: ["山色", "湖"],
+                palette: ScenePalette(top: 0xAEB9C4, mid: 0x287F93, bottom: 0x003544, accent: 0xB7D1D7),
                 style: .moonLake,
                 favorite: true,
                 listens: 18,
@@ -117,14 +117,14 @@ enum MockDataService {
                 ]
             ),
             scene(
-                id: DemoIDs.warmLampScene,
-                name: "暖灯陪伴",
-                subtitle: "房间不大，灯光刚刚好。",
-                description: "一盏暖灯、轻微人声与柔和钢琴，像有人静静坐在旁边。",
+                id: DemoIDs.longRoadScene,
+                name: "长路",
+                subtitle: "行走于漫漫长路",
+                description: "行走于漫漫长路",
                 category: .companion,
-                tags: ["陪伴", "暖光"],
+                tags: ["长路", "行走"],
                 palette: ScenePalette(top: 0x2A1E16, mid: 0x4A3424, bottom: 0x18120E, accent: 0xE0A878),
-                style: .warmLamp,
+                style: .longRoad,
                 favorite: true,
                 listens: 52,
                 listeners: 2031,
@@ -157,14 +157,14 @@ enum MockDataService {
                 ]
             ),
             scene(
-                id: DemoIDs.wheatWindScene,
-                name: "风过麦田",
-                subtitle: "风把白天的热气带走了。",
-                description: "麦浪轻轻起伏，风声开阔而不喧闹，适合想要一点空间感的夜晚。",
+                id: DemoIDs.wheatWaveScene,
+                name: "麦浪",
+                subtitle: "天地的两种色彩",
+                description: "天地的两种色彩",
                 category: .nature,
-                tags: ["田野", "风"],
+                tags: ["麦浪", "天地"],
                 palette: ScenePalette(top: 0x2A2214, mid: 0x6A5430, bottom: 0x1A1610, accent: 0xE8B070),
-                style: .wheatWind,
+                style: .wheatWave,
                 favorite: false,
                 listens: 7,
                 listeners: 412,
@@ -177,14 +177,14 @@ enum MockDataService {
                 ]
             ),
             scene(
-                id: DemoIDs.cloudBreathScene,
-                name: "云间呼吸",
-                subtitle: "跟着云层一起慢慢呼气。",
-                description: "柔和的呼吸引导与轻薄氛围声，帮助身体一点点松下来。",
+                id: DemoIDs.flightScene,
+                name: "飞行",
+                subtitle: "傍晚时分的落日飞行",
+                description: "傍晚时分的落日飞行",
                 category: .breath,
-                tags: ["呼吸", "放松"],
+                tags: ["飞行", "落日"],
                 palette: ScenePalette(top: 0x182030, mid: 0x2E3C52, bottom: 0x10161E, accent: 0xA8B8D0),
-                style: .cloudBreath,
+                style: .flight,
                 favorite: false,
                 listens: 33,
                 listeners: 895,
@@ -197,14 +197,14 @@ enum MockDataService {
                 ]
             ),
             scene(
-                id: DemoIDs.summerInsectsScene,
-                name: "夏夜虫鸣",
-                subtitle: "院子里，夏天还没走远。",
-                description: "虫鸣层层叠叠，像夏天的夜还停在窗外，温柔而不打扰。",
+                id: DemoIDs.summerNightScene,
+                name: "夏夜",
+                subtitle: "一个林间的夜晚",
+                description: "一个林间的夜晚",
                 category: .nature,
-                tags: ["夏夜", "虫鸣"],
+                tags: ["夏夜", "林间"],
                 palette: ScenePalette(top: 0x142018, mid: 0x243828, bottom: 0x101410, accent: 0x88C878),
-                style: .summerInsects,
+                style: .summerNight,
                 favorite: false,
                 listens: 11,
                 listeners: 623,
@@ -234,26 +234,6 @@ enum MockDataService {
                     source("雨声", "cloud.rain.fill", angle: .pi * 0.95, radius: 0.72, initialEnvelope: 0.3),
                     source("钢琴", "pianokeys", angle: .pi * 0.2, radius: 0.6, initialEnvelope: 0.25),
                     source("风声", "wind", angle: .pi * 1.35, radius: 0.75, initialEnvelope: 0.18, enabled: false)
-                ]
-            ),
-            scene(
-                id: DemoIDs.emotionalFluidScene,
-                name: "流光溢彩",
-                subtitle: "颜色在呼吸，像一团安静的情绪。",
-                description: "缓慢流动的情绪色彩空间。云雾、水波与暖焰轮转，没有文字打扰，只留下疗愈般的光色。",
-                category: .lightMusic,
-                tags: ["色彩", "助眠", "氛围"],
-                palette: ScenePalette(top: 0x24324A, mid: 0x4B4668, bottom: 0x163A4A, accent: 0xE8DCC5),
-                style: .emotionalFluid,
-                favorite: true,
-                listens: 8,
-                listeners: 426,
-                sources: [
-                    source("风声", "wind", angle: .pi * 0.2, radius: 0.68, initialEnvelope: 0.35, resourceName: "wind_realistic"),
-                    source("雨声", "cloud.rain.fill", angle: .pi * 0.9, radius: 0.55, initialEnvelope: 0.4, resourceName: "rain_soft"),
-                    source("潮声", "water.waves", angle: .pi * 1.25, radius: 0.72, initialEnvelope: 0.3, resourceName: "stream_nature"),
-                    source("钢琴", "pianokeys", angle: -.pi * 0.35, radius: 0.48, initialEnvelope: 0.28),
-                    source("人声", "person.wave.2.fill", angle: .pi * 0.55, radius: 0.4, initialEnvelope: 0.25, enabled: false, layer: .voice)
                 ]
             )
         ])
@@ -633,8 +613,8 @@ enum MockDataService {
                     source("人声", "person.wave.2.fill", angle: -.pi * 0.4, radius: 0.36, initialEnvelope: 0.42, layer: .voice),
                     source("钢琴", "pianokeys", angle: .pi * 1.2, radius: 0.68, initialEnvelope: 0.2)
                 ],
-                sceneId: DemoIDs.firefliesScene,
-                styleHint: SceneVisualStyle.fireflies.rawValue
+                sceneId: DemoIDs.himalayaScene,
+                styleHint: SceneVisualStyle.himalaya.rawValue
             ),
             MixPreset(
                 id: DemoIDs.presetMistTide,
@@ -691,8 +671,8 @@ enum MockDataService {
                     source("风声", "wind", angle: .pi * 0.25, radius: 0.55, initialEnvelope: 0.45),
                     source("人声", "person.wave.2.fill", angle: -.pi * 0.3, radius: 0.4, initialEnvelope: 0.5, layer: .voice)
                 ],
-                sceneId: DemoIDs.cloudBreathScene,
-                styleHint: SceneVisualStyle.cloudBreath.rawValue
+                sceneId: DemoIDs.flightScene,
+                styleHint: SceneVisualStyle.flight.rawValue
             )
         ]
     }

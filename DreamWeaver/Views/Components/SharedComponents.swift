@@ -378,7 +378,7 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: symbol)
-                .font(.system(size: 36, weight: .light))
+                .font(.system(size: DreamIconSize.emptyState, weight: .light))
                 .foregroundStyle(DreamTheme.mistBlue)
                 .accessibilityHidden(true)
 
@@ -407,11 +407,165 @@ struct EmptyStateView: View {
     }
 }
 
+/// Compact three-stroke brand mark used for the listener anchor at the center
+/// of spatial sound fields. The frame is supplied by the caller so the same
+/// vector remains crisp in both the Create and Now disks.
+struct DreamWeaverListenerMark: View {
+    let accent: Color
+    var lineWidth: CGFloat = 2.1
+
+    var body: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.moonWhite.opacity(0.98),
+                                accent.opacity(0.96),
+                                DreamTheme.moonWhite.opacity(0.84)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: lineWidth,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .shadow(color: accent.opacity(0.42), radius: 4, y: 1)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Full header-sized brand mark shared by the Now and Create pages.
+struct DreamWeaverHeaderMark: View {
+    let accent: Color
+
+    var body: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.moonWhite.opacity(0.96),
+                                accent,
+                                accent.opacity(0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(
+                            lineWidth: 3.2,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .frame(width: 27, height: 46)
+        .shadow(color: accent.opacity(0.26), radius: 4, y: 1)
+        .accessibilityElement()
+        .accessibilityLabel("DreamWeaver")
+    }
+}
+
+/// Shared geometry keeps the Now and Create spatial disks aligned when users
+/// switch tabs on the same device.
+enum SpatialDiskLayout {
+    static let horizontalInset: CGFloat = 16
+    static let maximumDiameter: CGFloat = 350
+    static let centerFractionFromTop: CGFloat = 0.382
+
+    static func diameter(in size: CGSize) -> CGFloat {
+        min(
+            max(size.width - horizontalInset * 2, 0),
+            maximumDiameter
+        )
+    }
+
+    static func center(in size: CGSize) -> CGPoint {
+        CGPoint(
+            x: size.width / 2,
+            y: size.height * centerFractionFromTop
+        )
+    }
+
+    static func topPadding(in size: CGSize, minimum: CGFloat) -> CGFloat {
+        max(
+            minimum,
+            center(in: size).y - diameter(in: size) / 2
+        )
+    }
+}
+
+/// Shared spatial-field rings used by both Now and Create so their visibility,
+/// contrast, and breathing cadence remain visually consistent.
+struct BreathingSpatialRings: View {
+    let accent: Color
+    var reduceMotion: Bool = false
+
+    @State private var isBreathing = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.08))
+                    .frame(width: side * 0.92, height: side * 0.92)
+
+                Circle()
+                    .stroke(accent.opacity(0.40), lineWidth: 2.2)
+                    .frame(width: side * 0.92, height: side * 0.92)
+                    .shadow(
+                        color: accent.opacity(isBreathing ? 0.34 : 0.14),
+                        radius: isBreathing ? 14 : 6
+                    )
+
+                Circle()
+                    .stroke(DreamTheme.moonWhite.opacity(0.16), lineWidth: 1.6)
+                    .frame(width: side * 0.58, height: side * 0.58)
+            }
+            .frame(width: side, height: side)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scaleEffect(reduceMotion ? 1 : (isBreathing ? 1.022 : 0.992))
+            .opacity(reduceMotion ? 0.90 : (isBreathing ? 1 : 0.74))
+        }
+        .onAppear(perform: updateBreathing)
+        .onChange(of: reduceMotion) { _, _ in
+            updateBreathing()
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func updateBreathing() {
+        if reduceMotion {
+            withAnimation(.easeOut(duration: 0.18)) {
+                isBreathing = false
+            }
+            return
+        }
+
+        isBreathing = false
+        withAnimation(.easeInOut(duration: 2.8).repeatForever(autoreverses: true)) {
+            isBreathing = true
+        }
+    }
+}
+
 struct CapsuleChip: View {
     let title: String
     var selected: Bool
     var usesLiquidGlass: Bool = false
     var systemImage: String? = nil
+    var iconSize: CGFloat = DreamIconSize.secondary
     /// When set, chip stretches to this width (equal-width tag rows).
     var fixedWidth: CGFloat? = nil
     var action: () -> Void
@@ -421,7 +575,7 @@ struct CapsuleChip: View {
             Group {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 16, weight: selected ? .semibold : .medium))
+                        .font(.system(size: iconSize, weight: selected ? .semibold : .medium))
                         .accessibilityHidden(true)
                 } else {
                     Text(title)

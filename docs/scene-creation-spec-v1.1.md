@@ -72,11 +72,11 @@ dw_voice_vox_phrase_hair_care_oneshot_sc_hair_mom_v01_t03.wav
 | 缩写 | 场景 | 缩写 | 场景 |
 | --- | --- | --- | --- |
 | `sc_hair` | 洗头陪伴 | `sc_rain` | 檐下听雨 |
-| `sc_firefly` | 深林萤火 | `sc_mist` | 雾岸听潮 |
+| `sc_firefly` | 喜马拉雅 | `sc_mist` | 雾岸听潮 |
 | `sc_stream` | 幽谷清流 | `sc_lake` | 月下静湖 |
-| `sc_star` | 星河远眠 | `sc_lamp` | 暖灯陪伴 |
-| `sc_snow` | 雪夜书房 | `sc_wheat` | 风过麦田 |
-| `sc_cloud` | 云间呼吸 | `sc_insect` | 夏夜虫鸣 |
+| `sc_star` | 星河远眠 | `sc_lamp` | 长路 |
+| `sc_snow` | 雪夜书房 | `sc_wheat` | 麦浪 |
+| `sc_cloud` | 飞行 | `sc_insect` | 夏夜 |
 | `sc_fire` | 炉边低语 | `sc_any` | 多场景共用 |
 
 ### 4.3 素材状态

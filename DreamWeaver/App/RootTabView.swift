@@ -11,6 +11,14 @@ struct RootTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
+            SharedTabAtmosphereBackground(
+                scene: appState.currentScene,
+                selectedTab: appState.selectedTab,
+                isPlaying: appState.isPlaying,
+                reduceMotion: reduceMotion,
+                intensity: appState.animationIntensity
+            )
+
             Group {
                 switch appState.selectedTab {
                 case .now:
@@ -29,11 +37,6 @@ struct RootTabView: View {
 
             DreamTabBar(selected: $appState.selectedTab)
                 .padding(.bottom, 6)
-                .opacity(tabBarChromeVisible ? 1 : 0)
-                .scaleEffect(tabBarChromeVisible ? 1 : 0.98)
-                .allowsHitTesting(tabBarChromeVisible)
-                .accessibilityHidden(!tabBarChromeVisible)
-                .animation(DreamTheme.chromeVisibilityAnimation, value: tabBarChromeVisible)
                 .environmentObject(appState)
 
             // Soft curtain so tab / scene changes never flash harshly.
@@ -45,6 +48,8 @@ struct RootTabView: View {
         }
         .background(DreamTheme.midnight.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .environment(\.sceneAdaptivePalette, appState.currentScene.palette)
+        .animation(.easeInOut(duration: 0.45), value: appState.currentScene.palette)
         .onChange(of: appState.selectedTab) { _, tab in
             if tab == .now {
                 // Returning to「此刻」always brings chrome / tab bar back out.
@@ -57,23 +62,43 @@ struct RootTabView: View {
         }
     }
 
-    /// Match Now chrome: hide with the mix disk on「此刻」; stay available on other tabs.
-    private var tabBarChromeVisible: Bool {
-        appState.selectedTab != .now || appState.controlsVisible
-    }
 }
 
 struct DreamTabBar: View {
+    private enum CollapsedDockSide {
+        case leading
+        case trailing
+    }
+
     @EnvironmentObject private var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Binding var selected: AppTab
     @State private var draggedTab: AppTab?
     @State private var dragProgress: CGFloat?
     @State private var isTrackingDrag = false
     @State private var barWidth: CGFloat = 0
+    @State private var isCollapsed = false
+    @State private var collapseTask: Task<Void, Never>?
+    @State private var collapsedDockSide: CollapsedDockSide = .trailing
+    @State private var collapsedDragTranslation: CGSize = .zero
+    @State private var isDraggingCollapsedNavigation = false
 
     private let barHeight: CGFloat = 66
     private let barMaxWidth: CGFloat = 218
     private let barContentInset: CGFloat = 2
+    private let idleCollapseDelay: Duration = .seconds(4)
+
+    private var reduceMotion: Bool {
+        appState.reduceMotion || systemReduceMotion
+    }
+
+    private var navigationWidth: CGFloat {
+        isCollapsed ? barHeight : barMaxWidth
+    }
+
+    private var navigationChromeWidth: CGFloat {
+        navigationWidth + barContentInset * 2
+    }
 
     private var displayedSelection: AppTab {
         draggedTab ?? selected
@@ -94,6 +119,138 @@ struct DreamTabBar: View {
     }
 
     var body: some View {
+        GeometryReader { proxy in
+            navigationChrome
+                .frame(width: navigationWidth, height: barHeight)
+                .padding(.horizontal, barContentInset)
+                .padding(.vertical, barContentInset)
+                .position(
+                    x: navigationCenterX(in: proxy.size.width),
+                    y: navigationCenterY(in: proxy.size.height)
+                )
+                .highPriorityGesture(
+                    collapsedDragGesture(in: proxy.size.width),
+                    including: isCollapsed ? .all : .none
+                )
+        }
+        .frame(height: barHeight + barContentInset * 2)
+        .sensoryFeedback(.selection, trigger: displayedSelection.rawValue)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+        .onAppear {
+            if appState.selectedTab == .now && !appState.controlsVisible {
+                collapseNavigation()
+            } else {
+                scheduleCollapse()
+            }
+        }
+        .onChange(of: appState.controlsVisible) { _, visible in
+            guard appState.selectedTab == .now else { return }
+            if visible {
+                expandNavigation()
+            } else {
+                collapseNavigation()
+            }
+        }
+        .onDisappear {
+            collapseTask?.cancel()
+        }
+    }
+
+    private var navigationChrome: some View {
+        ZStack(alignment: .trailing) {
+            expandedNavigationBar
+                .frame(width: barMaxWidth, height: barHeight)
+                .opacity(isCollapsed ? 0 : 1)
+                .scaleEffect(
+                    x: isCollapsed ? 0.72 : 1,
+                    y: isCollapsed ? 0.90 : 1,
+                    anchor: .trailing
+                )
+                .blur(radius: isCollapsed && !reduceMotion ? 1.2 : 0)
+                .allowsHitTesting(!isCollapsed)
+                .accessibilityHidden(isCollapsed)
+
+            collapsedNavigationButton
+                .frame(width: barHeight, height: barHeight)
+                .opacity(isCollapsed ? 1 : 0)
+                .scaleEffect(isCollapsed ? 1 : 0.76)
+                .allowsHitTesting(isCollapsed)
+                .accessibilityHidden(!isCollapsed)
+        }
+        .frame(width: navigationWidth, height: barHeight, alignment: .trailing)
+        .background {
+            Capsule(style: .continuous)
+                .fill(DreamTheme.midnight.opacity(isCollapsed ? 0.97 : 0.94))
+        }
+        .clipShape(Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(
+                    DreamTheme.componentAccent.opacity(isCollapsed ? 0.32 : 0.18),
+                    lineWidth: isCollapsed ? 1 : 0.8
+                )
+        }
+        .shadow(
+            color: .black.opacity(isCollapsed ? 0.22 : 0.28),
+            radius: isDraggingCollapsedNavigation ? 17 : (isCollapsed ? 10 : 14),
+            y: isDraggingCollapsedNavigation ? 8 : (isCollapsed ? 4 : 6)
+        )
+        .scaleEffect(isDraggingCollapsedNavigation ? 1.045 : 1)
+    }
+
+    private func navigationCenterX(in availableWidth: CGFloat) -> CGFloat {
+        guard isCollapsed else { return availableWidth / 2 }
+
+        let halfWidth = navigationChromeWidth / 2
+        let dockedCenter = collapsedDockSide == .leading
+            ? halfWidth
+            : availableWidth - halfWidth
+        return min(
+            max(dockedCenter + collapsedDragTranslation.width, halfWidth),
+            availableWidth - halfWidth
+        )
+    }
+
+    private func navigationCenterY(in availableHeight: CGFloat) -> CGFloat {
+        guard isCollapsed else { return availableHeight / 2 }
+        let lowerAreaOffset = min(
+            max(collapsedDragTranslation.height, -180),
+            12
+        )
+        return availableHeight / 2 + lowerAreaOffset
+    }
+
+    private func collapsedDragGesture(in availableWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 5, coordinateSpace: .global)
+            .onChanged { value in
+                guard isCollapsed else { return }
+                isDraggingCollapsedNavigation = true
+                collapsedDragTranslation = value.translation
+            }
+            .onEnded { value in
+                guard isCollapsed else { return }
+
+                let halfWidth = navigationChromeWidth / 2
+                let startingCenter = collapsedDockSide == .leading
+                    ? halfWidth
+                    : availableWidth - halfWidth
+                let projectedCenter = startingCenter
+                    + value.predictedEndTranslation.width
+                let targetSide: CollapsedDockSide = projectedCenter < availableWidth / 2
+                    ? .leading
+                    : .trailing
+
+                withAnimation(dockSnapAnimation) {
+                    collapsedDockSide = targetSide
+                    collapsedDragTranslation = .zero
+                    isDraggingCollapsedNavigation = false
+                }
+            }
+    }
+
+    private var expandedNavigationBar: some View {
         ZStack {
             GeometryReader { geometry in
                 let width = geometry.size.width
@@ -112,21 +269,23 @@ struct DreamTabBar: View {
                 }
             }
         }
-        .frame(maxWidth: barMaxWidth)
-        .frame(height: barHeight)
-        .padding(.horizontal, barContentInset)
-        .padding(.vertical, barContentInset)
-        .dreamRefractiveLiquidGlassCapsule(
-            accent: appState.currentScene.palette.accentColor,
-            intensity: 0.84,
-            interactive: true
-        )
         .highPriorityGesture(tabDragGesture)
-        .sensoryFeedback(.selection, trigger: displayedSelection.rawValue)
-        .shadow(color: .black.opacity(0.18), radius: 16, y: 7)
-        .padding(.horizontal, 16)
-        .padding(.top, 4)
-        .padding(.bottom, 2)
+    }
+
+    private var collapsedNavigationButton: some View {
+        Button {
+            expandNavigation()
+        } label: {
+            tabGlyph(selected, filled: true)
+                .font(.system(size: DreamIconSize.primary, weight: .medium))
+                .foregroundStyle(DreamTheme.moonWhite.opacity(0.98))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("展开导航")
+        .accessibilityValue("当前页面：\(selected.title)")
+        .accessibilityHint("展开后可切换页面")
     }
 
     private func selectionLens(in size: CGSize) -> some View {
@@ -136,12 +295,15 @@ struct DreamTabBar: View {
         let diameter = min(selectionDiameter, size.height - 4)
 
         return Circle()
-            .fill(DreamTheme.moonWhite.opacity(0.09))
+            .fill(DreamTheme.componentAccent.opacity(0.20))
             .frame(width: diameter, height: diameter)
-            .dreamSpatialLiquidGlassCircle(
-                accent: appState.currentScene.palette.accentColor,
-                intensity: 0.92
-            )
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        DreamTheme.componentAccent.opacity(0.42),
+                        lineWidth: 0.8
+                    )
+            }
             .position(x: lensX, y: size.height / 2)
             .animation(lensAnimation, value: selectionProgress)
             .allowsHitTesting(false)
@@ -172,8 +334,7 @@ struct DreamTabBar: View {
                             .offset(x: fill.offset)
                     }
             }
-            .font(.system(size: 22, weight: .medium))
-            .scaleEffect(0.94 + fill.fraction * 0.18)
+            .font(.system(size: DreamIconSize.primary, weight: .medium))
             .frame(width: 36, height: 36)
             .frame(maxWidth: .infinity)
             .frame(height: barHeight)
@@ -215,6 +376,7 @@ struct DreamTabBar: View {
                     // Lock into horizontal tracking once the drag clearly prefers X.
                     guard abs(value.translation.width) > abs(value.translation.height) else { return }
                     isTrackingDrag = true
+                    collapseTask?.cancel()
                 }
 
                 let progress = progress(at: value.location.x)
@@ -286,10 +448,72 @@ struct DreamTabBar: View {
     }
 
     private func select(_ tab: AppTab) {
+        collapseTask?.cancel()
         withAnimation(.spring(response: 0.36, dampingFraction: 0.78)) {
+            isCollapsed = false
             draggedTab = nil
             dragProgress = nil
             selected = tab
+        }
+        scheduleCollapse()
+    }
+
+    private func expandNavigation() {
+        collapseTask?.cancel()
+        withAnimation(expandAnimation) {
+            isCollapsed = false
+            collapsedDragTranslation = .zero
+            isDraggingCollapsedNavigation = false
+        }
+        scheduleCollapse()
+    }
+
+    private func collapseNavigation() {
+        collapseTask?.cancel()
+        withAnimation(collapseAnimation) {
+            isCollapsed = true
+            draggedTab = nil
+            dragProgress = nil
+            isTrackingDrag = false
+            collapsedDragTranslation = .zero
+            isDraggingCollapsedNavigation = false
+        }
+    }
+
+    private var expandAnimation: Animation {
+        reduceMotion
+            ? .easeInOut(duration: 0.18)
+            : .spring(response: 0.56, dampingFraction: 0.84, blendDuration: 0.12)
+    }
+
+    private var collapseAnimation: Animation {
+        reduceMotion
+            ? .easeInOut(duration: 0.18)
+            : .spring(response: 0.60, dampingFraction: 0.90, blendDuration: 0.14)
+    }
+
+    private var dockSnapAnimation: Animation {
+        reduceMotion
+            ? .easeOut(duration: 0.16)
+            : .spring(response: 0.44, dampingFraction: 0.78, blendDuration: 0.08)
+    }
+
+    private func scheduleCollapse() {
+        collapseTask?.cancel()
+        guard !isCollapsed else { return }
+
+        collapseTask = Task { @MainActor in
+            do {
+                try await Task.sleep(for: idleCollapseDelay)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            if isTrackingDrag {
+                scheduleCollapse()
+            } else {
+                collapseNavigation()
+            }
         }
     }
 }

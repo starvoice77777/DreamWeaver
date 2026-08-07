@@ -6,19 +6,17 @@ enum DemoIDs {
 
     static let hairCareScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111101")!
     static let rainEavesScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111102")!
-    static let firefliesScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111103")!
+    static let himalayaScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111103")!
     static let mistTideScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111104")!
     static let valleyStreamScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111105")!
     static let moonLakeScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111106")!
     static let starRiverScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111107")!
-    static let warmLampScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111108")!
+    static let longRoadScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111108")!
     static let snowStudyScene = UUID(uuidString: "A1111111-1111-4111-8111-111111111109")!
-    static let wheatWindScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110A")!
-    static let cloudBreathScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110B")!
-    static let summerInsectsScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110C")!
+    static let wheatWaveScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110A")!
+    static let flightScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110B")!
+    static let summerNightScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110C")!
     static let fireplaceScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110D")!
-    static let emotionalFluidScene = UUID(uuidString: "A1111111-1111-4111-8111-11111111110E")!
-
     static let seedMom = UUID(uuidString: "B2222222-2222-4222-8222-222222222201")!
     static let seedFriend = UUID(uuidString: "B2222222-2222-4222-8222-222222222202")!
     static let seedPartner = UUID(uuidString: "B2222222-2222-4222-8222-222222222203")!

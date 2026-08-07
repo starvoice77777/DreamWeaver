@@ -4,6 +4,7 @@ import SwiftUI
 struct CreateScenePickerView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
+    @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
     let drafts: [CreateSceneDraft]
     let remoteDrafts: [APIContentDTO.PrivateSceneSummary]
@@ -53,13 +54,13 @@ struct CreateScenePickerView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 28)
             }
-            .background(DreamTheme.backgroundGradient.ignoresSafeArea())
+            .background(SceneAdaptiveBackground(palette: appState.currentScene.palette))
             .navigationTitle("选择创建起点")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
-                        .foregroundStyle(DreamTheme.warmApricot)
+                        .foregroundStyle(sceneAccent)
                 }
             }
         }
@@ -69,7 +70,7 @@ struct CreateScenePickerView: View {
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
             .font(DreamTypography.sectionTitle)
-            .foregroundStyle(DreamTheme.warmApricot)
+            .foregroundStyle(sceneAccent)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 8)
     }
@@ -79,7 +80,7 @@ struct CreateScenePickerView: View {
             title: draft.name,
             subtitle: "本机草稿 · \(draft.soundSources.count) 个声源",
             symbol: "doc.text.fill",
-            accent: DreamTheme.mistBlue
+            accent: sceneAccent
         )
         .accessibilityHint("继续编辑此草稿")
     }
@@ -89,7 +90,7 @@ struct CreateScenePickerView: View {
             title: summary.name,
             subtitle: summary.has_saved_version ? "云端草稿 · 已发布 v\(summary.saved_version)" : "云端草稿",
             symbol: "icloud.fill",
-            accent: DreamTheme.mistBlue
+            accent: sceneAccent
         )
         .accessibilityHint("打开云端草稿")
     }
@@ -102,7 +103,7 @@ struct CreateScenePickerView: View {
     ) -> some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: DreamIconSize.secondary, weight: .medium))
                 .foregroundStyle(DreamTheme.moonWhite)
                 .frame(width: 56, height: 56)
                 .background(accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
@@ -121,7 +122,7 @@ struct CreateScenePickerView: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(14)
@@ -146,7 +147,7 @@ struct CreateScenePickerView: View {
                         .scaledToFill()
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: DreamIconSize.secondary, weight: .medium))
                         .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
                 }
             }
@@ -176,13 +177,13 @@ struct CreateScenePickerView: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(14)
         .dreamRefractiveLiquidGlassRounded(
             cornerRadius: 18,
-            accent: scene.palette.accentColor,
+            accent: DreamTheme.componentAccent,
             intensity: 0.55,
             interactive: true
         )

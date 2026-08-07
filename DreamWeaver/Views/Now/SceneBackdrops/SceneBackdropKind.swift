@@ -9,30 +9,30 @@ enum SceneBackdropKind: Equatable {
     case rainyNight(RainyNightConfiguration)
     /// Immersive emotional fluid color space.
     case emotionalFluid
-    /// Painted coastal mist backdrop for「雾岸听潮」.
+    /// Painted seaside Sunday backdrop for「星期天」.
     case mistTide
     /// Painted forest-stream backdrop for「幽谷清流」.
     case valleyStream
     /// Painted snowy study backdrop for「雪夜书房」.
     case snowStudy
-    /// Painted cloudscape backdrop for「云间呼吸」.
-    case cloudBreath
+    /// Painted sunset-flight backdrop for「飞行」.
+    case flight
     /// Painted home-spa backdrop for「洗头陪伴」.
     case hairCare
-    /// Painted deep-forest backdrop for「深林萤火」.
-    case fireflies
+    /// Painted mountain backdrop for「喜马拉雅」.
+    case himalaya
     /// Painted night-sky bedroom backdrop for「星河远眠」.
     case starRiver
-    /// Painted golden-field backdrop for「风过麦田」.
-    case wheatWind
-    /// Painted moonlit lake backdrop for「月夜静湖」.
+    /// Painted golden-field backdrop for「麦浪」.
+    case wheatWave
+    /// Painted mountain-and-lake backdrop for「山色」.
     case moonLake
-    /// Painted cozy-window backdrop for「暖灯陪伴」.
-    case warmLamp
+    /// Painted long-road backdrop for「长路」.
+    case longRoad
     /// Painted fireside backdrop for「炉边低语」.
     case fireplaceWhisper
-    /// Painted porch-garden backdrop for「夏夜虫鸣」.
-    case summerInsects
+    /// Painted forest-night backdrop for「夏夜」.
+    case summerNight
     /// Procedural Canvas motifs (snow, tide, …).
     case canvasMotif
 }
@@ -51,24 +51,24 @@ extension SceneVisualStyle {
             return .valleyStream
         case .snowStudy:
             return .snowStudy
-        case .cloudBreath:
-            return .cloudBreath
+        case .flight:
+            return .flight
         case .hairCare:
             return .hairCare
-        case .fireflies:
-            return .fireflies
+        case .himalaya:
+            return .himalaya
         case .starRiver:
             return .starRiver
-        case .wheatWind:
-            return .wheatWind
+        case .wheatWave:
+            return .wheatWave
         case .moonLake:
             return .moonLake
-        case .warmLamp:
-            return .warmLamp
+        case .longRoad:
+            return .longRoad
         case .fireplaceWhisper:
             return .fireplaceWhisper
-        case .summerInsects:
-            return .summerInsects
+        case .summerNight:
+            return .summerNight
         default:
             return .canvasMotif
         }

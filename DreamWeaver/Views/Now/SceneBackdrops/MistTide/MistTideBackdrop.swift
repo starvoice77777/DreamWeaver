@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Full-bleed painted backdrop for「雾岸听潮」.
+/// Full-bleed painted backdrop for「星期天」.
 struct MistTideBackdrop: View {
     var intensity: Double
 
@@ -9,9 +9,9 @@ struct MistTideBackdrop: View {
             style: .mistTide,
             intensity: intensity,
             fallbackColors: [
-                Color(hex: 0x1A2533),
-                Color(hex: 0x3A4E63),
-                Color(hex: 0x1C2430)
+                Color(hex: 0x72AAB8),
+                Color(hex: 0x1688A0),
+                Color(hex: 0x0A5063)
             ]
         )
     }
