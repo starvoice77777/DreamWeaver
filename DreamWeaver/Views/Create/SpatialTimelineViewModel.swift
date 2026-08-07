@@ -925,7 +925,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             isFrequentlyUsed: false,
             listenCount: 0,
             mockListenerCount: 0,
-            visualStyle: .warmLamp,
+            visualStyle: .longRoad,
             isDemoPlayable: true
         )
     }

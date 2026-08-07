@@ -32,16 +32,6 @@ struct NowView: View {
                         .allowsHitTesting(false)
                 }
 
-                SceneAtmosphereView(
-                    scene: appState.currentScene,
-                    isPlaying: appState.isPlaying,
-                    reduceMotion: reduceMotion,
-                    intensity: appState.animationIntensity
-                )
-                .offset(x: swipeOffset)
-                .opacity(appState.isTransitioningScene ? 0.15 : 1)
-                .animation(.easeInOut(duration: reduceMotion ? 0.2 : 0.8), value: appState.isTransitioningScene)
-
                 LinearGradient(
                     colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
                     startPoint: .top,
@@ -81,9 +71,9 @@ struct NowView: View {
                                 showSceneLibrary = true
                             } label: {
                                 Image(systemName: "line.3.horizontal")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: DreamIconSize.primary, weight: .medium))
                                     .foregroundStyle(
-                                        appState.currentScene.palette.accentColor.opacity(0.92)
+                                        DreamTheme.componentAccent.opacity(0.92)
                                     )
                                     .frame(width: 44, height: 44)
                                     .contentShape(Circle())
@@ -99,7 +89,7 @@ struct NowView: View {
                         if showTimerPicker {
                             NowTimerScale()
                                 .frame(
-                                    width: min(max(width - 134, 186), 246),
+                                    width: min(max(width - 152, 168), 228),
                                     height: 44
                                 )
                                 .offset(x: 52, y: 0)
@@ -112,9 +102,9 @@ struct NowView: View {
                         }
                     }
                     .frame(height: 44, alignment: .top)
-                    .padding(.leading, 10)
-                    .padding(.trailing, 20)
-                    .padding(.top, 10)
+                    .padding(.leading, 20)
+                    .padding(.trailing, 28)
+                    .padding(.top, 18)
                     .animation(
                         .spring(response: 0.34, dampingFraction: 0.84),
                         value: showTimerPicker
@@ -356,8 +346,8 @@ struct NowControlsOverlay: View {
                     appState.togglePlayback()
                 } label: {
                     Image(systemName: appState.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(appState.currentScene.palette.accentColor)
+                        .font(.system(size: DreamIconSize.primary, weight: .medium))
+                        .foregroundStyle(DreamTheme.componentAccent)
                         .frame(width: 56, height: 56)
                         .contentShape(Circle())
                 }
@@ -387,10 +377,10 @@ struct NowControlsOverlay: View {
                     appState.toggleFavorite(sceneId: appState.currentSceneId)
                 } label: {
                     Image(systemName: appState.currentScene.isFavorite ? "heart.fill" : "heart")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: DreamIconSize.primary, weight: .medium))
                         .foregroundStyle(
                             appState.currentScene.isFavorite
-                                ? appState.currentScene.palette.accentColor
+                                ? DreamTheme.componentAccent
                                 : DreamTheme.moonWhite.opacity(0.75)
                         )
                         .frame(width: 44, height: 44)
@@ -423,7 +413,7 @@ private struct PlaybackProgressSlider: View {
             let waveformHeight: CGFloat = isDragging ? 26 : 22
             let waveformBarCount = max(15, min(42, Int(width / 5.8)))
             let waveformSlotWidth = width / CGFloat(waveformBarCount)
-            let sceneAccent = appState.currentScene.palette.accentColor
+            let sceneAccent = DreamTheme.componentAccent
             let markWidth: CGFloat = isDragging ? 21 : 18
             let markHeight: CGFloat = isDragging ? 36 : 31
             // The logo's left edge tracks progress until its centre reaches
@@ -575,8 +565,8 @@ struct NowTimerButton: View {
             }
         } label: {
             Image(systemName: "timer")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(appState.currentScene.palette.accentColor)
+                .font(.system(size: DreamIconSize.primary, weight: .medium))
+                .foregroundStyle(DreamTheme.componentAccent)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
@@ -618,7 +608,7 @@ private struct NowTimerScale: View {
         GeometryReader { geometry in
             let trackWidth = max(geometry.size.width, 1)
             let progress = scaleProgress(for: remainingMinutes)
-            let sceneAccent = appState.currentScene.palette.accentColor
+            let sceneAccent = DreamTheme.componentAccent
 
             ZStack(alignment: .leading) {
                 Capsule(style: .continuous)

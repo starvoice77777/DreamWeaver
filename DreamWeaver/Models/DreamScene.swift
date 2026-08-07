@@ -86,18 +86,18 @@ struct DreamScene: Identifiable, Hashable, Codable {
 
 enum SceneVisualStyle: String, Codable, Hashable, CaseIterable {
     case rainEaves
-    case fireflies
+    case himalaya = "fireflies"
     case mistTide
     case valleyStream
     case moonLake
     case starRiver
-    case warmLamp
+    case longRoad = "warmLamp"
     case snowStudy
-    case wheatWind
-    case cloudBreath
-    case summerInsects
+    case wheatWave = "wheatWind"
+    case flight = "cloudBreath"
+    case summerNight = "summerInsects"
     case fireplaceWhisper
     case hairCare
-    /// Immersive emotional fluid color space（流光溢彩）.
+    /// Reusable immersive emotional-fluid visual style.
     case emotionalFluid
 }

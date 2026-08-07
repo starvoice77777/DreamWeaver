@@ -10,7 +10,7 @@ struct FluidColorPalette: Hashable, Identifiable {
     let tertiary: Color
     let highlight: Color
 
-    init(
+    private init(
         id: String,
         name: String,
         primary: UInt32,
@@ -26,7 +26,7 @@ struct FluidColorPalette: Hashable, Identifiable {
         self.highlight = Color(hex: highlight)
     }
 
-    private init(
+    init(
         id: String,
         name: String,
         primary: Color,

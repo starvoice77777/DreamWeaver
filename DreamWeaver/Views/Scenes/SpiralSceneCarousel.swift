@@ -346,7 +346,7 @@ private struct SpiralSceneCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     if isPlaying {
                         Image(systemName: "waveform")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: DreamIconSize.compact, weight: .semibold))
                             .foregroundStyle(DreamTheme.warmApricot)
                             .accessibilityLabel("正在播放")
                     }
@@ -369,7 +369,7 @@ private struct SpiralSceneCard: View {
             if showsDetails {
                 Button(action: onToggleFavorite) {
                     Image(systemName: scene.isFavorite ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: DreamIconSize.secondary, weight: .semibold))
                         .foregroundStyle(
                             scene.isFavorite
                                 ? DreamTheme.warmApricot
@@ -396,7 +396,7 @@ private struct SpiralSceneCard: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
                     showsArt
-                        ? scene.palette.accentColor.opacity(
+                        ? DreamTheme.componentAccent.opacity(
                             0.08 + 0.70 * Double(focusProgress)
                         )
                         : Color.white.opacity(0.05),
@@ -404,7 +404,7 @@ private struct SpiralSceneCard: View {
                 )
         }
         .shadow(
-            color: scene.palette.accentColor.opacity(
+            color: DreamTheme.componentAccent.opacity(
                 0.34 * Double(focusProgress)
             ),
             radius: 22 * focusProgress

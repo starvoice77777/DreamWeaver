@@ -247,7 +247,7 @@ final class AppState: ObservableObject {
             return preset.id == DemoIDs.presetHairCare
         case .rainEaves:
             return preset.id == DemoIDs.presetRainFine || preset.id == DemoIDs.presetBreathOnly
-        case .fireflies:
+        case .himalaya:
             return preset.id == DemoIDs.presetForestGlow
         case .mistTide:
             return preset.id == DemoIDs.presetMistTide
@@ -255,7 +255,7 @@ final class AppState: ObservableObject {
             return preset.id == DemoIDs.presetFireplace
         case .starRiver:
             return preset.id == DemoIDs.presetStarRiver
-        case .cloudBreath:
+        case .flight:
             return preset.id == DemoIDs.presetBreathOnly
         default:
             return false

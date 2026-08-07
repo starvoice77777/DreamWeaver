@@ -678,7 +678,7 @@ enum APIContentMapper {
     }
 
     private static func visualStyle(_ raw: String) -> SceneVisualStyle {
-        SceneVisualStyle(rawValue: raw) ?? .warmLamp
+        SceneVisualStyle(rawValue: raw) ?? .longRoad
     }
 
     private static func sceneCategory(_ raw: String) -> SceneCategory {

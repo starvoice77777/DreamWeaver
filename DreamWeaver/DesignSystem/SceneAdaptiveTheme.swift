@@ -15,8 +15,9 @@ extension EnvironmentValues {
         set { self[SceneAdaptivePaletteKey.self] = newValue }
     }
 
+    /// Controls use one restrained neutral tone across every scene.
     var sceneAdaptiveAccent: Color {
-        sceneAdaptivePalette.accentColor
+        DreamTheme.componentAccent
     }
 }
 

@@ -99,7 +99,7 @@ struct AppleSignInSection: View {
     private var statusRow: some View {
         HStack(spacing: 10) {
             Image(systemName: statusSymbol)
-                .font(.system(size: 16, weight: .medium))
+                .font(.system(size: DreamIconSize.secondary, weight: .medium))
                 .foregroundStyle(sceneAccent)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 4) {

@@ -16,9 +16,10 @@ struct ProfileView: View {
                 .padding(20)
                 .padding(.bottom, 120)
             }
-            .background(SceneAdaptiveBackground(palette: appState.currentScene.palette))
+            .background(Color.clear)
             .navigationBarHidden(true)
         }
+        .background(Color.clear)
     }
 
     private var profileHeader: some View {
@@ -133,13 +134,14 @@ struct ProfileView: View {
     private func row(_ title: String, _ symbol: String) -> some View {
         HStack {
             Image(systemName: symbol)
+                .font(.system(size: DreamIconSize.secondary, weight: .medium))
                 .foregroundStyle(sceneAccent)
                 .frame(width: 28)
             Text(title)
                 .foregroundStyle(DreamTheme.moonWhite)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 12))
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(14)

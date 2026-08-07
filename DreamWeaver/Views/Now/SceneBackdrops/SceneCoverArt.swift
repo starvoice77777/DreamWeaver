@@ -38,29 +38,29 @@ enum SceneCoverArt {
             // Unique filename — Copy Bundle Resources flattens paths; cannot share `bg.jpg` with RainEaves.
             return ("mist_tide_bg", "Scenes/MistTide", "mist_tide_bg.jpg")
         case .valleyStream:
-            return ("valley_stream_bg", "Scenes/ValleyStream", "valley_stream_bg.png")
+            return ("valley_stream_bg", "Scenes/ValleyStream", "valley_stream_bg.jpg")
         case .snowStudy:
             return ("snow_study_bg", "Scenes/SnowStudy", "snow_study_bg.png")
-        case .cloudBreath:
-            return ("cloud_breath_bg", "Scenes/CloudBreath", "cloud_breath_bg.png")
+        case .flight:
+            return ("flight_bg", "Scenes/Flight", "flight_bg.jpg")
         case .emotionalFluid:
             return ("emotional_fluid_bg", "Scenes/EmotionalFluid", "emotional_fluid_bg.png")
         case .hairCare:
             return ("hair_care_bg", "Scenes/HairCare", "hair_care_bg.png")
-        case .fireflies:
-            return ("fireflies_bg", "Scenes/Fireflies", "fireflies_bg.jpg")
+        case .himalaya:
+            return ("himalaya_bg", "Scenes/Himalaya", "himalaya_bg.jpg")
         case .starRiver:
             return ("star_river_bg", "Scenes/StarRiver", "star_river_bg.jpg")
-        case .wheatWind:
-            return ("wheat_wind_bg", "Scenes/WheatWind", "wheat_wind_bg.jpg")
+        case .wheatWave:
+            return ("wheat_wave_bg", "Scenes/WheatWave", "wheat_wave_bg.jpg")
         case .moonLake:
-            return ("moon_lake_bg", "Scenes/MoonLake", "moon_lake_bg.jpg")
-        case .warmLamp:
-            return ("warm_lamp_bg", "Scenes/WarmLamp", "warm_lamp_bg.jpg")
+            return ("moon_lake_bg", "Scenes/MoonLake", "moon_lake_bg.png")
+        case .longRoad:
+            return ("long_road_bg", "Scenes/LongRoad", "long_road_bg.jpg")
         case .fireplaceWhisper:
             return ("fireplace_whisper_bg", "Scenes/FireplaceWhisper", "fireplace_whisper_bg.jpg")
-        case .summerInsects:
-            return ("summer_insects_bg", "Scenes/SummerInsects", "summer_insects_bg.jpg")
+        case .summerNight:
+            return ("summer_night_bg", "Scenes/SummerNight", "summer_night_bg.jpg")
         case .rainEaves:
             return ("rain_eaves_bg", "Scenes/RainEaves", "bg.jpg")
         default:

@@ -130,8 +130,12 @@ private struct WaterfallSceneCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 if isPlaying {
-                    Label("正在播放", systemImage: "waveform")
-                        .font(.system(size: 10, weight: .semibold))
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform")
+                            .font(.system(size: DreamIconSize.compact, weight: .semibold))
+                        Text("正在播放")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
                         .foregroundStyle(DreamTheme.moonWhite)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
@@ -155,7 +159,7 @@ private struct WaterfallSceneCard: View {
 
             Button(action: onToggleFavorite) {
                 Image(systemName: scene.isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: DreamIconSize.secondary, weight: .semibold))
                     .foregroundStyle(
                         scene.isFavorite
                             ? DreamTheme.warmApricot
@@ -175,13 +179,13 @@ private struct WaterfallSceneCard: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(
                     isPlaying
-                        ? scene.palette.accentColor.opacity(0.9)
+                        ? DreamTheme.componentAccent.opacity(0.9)
                         : Color.white.opacity(0.10),
                     lineWidth: isPlaying ? 1.5 : 1
                 )
         }
         .shadow(
-            color: scene.palette.accentColor.opacity(isPlaying ? 0.36 : 0.18),
+            color: DreamTheme.componentAccent.opacity(isPlaying ? 0.36 : 0.18),
             radius: isPlaying ? 18 : 10,
             y: 6
         )

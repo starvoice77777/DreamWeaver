@@ -103,7 +103,7 @@ struct CreateScenePickerView: View {
     ) -> some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: DreamIconSize.secondary, weight: .medium))
                 .foregroundStyle(DreamTheme.moonWhite)
                 .frame(width: 56, height: 56)
                 .background(accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
@@ -122,7 +122,7 @@ struct CreateScenePickerView: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(14)
@@ -147,7 +147,7 @@ struct CreateScenePickerView: View {
                         .scaledToFill()
                 } else {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: DreamIconSize.secondary, weight: .medium))
                         .foregroundStyle(DreamTheme.moonWhite.opacity(0.88))
                 }
             }
@@ -177,13 +177,13 @@ struct CreateScenePickerView: View {
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
                 .foregroundStyle(DreamTheme.tertiaryText)
         }
         .padding(14)
         .dreamRefractiveLiquidGlassRounded(
             cornerRadius: 18,
-            accent: scene.palette.accentColor,
+            accent: DreamTheme.componentAccent,
             intensity: 0.55,
             interactive: true
         )

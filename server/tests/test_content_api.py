@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -10,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt.algorithms import RSAAlgorithm
 
 from app.core.config import get_settings
+from app.models.content import Scene
 from app.services.apple_identity import AppleJWKSCache, reset_jwks_cache_for_tests
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 
@@ -39,37 +41,33 @@ async def test_bootstrap_and_scenes(client) -> None:
     assert any(item["name"] == "洗头轻声" for item in presets.json())
 
 
-async def test_emotional_fluid_scene_seeded(client) -> None:
-    """Frontend immersive fluid backdrop; remote catalog must expose visual_style."""
-    fluid_id = "a1111111-1111-4111-8111-11111111110e"
+async def test_emotional_fluid_scene_retired(client) -> None:
+    """An existing fluid row is unpublished while its reusable renderer remains."""
+    fluid_id = uuid.UUID("a1111111-1111-4111-8111-11111111110e")
+    factory = client._transport.app.state.session_factory  # type: ignore[attr-defined]
+    async with factory() as session:
+        session.add(
+            Scene(
+                id=fluid_id,
+                name="流光溢彩",
+                subtitle="legacy",
+                description="legacy",
+                category="lightMusic",
+                tags=["色彩"],
+                palette={"top": 0x24324A, "mid": 0x4B4668, "bottom": 0x163A4A},
+                visual_style="emotionalFluid",
+                is_published=True,
+            )
+        )
+        await session.commit()
+
     scenes = await client.get("/v1/scenes")
     assert scenes.status_code == 200
-    match = next((item for item in scenes.json() if item["id"] == fluid_id), None)
-    assert match is not None
-    assert match["name"] == "流光溢彩"
-    assert match["visual_style"] == "emotionalFluid"
-    assert match["category"] == "lightMusic"
-    assert match["tags"] == ["色彩", "助眠", "氛围"]
-    assert match["palette"] == {
-        "top": 0x24324A,
-        "mid": 0x4B4668,
-        "bottom": 0x163A4A,
-        "accent": 0xE8DCC5,
-    }
+    match = next((item for item in scenes.json() if item["id"] == str(fluid_id)), None)
+    assert match is None
 
     detail = await client.get(f"/v1/scenes/{fluid_id}")
-    assert detail.status_code == 200
-    body = detail.json()
-    assert body["visual_style"] == "emotionalFluid"
-    assert len(body["tracks"]) == 5
-    by_name = {track["name"]: track for track in body["tracks"]}
-    assert by_name["风声"]["resource_key"] == "wind_realistic"
-    assert by_name["雨声"]["resource_key"] == "rain_soft"
-    assert by_name["潮声"]["resource_key"] == "stream_nature"
-    assert by_name["钢琴"]["resource_key"] is None
-    assert by_name["钢琴"]["enabled_by_default"] is False
-    assert by_name["人声"]["layer"] == "voice"
-    assert by_name["人声"]["enabled_by_default"] is False
+    assert detail.status_code == 404
 
 
 async def test_apple_auth_dev_token(client) -> None:

@@ -219,7 +219,7 @@ enum SpatialTimelineEditMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .audioTiming:
-            return "音频时间"
+            return "时间编排"
         case .spatialTrajectory:
             return "空间轨迹"
         }

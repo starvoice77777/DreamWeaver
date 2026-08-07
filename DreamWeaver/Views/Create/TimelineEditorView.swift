@@ -136,7 +136,7 @@ private struct TimelineTrackView: View {
             } label: {
                 HStack(spacing: 7) {
                     Image(systemName: source.iconName)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: DreamIconSize.compact, weight: .medium))
                         .foregroundStyle(source.themeColor)
                         .frame(width: 24, height: 24)
                         .background {

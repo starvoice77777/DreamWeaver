@@ -2,8 +2,14 @@ import SwiftUI
 import UIKit
 
 struct SpatialCanvasView: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @ObservedObject var viewModel: SpatialTimelineViewModel
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
+
+    private var reduceMotion: Bool {
+        appState.reduceMotion || systemReduceMotion
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -52,15 +58,10 @@ struct SpatialCanvasView: View {
     }
 
     private func soundFieldBackground(side: CGFloat) -> some View {
-        ZStack {
-            Circle()
-                .stroke(DreamTheme.chromeStroke, lineWidth: 2)
-                .frame(width: side * 0.92, height: side * 0.92)
-
-            Circle()
-                .stroke(Color.white.opacity(0.07), lineWidth: 1.5)
-                .frame(width: side * 0.58, height: side * 0.58)
-        }
+        BreathingSpatialRings(
+            accent: sceneAccent,
+            reduceMotion: reduceMotion
+        )
         .frame(width: side, height: side)
     }
 
@@ -122,7 +123,7 @@ private struct SoundSourceNodeView: View {
                         lineWidth: isRecording ? 2.2 : (isSelected ? 1.5 : 1)
                     )
                 Image(systemName: source.iconName)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: DreamIconSize.content, weight: .medium))
                     .foregroundStyle(source.themeColor)
             }
             .frame(width: 48, height: 48)

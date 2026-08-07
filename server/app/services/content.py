@@ -125,9 +125,19 @@ async def build_bootstrap(session: AsyncSession, user: User | None = None) -> Bo
             )
 
     greeting_index = datetime.now(UTC).timetuple().tm_yday % len(GREETINGS)
+    available_scene_ids = {scene.id for scene in scenes}
+    requested_default_scene_id = settings_out.default_scene_id or DEFAULT_SCENE_ID
+    resolved_default_scene_id = (
+        requested_default_scene_id
+        if requested_default_scene_id in available_scene_ids
+        else DEFAULT_SCENE_ID
+    )
+    settings_out = settings_out.model_copy(
+        update={"default_scene_id": resolved_default_scene_id}
+    )
     return BootstrapOut(
         greeting=GREETINGS[greeting_index],
-        default_scene_id=settings_out.default_scene_id or DEFAULT_SCENE_ID,
+        default_scene_id=resolved_default_scene_id,
         scenes=scenes,
         settings=settings_out,
         server_time=datetime.now(UTC),

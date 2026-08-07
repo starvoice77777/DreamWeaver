@@ -28,6 +28,22 @@ enum DreamTypography {
     static let brand = Font.system(size: 23, weight: .light, design: .serif)
 }
 
+/// Shared SF Symbol scale, anchored to the 28pt controls in SceneLibraryView.
+enum DreamIconSize {
+    /// Top bars and primary actions: search, close, play, favorite, timer.
+    static let primary: CGFloat = 28
+    /// Leading list symbols and secondary actions.
+    static let secondary: CGFloat = 22
+    /// Content thumbnails and disclosure indicators.
+    static let content: CGFloat = 18
+    /// Dense cards, timelines, and status actions.
+    static let compact: CGFloat = 14
+    /// Very small inline status marks.
+    static let micro: CGFloat = 11
+    /// Empty-state illustration symbols.
+    static let emptyState: CGFloat = 36
+}
+
 enum DreamTheme {
     static let midnight = Color(hex: 0x080B16)
     static let deepBlue = Color(hex: 0x11182A)
@@ -35,6 +51,8 @@ enum DreamTheme {
     static let warmApricot = Color(hex: 0xD79A72)
     static let moonWhite = Color(hex: 0xF3F0EA)
     static let softLavender = Color(hex: 0x8D87A8)
+    /// Low-saturation fog silver shared by interactive chrome in every scene.
+    static let componentAccent = Color(hex: 0xA3AAA6)
 
     static let panel = Color.white.opacity(0.10)
     static let panelStrong = Color.white.opacity(0.14)

@@ -41,7 +41,7 @@ struct SceneLibraryView: View {
                         withAnimation { showSearch.toggle() }
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: DreamIconSize.primary, weight: .medium))
                             .foregroundStyle(DreamTheme.moonWhite.opacity(0.82))
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.white.opacity(showSearch ? 0.12 : 0.06)))
@@ -51,7 +51,7 @@ struct SceneLibraryView: View {
                     if let onDismiss {
                         Button(action: onDismiss) {
                             Image(systemName: "xmark")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(size: DreamIconSize.primary, weight: .semibold))
                                 .foregroundStyle(DreamTheme.moonWhite.opacity(0.78))
                                 .frame(width: 44, height: 44)
                                 .background(Circle().fill(Color.white.opacity(0.06)))
@@ -94,6 +94,7 @@ struct SceneLibraryView: View {
                                     selected: selectedCategory == nil,
                                     usesLiquidGlass: false,
                                     systemImage: "square.grid.2x2.fill",
+                                    iconSize: DreamIconSize.primary,
                                     fixedWidth: tagWidth
                                 ) {
                                     selectedCategory = nil
@@ -110,6 +111,7 @@ struct SceneLibraryView: View {
                                         selected: selectedCategory == category,
                                         usesLiquidGlass: false,
                                         systemImage: category.systemImage,
+                                        iconSize: DreamIconSize.primary,
                                         fixedWidth: tagWidth
                                     ) {
                                         selectedCategory = category

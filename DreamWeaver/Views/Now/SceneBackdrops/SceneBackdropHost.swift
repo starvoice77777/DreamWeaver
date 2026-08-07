@@ -43,16 +43,16 @@ struct SceneBackdropHost: View {
                 ValleyStreamBackdrop(intensity: intensity)
             case .snowStudy:
                 SnowStudyBackdrop(intensity: intensity)
-            case .cloudBreath:
-                CloudBreathBackdrop(intensity: intensity)
+            case .flight:
+                FlightBackdrop(intensity: intensity)
             case .hairCare:
                 HairCareBackdrop(intensity: intensity)
-            case .fireflies:
-                FirefliesBackdrop(intensity: intensity)
+            case .himalaya:
+                HimalayaBackdrop(intensity: intensity)
             case .starRiver:
                 StarRiverBackdrop(intensity: intensity)
-            case .wheatWind:
-                WheatWindBackdrop(
+            case .wheatWave:
+                WheatWaveBackdrop(
                     intensity: intensity,
                     isPlaying: isPlaying,
                     reduceMotion: reduceMotion
@@ -63,12 +63,12 @@ struct SceneBackdropHost: View {
                     isPlaying: isPlaying,
                     reduceMotion: reduceMotion
                 )
-            case .warmLamp:
-                WarmLampBackdrop(intensity: intensity)
+            case .longRoad:
+                LongRoadBackdrop(intensity: intensity)
             case .fireplaceWhisper:
                 FireplaceWhisperBackdrop(intensity: intensity)
-            case .summerInsects:
-                SummerInsectsBackdrop(intensity: intensity)
+            case .summerNight:
+                SummerNightBackdrop(intensity: intensity)
             case .canvasMotif:
                 SceneAtmosphereCanvas(
                     scene: scene,
