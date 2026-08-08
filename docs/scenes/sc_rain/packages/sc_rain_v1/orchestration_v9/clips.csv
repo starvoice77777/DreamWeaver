@@ -1,0 +1,7 @@
+clip_code,group_code,resource_key,start_seconds,end_seconds,playback_mode,fade_in_ms,fade_out_ms,crossfade_ms,phrase_id,intent
+C_A03_SOLO,G_A03,rain_bamboo_leaf,0,39,bounded_loop,3000,0,800,,以清脆竹叶雨完成稀疏开场及远近左右空间过渡
+C_A01,G_A01,rain_soft,39,620,loop,2000,60000,1000,,空间过渡结束后加入远雨承托并在结尾缓慢淡出
+C_A02,G_A02,rain_parasol,39,560,loop,2000,10000,1200,,空间过渡结束后加入檐下主雨
+C_A03_LAYER,G_A03,rain_bamboo_leaf,39.2,530,bounded_loop,2000,10000,800,,删除态后重新作为完整雨景的轻细节层加入
+C_A04_1,G_A04,wind_gust,188,191.71,oneshot,0,400,0,,第一次远处阵风
+C_A04_2,G_A04,wind_gust,458,461.71,oneshot,0,400,0,,第二次远处阵风

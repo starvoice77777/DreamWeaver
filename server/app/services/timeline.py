@@ -20,13 +20,13 @@ VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 HAIR_CARE_TIMELINE_VERSION = 12
-RAIN_EAVES_TIMELINE_VERSION = 10
+RAIN_EAVES_TIMELINE_VERSION = 11
 GENERIC_TIMELINE_VERSION = 2
 _HAIR_FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v11.json"
 )
 _RAIN_FIXTURE_PATH = (
-    Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v8.json"
+    Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v9.json"
 )
 
 

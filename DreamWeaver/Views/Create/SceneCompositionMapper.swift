@@ -16,7 +16,8 @@ enum SceneCompositionMapper {
     /// their real entry/exit times instead of collapsing into one 120-second row.
     static func editorSources(
         from timeline: APIContentDTO.SceneTimeline,
-        scene: DreamScene
+        scene: DreamScene,
+        preserveClipFades: Bool = false
     ) -> [SpatialEditorSource] {
         let sceneDuration = duration(for: timeline)
         let events = timedActions(from: timeline)
@@ -177,6 +178,31 @@ enum SceneCompositionMapper {
             closeContinuous(trackID: trackID, at: sceneDuration)
         }
 
+        func authoredClipFades(for segment: ImportedSegment) -> (fadeIn: Int, fadeOut: Int) {
+            guard preserveClipFades else { return (0, 0) }
+            var fadeIn = 0
+            var fadeOut = 0
+            for event in events {
+                guard resolvedTrackID(for: event.action, phrases: phraseByID) == segment.trackID,
+                      let milliseconds = event.action.fade_ms,
+                      milliseconds > 0 else { continue }
+                let action = event.action
+                let reachesClipEnd = abs(
+                    event.time + Double(milliseconds) / 1000 - segment.end
+                ) < 0.02
+                if abs(event.time - segment.start) < 0.001,
+                   action.type == "fade_in"
+                    || (action.type == "set_envelope" && (action.envelope ?? 1) > 0) {
+                    fadeIn = milliseconds
+                } else if reachesClipEnd,
+                          action.type == "fade_out"
+                            || (action.type == "set_envelope" && (action.envelope ?? 1) <= 0) {
+                    fadeOut = milliseconds
+                }
+            }
+            return (fadeIn, fadeOut)
+        }
+
         return segments
             .filter { $0.start < sceneDuration && $0.end > $0.start }
             .sorted {
@@ -201,6 +227,7 @@ enum SceneCompositionMapper {
                 }
                 let material = material(forResourceKey: segment.resourceName)
                     ?? material(for: source)
+                let fades = authoredClipFades(for: segment)
                 return SpatialEditorSource(
                     id: segment.id,
                     sourceGroupID: segment.trackID,
@@ -224,6 +251,8 @@ enum SceneCompositionMapper {
                             for: segment.resourceName
                         )
                         : 0,
+                    fadeInMilliseconds: fades.fadeIn,
+                    fadeOutMilliseconds: fades.fadeOut,
                     isVoice: source.layer == .voice
                 )
             }

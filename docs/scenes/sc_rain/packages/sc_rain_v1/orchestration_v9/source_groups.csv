@@ -1,0 +1,5 @@
+group_code,display_name,layer,resource_keys,display_policy,notes
+G_A01,远雨,environment,rain_soft,while_active,39秒后进入的连续远雨承托层
+G_A02,檐下雨,ambience,rain_parasol,while_active,39秒后进入且始终最响的主环境
+G_A03,竹叶雨,ambience,rain_bamboo_leaf,while_active,最清脆声源；负责稀疏开场与空间过渡，之后作为轻细节重新进入
+G_A04,阵风,trigger,wind_gust,while_active,仍只保留两次短触发且始终偏远

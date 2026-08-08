@@ -13,8 +13,8 @@ RAIN_EAVES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111102")
 FIREFLIES_ID = uuid.UUID("a1111111-1111-4111-8111-111111111103")
 FIRST_PHRASE_ID = uuid.UUID("db7992e9-09ee-571d-a58d-2763f9c86ef8")
 FIRST_PHRASE_CUE_ID = uuid.UUID("108ddf75-d4f5-52b5-aba3-a357955fa3a2")
-RAIN_SOFT_ENTER_CUE_ID = uuid.UUID("f6666666-6666-4666-8666-666666666630")
 RAIN_SOFT_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555510")
+RAIN_PARASOL_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555501")
 RAIN_BAMBOO_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555512")
 RAIN_WIND_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555502")
 HAIR_WATER_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555508")
@@ -100,11 +100,10 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
     assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
-    assert body["version"] == 10
+    assert body["version"] == 11
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
-    assert len(body["cues"]) == 27
-    assert any(c["id"] == str(RAIN_SOFT_ENTER_CUE_ID) for c in body["cues"])
+    assert len(body["cues"]) == 36
     assert any(
         a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
         for c in body["cues"]
@@ -119,29 +118,52 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
     assert any(a["type"] == "set_position" for c in body["cues"] for a in c["actions"])
     actions = [action for cue in body["cues"] for action in cue.get("actions", [])]
-    assert len(actions) == 55
-    assert sum(action["type"] == "set_position" for action in actions) == 26
-    # Package sc_rain_v1 v8: soft fade-in 0.22; parasol enters farther; A04 wind_gust oneshots
+    assert len(actions) == 75
+    assert sum(action["type"] == "set_position" for action in actions) == 36
+    assert not any(action["type"] == "set_volume" for action in actions)
+
+    # v9 opens with bamboo alone; the two continuous rain layers enter at 39s.
+    zero_actions = next(c["actions"] for c in body["cues"] if c["at_seconds"] == 0)
+    assert {action.get("track_id") for action in zero_actions} == {
+        str(RAIN_BAMBOO_TRACK_ID)
+    }
+    assert {
+        cue["at_seconds"]
+        for cue in body["cues"]
+        for action in cue["actions"]
+        if action["type"] == "play" and action.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
+    } == {0, 39.2}
+    assert {
+        cue["at_seconds"]
+        for cue in body["cues"]
+        for action in cue["actions"]
+        if action["type"] == "pause" and action.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
+    } == {39, 530}
+
+    # Steady-state hierarchy is radius-only. Envelopes only express clip fades.
     soft_envelopes = [
-        a["envelope"]
+        (c["at_seconds"], a["envelope"], a["fade_ms"])
         for c in body["cues"]
         for a in c.get("actions", [])
         if a.get("type") == "set_envelope" and a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
     ]
-    assert 0.22 in soft_envelopes
+    assert (39, 1.0, 2000) in soft_envelopes
+    assert (560, 0.0, 60000) in soft_envelopes
     parasol_enter = next(
         a
         for c in body["cues"]
-        if c["at_seconds"] == 30
+        if c["at_seconds"] == 39
         for a in c["actions"]
         if a.get("type") == "set_position"
-        and a.get("track_id") == "e5555555-5555-4555-8555-555555555501"
+        and a.get("track_id") == str(RAIN_PARASOL_TRACK_ID)
     )
-    assert parasol_enter["angle"] == 0.7
-    assert parasol_enter["radius"] == 0.62
-    assert _position_at(body, RAIN_SOFT_TRACK_ID, 0)["radius"] == 0.78
-    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 220)["radius"] == 0.78
-    assert _position_at(body, RAIN_WIND_TRACK_ID, 188)["radius"] == 0.77
+    assert parasol_enter["angle"] == 0.261799
+    assert parasol_enter["radius"] == 0.5
+    assert _position_at(body, RAIN_SOFT_TRACK_ID, 39)["radius"] == 0.85
+    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 0)["radius"] == 0.38
+    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 24)["radius"] == 0.78
+    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 39.1)["radius"] == 0.93
+    assert _position_at(body, RAIN_WIND_TRACK_ID, 188)["radius"] == 0.95
     # Fade-out movement remains spatially outward after the audible section.
     assert _position_at(body, RAIN_SOFT_TRACK_ID, 560)["radius"] == 0.92
     oneshots = [
@@ -151,7 +173,7 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     ]
     assert len(oneshots) == 2
     assert {c["at_seconds"] for c in oneshots} == {188, 458}
-    # Spatial keyframes expanded from package position_keyframes
+    # All 36 submitted spatial keyframes are preserved in the generated fixture.
     positioned_cues = [
         cue
         for cue in body["cues"]

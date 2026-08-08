@@ -74,7 +74,8 @@ struct SpatialEditorSeed: Equatable {
     ) -> SpatialEditorSeed {
         let importedSources = SceneCompositionMapper.editorSources(
             from: timeline,
-            scene: scene
+            scene: scene,
+            preserveClipFades: true
         )
         guard !importedSources.isEmpty else { return from(scene: scene) }
         return SpatialEditorSeed(

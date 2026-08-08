@@ -1,8 +1,8 @@
 {
   "scene_id": "sc_rain",
   "scene_name": "檐下听雨",
-  "package_version": "1.3.0",
-  "timeline_version": 8,
+  "package_version": "1.4.0",
+  "timeline_version": 9,
   "scene_type": "environment_no_text_no_voice",
   "duration_seconds": 620,
   "output_preference": "external_speaker_first",
@@ -19,8 +19,9 @@
     "尚需每条短循环连续至少2分钟接缝验收"
   ],
   "truth_sources": {
-    "timeline": "scene/timeline.json",
-    "tracks": "scene/tracks.csv",
+    "orchestration": "orchestration_v9/",
+    "legacy_timeline_v8": "scene/timeline.json",
+    "legacy_tracks_v8": "scene/tracks.csv",
     "qc": "qc/asset_qc.csv",
     "licenses": "licenses/license_manifest.csv"
   }

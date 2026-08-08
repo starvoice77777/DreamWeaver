@@ -28,7 +28,7 @@
 - 新创建内容保存为 `scene_composition_v2`；服务端继续接受 v1，并新增 v2 引用、时间窗、插值和 crossfade 校验。
 - v2 还校验 layer、淡入淡出时长及其总和；保存后不再降级写入旧 timeline 缓存。
 - 新增契约文档 `docs/scene-composition-v2-contract.md`。
-- 官方快照门禁固定洗头 138 cues/242 actions、20 句人声和 10 次 oneshot，雨景 27 cues/55 actions/26 个位置动作。
+- 官方快照门禁固定洗头 138 cues/242 actions、20 句人声和 10 次 oneshot；雨景 v9 为 36 cues/75 actions/36 个位置动作、6 个 clip 和 4 个 SourceGroup。
 - 后端全量 pytest 已通过；本次涉及的 composition 文件 Ruff 已通过。全仓 Ruff 仍报告 Alembic 历史格式问题，与本次重构无关。
 
 ### 0.2 2026-08-08 创建时间轴分段重构
@@ -39,6 +39,14 @@
 - 同一素材再次添加时在原轨道末尾追加30秒；场景自动延长，同轨交互禁止产生新重叠。
 - 片段静音间隙由 compiler 派生 clip 边界保持锚点，锚点不污染用户轨迹；Create 预览和 Now 播放统一按 `while_active` 显示声源。
 - 时间轴默认显示30秒，并增加底部范围滑条用于5秒至全场景范围的缩放和平移。
+
+### 0.3 2026-08-08 雨景 orchestration v9 接入
+
+- `orchestration_v9/*.csv` 成为檐下听雨当前唯一编排源，原有 4 个 WAV 与母带哈希不变。
+- 0–39 秒仅 A03 竹叶雨；39 秒 A01/A02 建立，A03 在 39.2 秒以同一 SourceGroup 的第二个 clip 重新进入。
+- 36 个角度/radius 关键帧编译为 timeline `set_position`，由统一渲染器按 linear 连续插值。
+- clip 淡入淡出编译为 envelope 自动化；稳态主次不使用 legacy volume。
+- “从已有场景创建”导入官方 timeline 时保留片段边界淡化，但直接播放仍只执行一份自动化，避免双重淡化。
 
 本计划解决以下已确认问题：
 
@@ -585,7 +593,7 @@ flowchart LR
       "id": "voice-group-uuid",
       "name": "轻声陪伴",
       "layer": "voice",
-      "display_policy": "always_in_window",
+      "display_policy": "while_active",
       "position_keyframes": [
         {
           "t": 0,
