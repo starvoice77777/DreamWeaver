@@ -1,5 +1,117 @@
 import SwiftUI
 
+/// Shared surface for every content modal. Keeping this independent from the
+/// active scene prevents a presented sheet from changing color or flashing
+/// while the underlying scene updates.
+struct DreamModalBackdrop: View {
+    var body: some View {
+        ZStack {
+            DreamTheme.midnight
+
+            LinearGradient(
+                colors: [
+                    DreamTheme.deepBlue.opacity(0.96),
+                    DreamTheme.midnight.opacity(0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            RadialGradient(
+                colors: [
+                    DreamTheme.componentAccent.opacity(0.10),
+                    Color.clear
+                ],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 320
+            )
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct DreamModalPresentationModifier: ViewModifier {
+    let detents: Set<PresentationDetent>
+
+    func body(content: Content) -> some View {
+        content
+            .presentationDetents(detents)
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+            .presentationBackground {
+                DreamModalBackdrop()
+            }
+            .preferredColorScheme(.dark)
+    }
+}
+
+private struct DreamPopoverPresentationModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(DreamTheme.midnight.opacity(0.98))
+                    .overlay {
+                        LinearGradient(
+                            colors: [
+                                DreamTheme.deepBlue.opacity(0.88),
+                                DreamTheme.midnight.opacity(0.96)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
+            }
+            .shadow(color: .black.opacity(0.32), radius: 20, y: 8)
+            .presentationCompactAdaptation(.popover)
+            .presentationCornerRadius(20)
+            .presentationBackground(.clear)
+            .preferredColorScheme(.dark)
+            .transaction { transaction in
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+    }
+}
+
+extension View {
+    func dreamModalPresentation(
+        _ detents: Set<PresentationDetent> = [.large]
+    ) -> some View {
+        modifier(DreamModalPresentationModifier(detents: detents))
+    }
+
+    func dreamPopoverPresentation() -> some View {
+        modifier(DreamPopoverPresentationModifier())
+    }
+}
+
+/// Standard close affordance used by sheets regardless of their content.
+struct DreamModalCloseButton: View {
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: DreamIconSize.content, weight: .semibold))
+                .foregroundStyle(DreamTheme.secondaryText)
+                .frame(width: 44, height: 44)
+                .background {
+                    Circle().fill(Color.white.opacity(0.055))
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("关闭")
+    }
+}
+
 struct GlassPanel: ViewModifier {
     var cornerRadius: CGFloat = 20
 
@@ -503,8 +615,7 @@ enum SpatialDiskLayout {
     }
 }
 
-/// Shared spatial-field rings used by both Now and Create so their visibility,
-/// contrast, and breathing cadence remain visually consistent.
+/// Shared spatial-field outline used by both Now and Create.
 struct BreathingSpatialRings: View {
     let accent: Color
     var reduceMotion: Bool = false
@@ -515,27 +626,17 @@ struct BreathingSpatialRings: View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
 
-            ZStack {
-                Circle()
-                    .fill(Color.black.opacity(0.08))
-                    .frame(width: side * 0.92, height: side * 0.92)
-
-                Circle()
-                    .stroke(accent.opacity(0.40), lineWidth: 2.2)
-                    .frame(width: side * 0.92, height: side * 0.92)
-                    .shadow(
-                        color: accent.opacity(isBreathing ? 0.34 : 0.14),
-                        radius: isBreathing ? 14 : 6
-                    )
-
-                Circle()
-                    .stroke(DreamTheme.moonWhite.opacity(0.16), lineWidth: 1.6)
-                    .frame(width: side * 0.58, height: side * 0.58)
-            }
-            .frame(width: side, height: side)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .scaleEffect(reduceMotion ? 1 : (isBreathing ? 1.022 : 0.992))
-            .opacity(reduceMotion ? 0.90 : (isBreathing ? 1 : 0.74))
+            Circle()
+                .stroke(accent.opacity(0.40), lineWidth: 2.2)
+                .frame(width: side * 0.92, height: side * 0.92)
+                .shadow(
+                    color: accent.opacity(isBreathing ? 0.34 : 0.14),
+                    radius: isBreathing ? 14 : 6
+                )
+                .frame(width: side, height: side)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .scaleEffect(reduceMotion ? 1 : (isBreathing ? 1.022 : 0.992))
+                .opacity(reduceMotion ? 0.90 : (isBreathing ? 1 : 0.74))
         }
         .onAppear(perform: updateBreathing)
         .onChange(of: reduceMotion) { _, _ in

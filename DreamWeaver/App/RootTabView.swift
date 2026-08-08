@@ -294,8 +294,7 @@ struct DreamTabBar: View {
         Button {
             expandNavigation()
         } label: {
-            tabGlyph(selected, filled: true)
-                .font(.system(size: DreamIconSize.primary, weight: .medium))
+            brandLogoGlyph
                 .foregroundStyle(DreamTheme.moonWhite.opacity(0.98))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Circle())
@@ -304,6 +303,23 @@ struct DreamTabBar: View {
         .accessibilityLabel("展开导航")
         .accessibilityValue("当前页面：\(selected.title)")
         .accessibilityHint("展开后可切换页面")
+    }
+
+    private var brandLogoGlyph: some View {
+        ZStack {
+            ForEach(DreamWeaverMarkStroke.allCases) { stroke in
+                DreamWeaverMarkPath(stroke: stroke)
+                    .stroke(
+                        .primary,
+                        style: StrokeStyle(
+                            lineWidth: 2.1,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .frame(width: 18, height: 30)
     }
 
     private func selectionLens(in size: CGSize) -> some View {
@@ -365,26 +381,8 @@ struct DreamTabBar: View {
         .accessibilityAddTraits(isCommittedSelection ? .isSelected : [])
     }
 
-    @ViewBuilder
     private func tabGlyph(_ tab: AppTab, filled: Bool) -> some View {
-        if tab == .now {
-            ZStack {
-                ForEach(DreamWeaverMarkStroke.allCases) { stroke in
-                    DreamWeaverMarkPath(stroke: stroke)
-                        .stroke(
-                            .primary,
-                            style: StrokeStyle(
-                                lineWidth: 2.1,
-                                lineCap: .round,
-                                lineJoin: .round
-                            )
-                        )
-                }
-            }
-            .frame(width: 18, height: 30)
-        } else {
-            Image(systemName: filled ? tab.systemImageFill : tab.systemImageOutline)
-        }
+        Image(systemName: filled ? tab.systemImageFill : tab.systemImageOutline)
     }
 
     private var tabDragGesture: some Gesture {

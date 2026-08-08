@@ -77,7 +77,7 @@ struct SoundLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SceneAdaptiveBackground(palette: appState.currentScene.palette)
+                DreamModalBackdrop()
 
                 VStack(alignment: .leading, spacing: 16) {
                     header
@@ -125,7 +125,7 @@ struct SoundLibraryView: View {
                     },
                     onClose: { expandedLibraryGroup = nil }
                 )
-                .presentationDetents([.medium, .large])
+                .dreamModalPresentation([.medium, .large])
             }
             .alert("删除声音", isPresented: Binding(
                 get: { soundPendingDelete != nil },
@@ -157,7 +157,7 @@ struct SoundLibraryView: View {
             .sheet(item: $detailTarget) { asset in
                 SoundDetailSheet(asset: asset)
                     .environmentObject(appState)
-                    .presentationDetents([.medium])
+                    .dreamModalPresentation([.medium])
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -252,18 +252,6 @@ struct SoundLibraryView: View {
                 .allowsHitTesting(false)
 
             HStack {
-                if let onDismiss {
-                    Button(action: onDismiss) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: DreamIconSize.primary, weight: .semibold))
-                            .foregroundStyle(sceneAccent)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("返回创建")
-                }
-
                 Spacer()
 
                 Button {
@@ -277,6 +265,10 @@ struct SoundLibraryView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("搜索")
+
+                if let onDismiss {
+                    DreamModalCloseButton(action: onDismiss)
+                }
             }
         }
         .frame(height: 44)
@@ -650,7 +642,6 @@ struct SoundLibraryView: View {
 }
 
 private struct ExistingLibraryFullList<Row: View>: View {
-    @Environment(\.sceneAdaptivePalette) private var scenePalette
     let title: String
     let items: [SoundAsset]
     @ViewBuilder var row: (SoundAsset) -> Row
@@ -667,12 +658,12 @@ private struct ExistingLibraryFullList<Row: View>: View {
                 .padding(20)
                 .padding(.bottom, 40)
             }
-            .background(SceneAdaptiveBackground(palette: scenePalette))
+            .background(DreamModalBackdrop())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭", action: onClose)
+                ToolbarItem(placement: .confirmationAction) {
+                    DreamModalCloseButton(action: onClose)
                 }
             }
         }
@@ -785,15 +776,20 @@ struct SoundDetailSheet: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            DreamTheme.deepBlue
-                .ignoresSafeArea()
+            DreamModalBackdrop()
                 .contentShape(Rectangle())
                 .onTapGesture { dismiss() }
 
             VStack(alignment: .leading, spacing: 16) {
-                Text(asset.name)
-                    .font(DreamTypography.pageTitle)
-                    .foregroundStyle(DreamTheme.moonWhite)
+                HStack(spacing: 12) {
+                    Text(asset.name)
+                        .font(DreamTypography.pageTitle)
+                        .foregroundStyle(DreamTheme.moonWhite)
+
+                    Spacer()
+
+                    DreamModalCloseButton { dismiss() }
+                }
                 Text("分类：\(asset.kind.rawValue)")
                     .foregroundStyle(DreamTheme.secondaryText)
                 Text("时长：\(asset.durationText)")

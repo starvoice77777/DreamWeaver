@@ -54,13 +54,12 @@ struct CreateScenePickerView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 28)
             }
-            .background(SceneAdaptiveBackground(palette: appState.currentScene.palette))
+            .background(DreamModalBackdrop())
             .navigationTitle("选择创建起点")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                        .foregroundStyle(sceneAccent)
+                ToolbarItem(placement: .confirmationAction) {
+                    DreamModalCloseButton { dismiss() }
                 }
             }
         }

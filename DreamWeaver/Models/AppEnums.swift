@@ -22,7 +22,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     /// Filled glyph — selected (正).
     var systemImageFill: String {
         switch self {
-        case .now: return "headphones"
+        case .now: return "house.fill"
         case .create: return "plus"
         case .profile: return "person.crop.circle.fill"
         }
@@ -31,7 +31,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     /// Outline glyph — unselected (反).
     var systemImageOutline: String {
         switch self {
-        case .now: return "headphones"
+        case .now: return "house"
         case .create: return "plus"
         case .profile: return "person.crop.circle"
         }

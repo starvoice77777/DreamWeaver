@@ -9,6 +9,7 @@ struct SpatialEditorView: View {
     @State private var showSaveChooser = false
     @State private var showsSoundTray = false
     @State private var showsAdvancedEditor = false
+    @State private var showsCreationOptions = false
     private let isCreateTabRoot: Bool
     private let onResetRequested: (() -> Void)?
     private let onExistingSceneRequested: (() -> Void)?
@@ -106,9 +107,7 @@ struct SpatialEditorView: View {
         }
         .sheet(isPresented: $showsSoundTray) {
             soundTray
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(appState.currentScene.palette.bottomColor)
+                .dreamModalPresentation([.medium, .large])
         }
         .confirmationDialog("保存场景", isPresented: $showSaveChooser, titleVisibility: .visible) {
             Button("保存为草稿") {
@@ -168,25 +167,25 @@ struct SpatialEditorView: View {
     @ViewBuilder
     private var editorLeadingControl: some View {
         if let onResetRequested {
-            Menu {
-                Button {
-                    onResetRequested()
-                } label: {
-                    Label("从空白重新开始", systemImage: "arrow.counterclockwise")
-                }
-
-                if let onExistingSceneRequested {
-                    Button {
-                        onExistingSceneRequested()
-                    } label: {
-                        Label("从已有场景创建", systemImage: "square.stack.3d.up.fill")
-                    }
-                }
+            Button {
+                showsCreationOptions = true
             } label: {
                 Image(systemName: "square.and.pencil")
                     .font(.system(size: DreamIconSize.primary, weight: .semibold))
                     .foregroundStyle(sceneAccent)
                     .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .popover(
+                isPresented: $showsCreationOptions,
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .top
+            ) {
+                creationOptionsPopover(
+                    onResetRequested: onResetRequested,
+                    onExistingSceneRequested: onExistingSceneRequested
+                )
+                .dreamPopoverPresentation()
             }
             .accessibilityLabel("选择创建方式")
             .accessibilityHint("可从空白开始或从已有场景创建")
@@ -201,6 +200,60 @@ struct SpatialEditorView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("返回创建")
+        }
+    }
+
+    private func creationOptionsPopover(
+        onResetRequested: @escaping () -> Void,
+        onExistingSceneRequested: (() -> Void)?
+    ) -> some View {
+        VStack(spacing: 0) {
+            creationOptionButton(
+                title: "从空白重新开始",
+                symbol: "arrow.counterclockwise"
+            ) {
+                closeCreationOptions(then: onResetRequested)
+            }
+
+            if let onExistingSceneRequested {
+                Divider()
+                    .overlay(Color.white.opacity(0.08))
+
+                creationOptionButton(
+                    title: "从已有场景创建",
+                    symbol: "square.stack.3d.up.fill"
+                ) {
+                    closeCreationOptions(then: onExistingSceneRequested)
+                }
+            }
+        }
+        .frame(width: 220)
+        .padding(.vertical, 6)
+    }
+
+    private func creationOptionButton(
+        title: String,
+        symbol: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(DreamTheme.moonWhite)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func closeCreationOptions(then action: @escaping () -> Void) {
+        showsCreationOptions = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            action()
         }
     }
 
@@ -774,19 +827,9 @@ struct SpatialEditorView: View {
 
                 Spacer()
 
-                Button {
+                DreamModalCloseButton {
                     showsSoundTray = false
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: DreamIconSize.primary, weight: .semibold))
-                        .foregroundStyle(DreamTheme.secondaryText)
-                        .frame(width: 44, height: 44)
-                        .background {
-                            Circle().fill(Color.white.opacity(0.055))
-                        }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("关闭")
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
@@ -832,10 +875,16 @@ struct SpatialEditorView: View {
 
     private func soundTraySection(_ section: SoundTraySection) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: section.symbol)
-                .font(.system(size: DreamIconSize.secondary, weight: .medium))
-                .foregroundStyle(sceneAccent)
-                .frame(width: 30, height: 30)
+            HStack(spacing: 8) {
+                Image(systemName: section.symbol)
+                    .font(.system(size: DreamIconSize.secondary, weight: .medium))
+                    .foregroundStyle(sceneAccent)
+                    .frame(width: 30, height: 30)
+
+                Text(section.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(DreamTheme.moonWhite.opacity(0.84))
+            }
                 .padding(.horizontal, 20)
                 .accessibilityLabel(section.title)
 

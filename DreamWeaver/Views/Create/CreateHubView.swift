@@ -70,6 +70,7 @@ struct CreateHubView: View {
                 }
             )
             .environmentObject(appState)
+            .dreamModalPresentation()
         }
         .sheet(isPresented: $showSoundLibrary) {
             SoundLibraryView(
@@ -83,7 +84,7 @@ struct CreateHubView: View {
                 onDismiss: { showSoundLibrary = false }
             )
             .environmentObject(appState)
-            .presentationDetents([.large])
+            .dreamModalPresentation()
         }
         .confirmationDialog("创建声音", isPresented: $showUploadChooser, titleVisibility: .visible) {
             Button("现场录音") { beginRecordUpload() }
