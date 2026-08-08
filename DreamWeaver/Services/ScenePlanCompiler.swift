@@ -11,7 +11,7 @@ enum ScenePlanCompiler {
         if composition.schema == "scene_composition_v2",
            let rawGroups = composition.source_groups,
            let rawClips = composition.clips {
-            let groups = rawGroups.map { raw in
+            let baseGroups = rawGroups.map { raw in
                 let frames = raw.position_keyframes.map(positionKeyframe)
                 return SceneSourceGroup(
                     id: raw.id,
@@ -40,6 +40,21 @@ enum ScenePlanCompiler {
                     phraseID: raw.phrase_id,
                     textCueID: raw.text_cue_id,
                     masteringProfileKey: raw.mastering_profile_key
+                )
+            }
+            let groups = baseGroups.map { group in
+                SceneSourceGroup(
+                    id: group.id,
+                    name: group.name,
+                    symbolName: group.symbolName,
+                    layer: group.layer,
+                    displayPolicy: .whileActive,
+                    defaultPosition: group.defaultPosition,
+                    positionKeyframes: positionFramesWithGapGuards(
+                        group.positionKeyframes,
+                        clips: clips.filter { $0.sourceGroupID == group.id },
+                        defaultPosition: group.defaultPosition
+                    )
                 )
             }
             return makePlan(
@@ -103,7 +118,7 @@ enum ScenePlanCompiler {
                 name: base?.name ?? (representative.isVoice ? "轻声陪伴" : representative.name),
                 symbolName: normalizedSymbolName(base?.symbolName ?? representative.iconName),
                 layer: base?.layer ?? layer(for: representative),
-                displayPolicy: representative.isVoice ? .alwaysInWindow : .selectedOrActive,
+                displayPolicy: .whileActive,
                 defaultPosition: frames.first?.position ?? polar(from: representative.defaultPosition),
                 positionKeyframes: frames
             )
@@ -222,7 +237,83 @@ enum ScenePlanCompiler {
                 result.append(frame)
             }
         }
-        return result
+        let clips = members.map { source in
+            SceneAudioClip(
+                id: source.id,
+                sourceGroupID: source.effectiveSourceGroupID,
+                resourceKey: source.resourceName,
+                startSeconds: source.audioStartTime,
+                endSeconds: source.audioEndTime,
+                playbackMode: .oneshot
+            )
+        }
+        return positionFramesWithGapGuards(
+            result,
+            clips: clips,
+            defaultPosition: result.first?.position ?? .default
+        )
+    }
+
+    private static func positionFramesWithGapGuards(
+        _ frames: [ScenePositionKeyframe],
+        clips: [SceneAudioClip],
+        defaultPosition: SpatialPosition
+    ) -> [ScenePositionKeyframe] {
+        let orderedFrames = frames.sorted { $0.time < $1.time }
+        let orderedClips = clips.sorted { lhs, rhs in
+            lhs.startSeconds == rhs.startSeconds
+                ? lhs.id.uuidString < rhs.id.uuidString
+                : lhs.startSeconds < rhs.startSeconds
+        }
+        guard orderedClips.count > 1 else { return orderedFrames }
+
+        var generated: [ScenePositionKeyframe] = []
+        for index in 0..<(orderedClips.count - 1) {
+            let previous = orderedClips[index]
+            let next = orderedClips[index + 1]
+            guard next.startSeconds - previous.endSeconds > 0.001 else { continue }
+            let hasExplicitGapFrame = orderedFrames.contains {
+                $0.time > previous.endSeconds + 0.001
+                    && $0.time < next.startSeconds - 0.001
+            }
+            guard !hasExplicitGapFrame else { continue }
+
+            let previousPosition = orderedFrames.last(where: {
+                $0.time <= previous.endSeconds + 0.001
+            })?.position ?? defaultPosition
+            let nextPosition = orderedFrames.first(where: {
+                $0.time >= next.startSeconds - 0.001
+            })?.position ?? previousPosition
+            generated.append(
+                ScenePositionKeyframe(
+                    time: previous.endSeconds,
+                    position: previousPosition,
+                    interpolation: .hold
+                )
+            )
+            if !orderedFrames.contains(where: { abs($0.time - next.startSeconds) < 0.001 }) {
+                generated.append(
+                    ScenePositionKeyframe(
+                        time: next.startSeconds,
+                        position: nextPosition,
+                        interpolation: .smoothstep
+                    )
+                )
+            }
+        }
+
+        var result = orderedFrames
+        for frame in generated {
+            if let index = result.firstIndex(where: { abs($0.time - frame.time) < 0.001 }) {
+                if frame.interpolation == .hold {
+                    result[index].position = frame.position
+                    result[index].interpolation = .hold
+                }
+            } else {
+                result.append(frame)
+            }
+        }
+        return result.sorted { $0.time < $1.time }
     }
 
     private static func automationCurves(

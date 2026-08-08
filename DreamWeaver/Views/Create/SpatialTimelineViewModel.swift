@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 final class SpatialTimelineViewModel: ObservableObject {
-    let duration: Double
+    @Published private(set) var duration: Double
     let timeSnapTolerance: Double = 0.2
     let minimumAudioDuration: Double = 1
 
@@ -11,9 +11,13 @@ final class SpatialTimelineViewModel: ObservableObject {
     @Published private(set) var isPlaying = false
     @Published var sceneName: String = ""
     @Published var timelineEditMode: SpatialTimelineEditMode = .audioTiming
-    @Published private(set) var soundSources: [SpatialEditorSource]
+    @Published private(set) var sourceGroups: [SpatialEditorSourceGroup]
+    @Published private(set) var audioClips: [SpatialEditorAudioClip]
     @Published var selectedSourceID: UUID?
+    @Published var selectedAudioClipID: UUID?
     @Published var selectedKeyPointID: UUID?
+    @Published var timelineViewport: TimelineViewport
+    @Published private(set) var isTimelineViewportInteracting = false
     @Published private(set) var draggingSourceID: UUID?
     @Published private(set) var dragPositions: [UUID: CGPoint] = [:]
     @Published private(set) var armedTrajectorySourceID: UUID?
@@ -44,33 +48,18 @@ final class SpatialTimelineViewModel: ObservableObject {
     var isFromExistingScene: Bool { seedSourceSceneID != nil }
     var isTrajectoryRecordingArmed: Bool { armedTrajectorySourceID != nil }
     var isRecordingTrajectory: Bool { recordingTrajectorySourceID != nil }
-    var sourceGroupRepresentatives: [SpatialEditorSource] {
-        let selectedGroupID = selectedSource?.effectiveSourceGroupID
-        return Dictionary(grouping: soundSources, by: \.effectiveSourceGroupID)
-            .values
-            .compactMap { members in
-                members.first(where: {
-                    selectedGroupID == $0.effectiveSourceGroupID && $0.id == selectedSourceID
-                })
-                    ?? members.first(where: {
-                        currentTime >= $0.audioStartTime && currentTime < $0.audioEndTime
-                    })
-                    ?? members.first
-            }
-            .sorted { lhs, rhs in
-                let lhsIndex = soundSources.firstIndex(where: { $0.id == lhs.id }) ?? .max
-                let rhsIndex = soundSources.firstIndex(where: { $0.id == rhs.id }) ?? .max
-                return lhsIndex < rhsIndex
-            }
-    }
+    /// Compatibility accessor used by the surrounding Create UI. Entries are
+    /// now logical groups, not individual audio clips.
+    var soundSources: [SpatialEditorSourceGroup] { sourceGroups }
+    var sourceGroupRepresentatives: [SpatialEditorSourceGroup] { sourceGroups }
     var visibleSoundSources: [SpatialEditorSource] {
-        sourceGroupRepresentatives.filter { representative in
-            let groupMembers = members(of: representative.effectiveSourceGroupID)
-            return representative.isVoice
-                || groupMembers.contains(where: { $0.id == selectedSourceID })
-                || groupMembers.contains {
-                    currentTime >= $0.audioStartTime && currentTime < $0.audioEndTime
-                }
+        sourceGroups.filter { group in
+            let active = clips(for: group.id).contains {
+                currentTime >= $0.startTime && currentTime < $0.endTime
+            }
+            return active
+                || (!isPlaying && selectedSourceID == group.id)
+                || recordingTrajectorySourceID == group.id
         }
     }
 
@@ -81,21 +70,32 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     init(seed providedSeed: SpatialEditorSeed? = nil) {
         let seed = providedSeed ?? .blank
-        let contentEnd = seed.soundSources.map(\.audioEndTime).max() ?? 0
+        let document: SpatialEditorDocument
+        if let clips = seed.audioClips {
+            document = SpatialEditorDocument(sourceGroups: seed.soundSources, audioClips: clips)
+        } else {
+            document = SpatialEditorDocument.migrate(legacySources: seed.soundSources)
+        }
+        let contentEnd = document.audioClips.map(\.endTime).max() ?? 0
         self.duration = max(seed.durationSeconds ?? max(contentEnd, 120), 1)
+        self.timelineViewport = TimelineViewport(
+            sceneDuration: max(seed.durationSeconds ?? max(contentEnd, 120), 1)
+        )
         self.draftID = seed.draftID ?? UUID()
         self.privateSceneID = seed.privateSceneID
         self.sceneName = seed.sceneName
-        self.soundSources = seed.soundSources
+        self.sourceGroups = document.sourceGroups
+        self.audioClips = document.audioClips
         self.textCues = seed.textCues
-        self.selectedSourceID = seed.soundSources.first?.id
+        self.selectedSourceID = document.sourceGroups.first?.id
         self.sourceSceneSubtitle = seed.sourceSceneSubtitle
         self.seedSourceSceneID = seed.sourceSceneID
-        self.showsFirstUseHint = seed.soundSources.isEmpty
+        self.showsFirstUseHint = document.sourceGroups.isEmpty
         self.previewPlayback = LocalPlaybackService()
         self.previewPlayback.onRendererStateChange = { [weak self] state in
             guard let self, self.isPlaying else { return }
             self.currentTime = state.time
+            self.followPlayheadIfNeeded()
             self.captureRecordingSample(force: false)
             if !state.isPlaying, state.time >= self.duration {
                 if self.isRecordingTrajectory {
@@ -113,12 +113,14 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func makeLocalDraft() -> CreateSceneDraft {
         CreateSceneDraft(
+            schemaVersion: 2,
             id: draftID,
             privateSceneId: privateSceneID,
             name: displaySceneName,
             sourceSceneId: seedSourceSceneID,
             sourceSceneSubtitle: sourceSceneSubtitle,
-            soundSources: soundSources,
+            soundSources: sourceGroups,
+            audioClips: audioClips,
             textCues: textCues,
             durationSeconds: duration,
             updatedAt: Date()
@@ -127,7 +129,10 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func makeCompositionDocument() -> APIContentDTO.SceneComposition {
         SceneCompositionMapper.composition(
-            from: soundSources,
+            from: SpatialEditorDocument(
+                sourceGroups: sourceGroups,
+                audioClips: audioClips
+            ).legacySources(),
             duration: duration,
             textCues: textCues
         )
@@ -160,8 +165,7 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func source(id: UUID?) -> SpatialEditorSource? {
         guard let id else { return nil }
-        return soundSources.first { $0.id == id }
-            ?? soundSources.first { $0.effectiveSourceGroupID == id }
+        return sourceGroups.first { $0.id == id }
     }
 
     func position(for source: SpatialEditorSource, at time: Double? = nil) -> CGPoint {
@@ -170,7 +174,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             return dragging
         }
         let plan = ScenePlanCompiler.compile(
-            editorSources: members(of: groupID),
+            editorSources: compatibilitySources(for: groupID),
             sceneID: draftID,
             duration: duration
         )
@@ -189,18 +193,17 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func hasTrajectory(for source: SpatialEditorSource) -> Bool {
-        members(of: source.effectiveSourceGroupID).contains {
-            $0.keyPoints.count >= 2 || !($0.motionClips ?? []).isEmpty
-        } || (recordingTrajectorySourceID.flatMap { self.source(id: $0) }?.effectiveSourceGroupID
-            == source.effectiveSourceGroupID && liveRecordingSamples.count >= 2)
+        source.keyPoints.count >= 2 || !(source.motionClips ?? []).isEmpty
+            || (recordingTrajectorySourceID == source.id && liveRecordingSamples.count >= 2)
     }
 
     func isSourceGroupSelected(_ source: SpatialEditorSource) -> Bool {
-        selectedSource?.effectiveSourceGroupID == source.effectiveSourceGroupID
+        selectedSourceID == source.id
     }
 
     func selectSource(_ sourceID: UUID) {
         selectedSourceID = sourceID
+        selectedAudioClipID = nil
         if let armedTrajectorySourceID, armedTrajectorySourceID != sourceID {
             self.armedTrajectorySourceID = nil
         }
@@ -292,16 +295,15 @@ final class SpatialTimelineViewModel: ObservableObject {
     func undoLastTrajectoryRecording() {
         pause()
         guard let state = trajectoryUndoState,
-              let sourceIndex = soundSources.firstIndex(where: { $0.id == state.sourceID }) else {
+              let sourceIndex = sourceGroups.firstIndex(where: { $0.id == state.sourceID }) else {
             return
         }
         withAnimation(.easeInOut(duration: 0.24)) {
-            soundSources[sourceIndex].keyPoints = state.keyPoints
-            soundSources[sourceIndex].motionClips = state.motionClips
+            sourceGroups[sourceIndex].keyPoints = state.keyPoints
+            sourceGroups[sourceIndex].motionClips = state.motionClips
             selectedSourceID = state.sourceID
             selectedKeyPointID = nil
         }
-        synchronizeTrajectoryAcrossGroup(from: state.sourceID)
         trajectoryUndoState = nil
         canUndoTrajectoryRecording = false
         showToast("已撤销上一段轨迹录制")
@@ -358,7 +360,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         let snapshot = recordingSourceSnapshot
         clearActiveRecording()
 
-        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }),
+        guard let sourceIndex = sourceGroups.firstIndex(where: { $0.id == sourceID }),
               let snapshot else {
             return
         }
@@ -392,14 +394,13 @@ final class SpatialTimelineViewModel: ObservableObject {
         canUndoTrajectoryRecording = true
 
         withAnimation(.easeOut(duration: 0.26)) {
-            soundSources[sourceIndex].keyPoints.removeAll {
+            sourceGroups[sourceIndex].keyPoints.removeAll {
                 $0.time >= clip.startTime && $0.time <= clip.endTime
             }
-            soundSources[sourceIndex].motionClips = clips.isEmpty ? nil : clips
+            sourceGroups[sourceIndex].motionClips = clips.isEmpty ? nil : clips
             selectedSourceID = sourceID
             selectedKeyPointID = nil
         }
-        synchronizeTrajectoryAcrossGroup(from: sourceID)
         showsFirstUseHint = false
         showToast(
             "已录制 \(String(format: "%.1f", clip.duration)) 秒轨迹"
@@ -449,94 +450,76 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func removeSource(_ sourceID: UUID) {
-        pause()
-        let name = source(id: sourceID)?.name
-        withAnimation(.easeOut(duration: 0.28)) {
-            soundSources.removeAll { $0.id == sourceID }
-            if selectedSourceID == sourceID {
-                selectedSourceID = soundSources.first?.id
-            }
-            selectedKeyPointID = nil
-            dragPositions[sourceID] = nil
-            if draggingSourceID == sourceID {
-                draggingSourceID = nil
-            }
-            if armedTrajectorySourceID == sourceID {
-                armedTrajectorySourceID = nil
-            }
-            if trajectoryUndoState?.sourceID == sourceID {
-                trajectoryUndoState = nil
-                canUndoTrajectoryRecording = false
-            }
-        }
-        showToast(name.map { "已移除 \($0)" } ?? "音源已移除")
+        removeSourceGroup(sourceID)
     }
 
     private func removeSourceGroup(_ sourceGroupID: UUID) {
         pause()
-        let groupMembers = members(of: sourceGroupID)
-        let removedIDs = Set(groupMembers.map(\.id))
-        let name = groupMembers.first?.name
+        let name = source(id: sourceGroupID)?.name
         withAnimation(.easeOut(duration: 0.28)) {
-            soundSources.removeAll { $0.effectiveSourceGroupID == sourceGroupID }
-            if let selectedSourceID, removedIDs.contains(selectedSourceID) {
-                self.selectedSourceID = soundSources.first?.id
+            sourceGroups.removeAll { $0.id == sourceGroupID }
+            audioClips.removeAll { $0.sourceGroupID == sourceGroupID }
+            if selectedSourceID == sourceGroupID {
+                selectedSourceID = sourceGroups.first?.id
             }
+            selectedAudioClipID = nil
             selectedKeyPointID = nil
             dragPositions[sourceGroupID] = nil
-            if let draggingSourceID, removedIDs.contains(draggingSourceID) {
+            if draggingSourceID == sourceGroupID {
                 self.draggingSourceID = nil
             }
-            if let armedTrajectorySourceID, removedIDs.contains(armedTrajectorySourceID) {
+            if armedTrajectorySourceID == sourceGroupID {
                 self.armedTrajectorySourceID = nil
             }
-            if let recordingTrajectorySourceID,
-               removedIDs.contains(recordingTrajectorySourceID) {
+            if recordingTrajectorySourceID == sourceGroupID {
                 self.recordingTrajectorySourceID = nil
                 liveRecordingSamples = []
                 recordingSourceSnapshot = nil
+            }
+            if trajectoryUndoState?.sourceID == sourceGroupID {
+                trajectoryUndoState = nil
+                canUndoTrajectoryRecording = false
             }
         }
         showToast(name.map { "已移除 \($0)" } ?? "声源已移除")
     }
 
     private func addOrUpdateGroupPosition(sourceGroupID: UUID, position: CGPoint) {
-        guard let representativeID = members(of: sourceGroupID).first?.id else { return }
-        addOrUpdatePosition(sourceID: representativeID, position: position)
-        synchronizeTrajectoryAcrossGroup(from: representativeID)
-        selectedSourceID = representativeID
+        addOrUpdatePosition(sourceID: sourceGroupID, position: position)
+        selectedSourceID = sourceGroupID
     }
 
     func addOrUpdatePosition(sourceID: UUID, position: CGPoint) {
-        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }) else {
+        guard let sourceIndex = sourceGroups.firstIndex(where: { $0.id == sourceID }) else {
             return
         }
 
         let clamped = SpatialTrajectory.clampedToUnitCircle(position)
         makeRoomForManualPoint(sourceIndex: sourceIndex, at: currentTime)
-        let nearbyIndex = soundSources[sourceIndex].keyPoints.indices.min {
-            abs(soundSources[sourceIndex].keyPoints[$0].time - currentTime)
-                < abs(soundSources[sourceIndex].keyPoints[$1].time - currentTime)
+        let nearbyIndex = sourceGroups[sourceIndex].keyPoints.indices.min {
+            abs(sourceGroups[sourceIndex].keyPoints[$0].time - currentTime)
+                < abs(sourceGroups[sourceIndex].keyPoints[$1].time - currentTime)
         }
 
         if let nearbyIndex,
-           abs(soundSources[sourceIndex].keyPoints[nearbyIndex].time - currentTime)
+           abs(sourceGroups[sourceIndex].keyPoints[nearbyIndex].time - currentTime)
                 <= timeSnapTolerance {
-            soundSources[sourceIndex].keyPoints[nearbyIndex].position = clamped
-            soundSources[sourceIndex].keyPoints[nearbyIndex].createdByUser = true
-            selectedKeyPointID = soundSources[sourceIndex].keyPoints[nearbyIndex].id
+            sourceGroups[sourceIndex].keyPoints[nearbyIndex].position = clamped
+            sourceGroups[sourceIndex].keyPoints[nearbyIndex].createdByUser = true
+            selectedKeyPointID = sourceGroups[sourceIndex].keyPoints[nearbyIndex].id
         } else {
             let point = SpatialKeyPoint(
                 time: currentTime,
                 position: clamped,
                 createdByUser: true
             )
-            soundSources[sourceIndex].keyPoints.append(point)
+            sourceGroups[sourceIndex].keyPoints.append(point)
             selectedKeyPointID = point.id
         }
 
         sortKeyPoints(sourceIndex: sourceIndex)
         selectedSourceID = sourceID
+        selectedAudioClipID = nil
     }
 
     func selectKeyPoint(sourceID: UUID, keyPointID: UUID) {
@@ -546,6 +529,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             return
         }
         selectedSourceID = sourceID
+        selectedAudioClipID = nil
         selectedKeyPointID = keyPointID
         currentTime = point.time
     }
@@ -556,16 +540,14 @@ final class SpatialTimelineViewModel: ObservableObject {
         proposedTime: Double
     ) {
         pause()
-        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }),
-              let pointIndex = soundSources[sourceIndex].keyPoints.firstIndex(where: {
+        guard let sourceIndex = sourceGroups.firstIndex(where: { $0.id == sourceID }),
+              let pointIndex = sourceGroups[sourceIndex].keyPoints.firstIndex(where: {
                   $0.id == keyPointID
               }) else {
             return
         }
 
-        let points = soundSources[sourceIndex].keyPoints
-        let oldTime = soundSources[sourceIndex].keyPoints[pointIndex].time
-        let groupID = soundSources[sourceIndex].effectiveSourceGroupID
+        let points = sourceGroups[sourceIndex].keyPoints
         let minimumGap = 0.05
         let lowerBound = pointIndex > 0
             ? points[pointIndex - 1].time + minimumGap
@@ -575,16 +557,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             : duration
         let clampedTime = min(max(proposedTime, lowerBound), upperBound)
 
-        soundSources[sourceIndex].keyPoints[pointIndex].time = clampedTime
-        for index in soundSources.indices
-        where soundSources[index].effectiveSourceGroupID == groupID && index != sourceIndex {
-            if let matching = soundSources[index].keyPoints.firstIndex(where: {
-                abs($0.time - oldTime) < 0.001
-            }) {
-                soundSources[index].keyPoints[matching].time = clampedTime
-                sortKeyPoints(sourceIndex: index)
-            }
-        }
+        sourceGroups[sourceIndex].keyPoints[pointIndex].time = clampedTime
         selectedSourceID = sourceID
         selectedKeyPointID = keyPointID
         currentTime = clampedTime
@@ -593,20 +566,10 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func deleteKeyPoint(sourceID: UUID, keyPointID: UUID) {
         pause()
-        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }) else {
+        guard let sourceIndex = sourceGroups.firstIndex(where: { $0.id == sourceID }) else {
             return
         }
-        let removedTime = soundSources[sourceIndex].keyPoints.first(where: {
-            $0.id == keyPointID
-        })?.time
-        let groupID = soundSources[sourceIndex].effectiveSourceGroupID
-        soundSources[sourceIndex].keyPoints.removeAll { $0.id == keyPointID }
-        if let removedTime {
-            for index in soundSources.indices
-            where soundSources[index].effectiveSourceGroupID == groupID && index != sourceIndex {
-                soundSources[index].keyPoints.removeAll { abs($0.time - removedTime) < 0.001 }
-            }
-        }
+        sourceGroups[sourceIndex].keyPoints.removeAll { $0.id == keyPointID }
         if selectedKeyPointID == keyPointID {
             selectedKeyPointID = nil
         }
@@ -624,76 +587,115 @@ final class SpatialTimelineViewModel: ObservableObject {
             timelineEditMode = mode
             if mode == .audioTiming {
                 selectedKeyPointID = nil
+            } else {
+                selectedAudioClipID = nil
             }
         }
     }
 
-    func moveAudioClip(sourceID: UUID, proposedStart: Double) {
+    func selectAudioClip(_ clipID: UUID) {
         pause()
-        guard let index = soundSources.firstIndex(where: { $0.id == sourceID }) else {
+        guard let clip = clip(id: clipID) else { return }
+        selectedSourceID = clip.sourceGroupID
+        selectedAudioClipID = clipID
+        selectedKeyPointID = nil
+    }
+
+    func moveAudioClip(clipID: UUID, proposedStart: Double) {
+        pause()
+        guard let index = audioClips.firstIndex(where: { $0.id == clipID }) else {
             return
         }
-        let clipDuration = min(soundSources[index].audioDuration, duration)
-        soundSources[index].audioStartTime = min(
-            max(proposedStart, 0),
-            max(duration - clipDuration, 0)
-        )
-        soundSources[index].audioDuration = clipDuration
-        selectedSourceID = sourceID
+        let item = audioClips[index]
+        let neighbors = clipNeighbors(for: item)
+        let lower = neighbors.previous?.endTime ?? 0
+        let upper = (neighbors.next?.startTime ?? duration) - item.duration
+        let snapped = snappedTime(proposedStart, candidates: [lower, upper])
+        audioClips[index].startTime = min(max(snapped, lower), max(upper, lower))
+        selectedSourceID = item.sourceGroupID
+        selectedAudioClipID = clipID
         selectedKeyPointID = nil
     }
 
     func resizeAudioClipStart(
-        sourceID: UUID,
+        clipID: UUID,
         proposedStart: Double,
         fixedEnd: Double
     ) {
         pause()
-        guard let index = soundSources.firstIndex(where: { $0.id == sourceID }) else {
+        guard let index = audioClips.firstIndex(where: { $0.id == clipID }) else {
             return
         }
+        let item = audioClips[index]
+        let previousEnd = clipNeighbors(for: item).previous?.endTime ?? 0
         let end = min(max(fixedEnd, minimumAudioDuration), duration)
-        let start = min(
-            max(proposedStart, 0),
-            max(end - minimumAudioDuration, 0)
-        )
-        soundSources[index].audioStartTime = start
-        soundSources[index].audioDuration = end - start
-        selectedSourceID = sourceID
+        let proposed = snappedTime(proposedStart, candidates: [previousEnd])
+        let start = min(max(proposed, previousEnd), end - minimumAudioDuration)
+        audioClips[index].startTime = start
+        audioClips[index].duration = end - start
+        selectedSourceID = item.sourceGroupID
+        selectedAudioClipID = clipID
         selectedKeyPointID = nil
     }
 
     func resizeAudioClipEnd(
-        sourceID: UUID,
+        clipID: UUID,
         proposedEnd: Double,
         fixedStart: Double
     ) {
         pause()
-        guard let index = soundSources.firstIndex(where: { $0.id == sourceID }) else {
+        guard let index = audioClips.firstIndex(where: { $0.id == clipID }) else {
             return
         }
+        let item = audioClips[index]
+        let nextStart = clipNeighbors(for: item).next?.startTime ?? duration
         let start = min(max(fixedStart, 0), duration - minimumAudioDuration)
-        let end = min(
-            max(proposedEnd, start + minimumAudioDuration),
-            duration
-        )
-        soundSources[index].audioStartTime = start
-        soundSources[index].audioDuration = end - start
-        selectedSourceID = sourceID
+        let proposed = snappedTime(proposedEnd, candidates: [nextStart])
+        let end = min(max(proposed, start + minimumAudioDuration), nextStart)
+        audioClips[index].startTime = start
+        audioClips[index].duration = end - start
+        selectedSourceID = item.sourceGroupID
+        selectedAudioClipID = clipID
         selectedKeyPointID = nil
     }
 
-    func finishAudioTimingEdit(sourceID: UUID) {
-        guard let source = source(id: sourceID) else { return }
+    func finishAudioTimingEdit(clipID: UUID) {
+        guard let clip = clip(id: clipID) else { return }
         showToast(
-            "音频 \(SpatialTimeText.string(source.audioStartTime))"
-                + "–\(SpatialTimeText.string(source.audioEndTime))"
+            "音频 \(SpatialTimeText.string(clip.startTime))"
+                + "–\(SpatialTimeText.string(clip.endTime))"
         )
+    }
+
+    func deleteAudioClip(_ clipID: UUID) {
+        pause()
+        guard let item = clip(id: clipID) else { return }
+        let groupID = item.sourceGroupID
+        withAnimation(.easeInOut(duration: 0.22)) {
+            audioClips.removeAll { $0.id == clipID }
+            selectedAudioClipID = nil
+        }
+        if clips(for: groupID).isEmpty {
+            removeSourceGroup(groupID)
+        } else {
+            if let groupIndex = sourceGroups.firstIndex(where: { $0.id == groupID }),
+               let first = clips(for: groupID).first {
+                sourceGroups[groupIndex].assetID = first.assetID
+                sourceGroups[groupIndex].resourceName = first.resourceName
+            }
+            showToast("音频段已删除")
+        }
+    }
+
+    func clearTimelineItemSelection() {
+        selectedAudioClipID = nil
+        selectedKeyPointID = nil
     }
 
     func scrub(to time: Double) {
         pause()
         currentTime = min(max(time, 0), duration)
+        selectedAudioClipID = nil
         selectedKeyPointID = nil
         selectedTextCueID = nil
         syncPreviewAudio(playIfReady: false)
@@ -730,6 +732,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         pause()
         guard let cue = textCues.first(where: { $0.id == cueID }) else { return }
         selectedTextCueID = cueID
+        selectedAudioClipID = nil
         selectedKeyPointID = nil
         currentTime = cue.time
     }
@@ -792,11 +795,15 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func resetDemo() {
         pause()
-        soundSources = []
+        sourceGroups = []
+        audioClips = []
         selectedSourceID = nil
+        selectedAudioClipID = nil
         selectedKeyPointID = nil
         selectedTextCueID = nil
         currentTime = 0
+        duration = 120
+        timelineViewport = TimelineViewport(sceneDuration: duration)
         timelineEditMode = .audioTiming
         dragPositions.removeAll()
         armedTrajectorySourceID = nil
@@ -813,7 +820,11 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func makeSoundSources(baseScene: DreamScene?) -> [SoundSource] {
         sourceGroupRepresentatives.map { editorSource in
-            let mappedKey = SceneCompositionMapper.resourceKey(for: editorSource)
+            let firstClip = clips(for: editorSource.id).first
+            var compatibilitySource = editorSource
+            compatibilitySource.assetID = firstClip?.assetID
+            compatibilitySource.resourceName = firstClip?.resourceName
+            let mappedKey = SceneCompositionMapper.resourceKey(for: compatibilitySource)
             let baseSource = baseScene?.soundSources.first(where: {
                 $0.id == editorSource.effectiveSourceGroupID
                     || $0.name == editorSource.name
@@ -833,7 +844,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 }
             }()
             let resourceName: String? = {
-                if let libraryResource = editorSource.resourceName { return libraryResource }
+                if let libraryResource = firstClip?.resourceName { return libraryResource }
                 if let existing = baseSource?.resourceName { return existing }
                 return mappedKey.hasPrefix("create_") ? nil : mappedKey
             }()
@@ -845,7 +856,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 isEnabled: true,
                 initialEnvelope: 1,
                 position: SpatialPosition(angle: angle, radius: radius),
-                assetId: editorSource.assetID ?? baseSource?.assetId,
+                assetId: firstClip?.assetID ?? baseSource?.assetId,
                 resourceName: resourceName,
                 layer: layer
             )
@@ -859,60 +870,78 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func isMaterialInUse(_ material: SpatialEditorMaterial) -> Bool {
-        if material.isVoice { return false }
-        return soundSources.contains {
+        sourceGroups.contains {
             $0.materialID == material.id
                 || (material.assetID != nil && $0.assetID == material.assetID)
+                || (material.resourceName != nil && $0.resourceName == material.resourceName)
         }
     }
 
     var hasVoiceSource: Bool {
-        soundSources.contains(where: \.isVoice)
+        sourceGroups.contains(where: \.isVoice)
     }
 
     func addMaterial(_ material: SpatialEditorMaterial) {
         pause()
-        if !material.isVoice, let existing = soundSources.first(where: {
+        let existing = sourceGroups.first(where: {
             $0.materialID == material.id
                 || (material.assetID != nil && $0.assetID == material.assetID)
-        }) {
-            selectSource(existing.id)
-            showToast("已选中 \(material.name)")
-            return
+                || (material.resourceName != nil && $0.resourceName == material.resourceName)
+        })
+        let group: SpatialEditorSourceGroup
+        if let existing {
+            group = existing
+        } else {
+            let point = SpatialKeyPoint(
+                time: currentTime,
+                position: material.defaultPosition,
+                createdByUser: true
+            )
+            group = SpatialEditorSource(
+                sourceGroupID: nil,
+                materialID: material.id,
+                assetID: material.assetID,
+                resourceName: material.resourceName,
+                name: material.name,
+                iconName: material.iconName,
+                theme: material.theme,
+                defaultPosition: material.defaultPosition,
+                keyPoints: [point],
+                audioStartTime: 0,
+                audioDuration: 1,
+                isVoice: material.isVoice
+            )
         }
-
-        let point = SpatialKeyPoint(
-            time: currentTime,
-            position: material.defaultPosition,
-            createdByUser: true
-        )
-        let voiceGroupID = material.isVoice
-            ? soundSources.first(where: \.isVoice)?.effectiveSourceGroupID
-            : nil
-        let source = SpatialEditorSource(
-            sourceGroupID: voiceGroupID,
-            materialID: material.id,
+        let start = existing.map { clips(for: $0.id).map(\.endTime).max() ?? currentTime }
+            ?? currentTime
+        let newEnd = start + TimelineViewport.defaultSpan
+        if newEnd > duration {
+            duration = newEnd
+            timelineViewport.clamp(to: duration)
+        }
+        let clip = SpatialEditorAudioClip(
+            sourceGroupID: group.id,
             assetID: material.assetID,
             resourceName: material.resourceName,
-            name: material.name,
-            iconName: material.iconName,
-            theme: material.theme,
-            defaultPosition: material.defaultPosition,
-            keyPoints: [point],
-            audioStartTime: min(currentTime, duration - minimumAudioDuration),
-            audioDuration: min(
-                max(material.audioDuration ?? 30, minimumAudioDuration),
-                duration - min(currentTime, duration - minimumAudioDuration)
+            startTime: start,
+            duration: TimelineViewport.defaultSpan,
+            isLooping: true,
+            crossfadeMilliseconds: LoopCrossfadeController.preferredMilliseconds(
+                for: material.resourceName ?? SceneCompositionMapper.resourceKey(for: group)
             ),
-            isVoice: material.isVoice
+            isVoicePhrase: material.isVoice
         )
+        currentTime = start
 
         withAnimation(.easeOut(duration: 0.28)) {
-            soundSources.append(source)
-            selectedSourceID = source.id
-            selectedKeyPointID = point.id
+            if existing == nil { sourceGroups.append(group) }
+            audioClips.append(clip)
+            selectedSourceID = group.id
+            selectedAudioClipID = clip.id
+            selectedKeyPointID = nil
         }
-        showToast("已加入 \(material.name)")
+        focusTimeline(on: start, preferredSpan: TimelineViewport.defaultSpan)
+        showToast("已加入 \(material.name) · 30 秒")
     }
 
     func showToast(_ message: String) {
@@ -948,7 +977,10 @@ final class SpatialTimelineViewModel: ObservableObject {
     ) -> Bool {
         let requestedTime = currentTime
         let plan = ScenePlanCompiler.compile(
-            editorSources: soundSources,
+            editorSources: SpatialEditorDocument(
+                sourceGroups: sourceGroups,
+                audioClips: audioClips
+            ).legacySources(),
             sceneID: draftID,
             duration: duration
         )
@@ -1006,7 +1038,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             for source in sourceGroupRepresentatives {
                 let point = position(for: source)
                 previewPlayback.updateSource(
-                    id: source.effectiveSourceGroupID,
+                    id: source.id,
                     position: SpatialPosition(
                         angle: atan2(point.x, -point.y),
                         radius: min(max(hypot(point.x, point.y), 0), 1)
@@ -1053,28 +1085,161 @@ final class SpatialTimelineViewModel: ObservableObject {
         )
     }
 
-    private func sortKeyPoints(sourceIndex: Int) {
-        soundSources[sourceIndex].keyPoints.sort { $0.time < $1.time }
+    func clips(for sourceGroupID: UUID) -> [SpatialEditorAudioClip] {
+        audioClips
+            .filter { $0.sourceGroupID == sourceGroupID }
+            .sorted { lhs, rhs in
+                lhs.startTime == rhs.startTime
+                    ? lhs.id.uuidString < rhs.id.uuidString
+                    : lhs.startTime < rhs.startTime
+            }
     }
 
-    private func members(of sourceGroupID: UUID) -> [SpatialEditorSource] {
-        soundSources.filter { $0.effectiveSourceGroupID == sourceGroupID }
-    }
-
-    private func synchronizeTrajectoryAcrossGroup(from sourceID: UUID) {
-        guard let sourceIndex = soundSources.firstIndex(where: { $0.id == sourceID }) else { return }
-        let source = soundSources[sourceIndex]
-        for index in soundSources.indices
-        where soundSources[index].effectiveSourceGroupID == source.effectiveSourceGroupID
-            && soundSources[index].id != sourceID {
-            soundSources[index].defaultPosition = source.defaultPosition
-            soundSources[index].keyPoints = source.keyPoints
-            soundSources[index].motionClips = source.motionClips
+    func isSourceActive(_ sourceGroupID: UUID, at time: Double? = nil) -> Bool {
+        let evaluatedTime = time ?? currentTime
+        return clips(for: sourceGroupID).contains {
+            evaluatedTime >= $0.startTime && evaluatedTime < $0.endTime
         }
     }
 
+    func clip(id: UUID?) -> SpatialEditorAudioClip? {
+        guard let id else { return nil }
+        return audioClips.first { $0.id == id }
+    }
+
+    func totalActiveDuration(for sourceGroupID: UUID) -> Double {
+        clips(for: sourceGroupID).reduce(0) { $0 + $1.duration }
+    }
+
+    func automaticBoundaryKeyPoints(
+        for sourceGroupID: UUID
+    ) -> [SpatialGeneratedBoundaryKeyPoint] {
+        guard let group = source(id: sourceGroupID) else { return [] }
+        let items = clips(for: sourceGroupID)
+        guard items.count > 1 else { return [] }
+        let authored = SpatialTrajectory.flattenedKeyPoints(for: group)
+            .sorted { $0.time < $1.time }
+        var result: [SpatialGeneratedBoundaryKeyPoint] = []
+
+        for index in 0..<(items.count - 1) {
+            let previous = items[index]
+            let next = items[index + 1]
+            guard next.startTime - previous.endTime > 0.001 else { continue }
+            let hasExplicitGapPoint = authored.contains {
+                $0.time > previous.endTime + 0.001 && $0.time < next.startTime - 0.001
+            }
+            guard !hasExplicitGapPoint else { continue }
+
+            let previousPosition = authored.last(where: { $0.time <= previous.endTime + 0.001 })?
+                .position ?? group.defaultPosition
+            let nextPosition = authored.first(where: { $0.time >= next.startTime - 0.001 })?
+                .position ?? previousPosition
+            result.append(
+                SpatialGeneratedBoundaryKeyPoint(
+                    id: "end-\(previous.id.uuidString)-\(next.id.uuidString)",
+                    time: previous.endTime,
+                    position: previousPosition,
+                    attachment: .clipEnd(previous.id)
+                )
+            )
+            result.append(
+                SpatialGeneratedBoundaryKeyPoint(
+                    id: "start-\(previous.id.uuidString)-\(next.id.uuidString)",
+                    time: next.startTime,
+                    position: nextPosition,
+                    attachment: .clipStart(next.id)
+                )
+            )
+        }
+        return result
+    }
+
+    func trajectorySource(for source: SpatialEditorSourceGroup) -> SpatialEditorSourceGroup {
+        var result = source
+        result.keyPoints.append(contentsOf: automaticBoundaryKeyPoints(for: source.id).map { anchor in
+            SpatialKeyPoint(
+                time: anchor.time,
+                position: anchor.position,
+                createdByUser: false,
+                interpolation: {
+                    if case .clipEnd = anchor.attachment { return .hold }
+                    return .smoothstep
+                }()
+            )
+        })
+        result.keyPoints.sort { $0.time < $1.time }
+        return result
+    }
+
+    func setTimelineViewport(startTime: Double, span: Double) {
+        timelineViewport = TimelineViewport(
+            sceneDuration: duration,
+            startTime: startTime,
+            span: span
+        )
+    }
+
+    func beginTimelineViewportInteraction() {
+        isTimelineViewportInteracting = true
+    }
+
+    func endTimelineViewportInteraction() {
+        isTimelineViewportInteracting = false
+    }
+
+    private func focusTimeline(on startTime: Double, preferredSpan: Double) {
+        let span = min(max(preferredSpan, TimelineViewport.minimumSpan), duration)
+        timelineViewport = TimelineViewport(
+            sceneDuration: duration,
+            startTime: startTime,
+            span: span
+        )
+    }
+
+    private func followPlayheadIfNeeded() {
+        guard !isTimelineViewportInteracting else { return }
+        if currentTime < timelineViewport.startTime
+            || currentTime > timelineViewport.endTime {
+            let leadingInset = timelineViewport.span * 0.10
+            timelineViewport = TimelineViewport(
+                sceneDuration: duration,
+                startTime: currentTime - leadingInset,
+                span: timelineViewport.span
+            )
+        }
+    }
+
+    private func compatibilitySources(for sourceGroupID: UUID) -> [SpatialEditorSource] {
+        guard let group = source(id: sourceGroupID) else { return [] }
+        return SpatialEditorDocument(
+            sourceGroups: [group],
+            audioClips: clips(for: sourceGroupID)
+        ).legacySources()
+    }
+
+    private func clipNeighbors(
+        for clip: SpatialEditorAudioClip
+    ) -> (previous: SpatialEditorAudioClip?, next: SpatialEditorAudioClip?) {
+        let ordered = clips(for: clip.sourceGroupID)
+        guard let index = ordered.firstIndex(where: { $0.id == clip.id }) else {
+            return (nil, nil)
+        }
+        return (
+            index > 0 ? ordered[index - 1] : nil,
+            index < ordered.count - 1 ? ordered[index + 1] : nil
+        )
+    }
+
+    private func snappedTime(_ time: Double, candidates: [Double]) -> Double {
+        candidates.first(where: { abs($0 - time) <= timeSnapTolerance }) ?? time
+    }
+
+    private func sortKeyPoints(sourceIndex: Int) {
+        sourceGroups[sourceIndex].keyPoints.sort { $0.time < $1.time }
+    }
+
     private func makeRoomForManualPoint(sourceIndex: Int, at time: Double) {
-        let clips = soundSources[sourceIndex].motionClips ?? []
+        let clips = sourceGroups[sourceIndex].motionClips ?? []
         guard clips.contains(where: { time >= $0.startTime && time <= $0.endTime }) else {
             return
         }
@@ -1101,7 +1266,7 @@ final class SpatialTimelineViewModel: ObservableObject {
                 next.append(trailing)
             }
         }
-        soundSources[sourceIndex].motionClips = next.isEmpty
+        sourceGroups[sourceIndex].motionClips = next.isEmpty
             ? nil
             : next.sorted { $0.startTime < $1.startTime }
     }

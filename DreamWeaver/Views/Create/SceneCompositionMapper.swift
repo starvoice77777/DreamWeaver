@@ -279,9 +279,7 @@ enum SceneCompositionMapper {
                     name: groupName(for: members),
                     symbol_name: representative.iconName,
                     layer: layer(for: representative),
-                    display_policy: representative.isVoice
-                        ? SourceGroupDisplayPolicy.alwaysInWindow.rawValue
-                        : SourceGroupDisplayPolicy.selectedOrActive.rawValue,
+                    display_policy: SourceGroupDisplayPolicy.whileActive.rawValue,
                     position_keyframes: groupFrames
                 )
             }

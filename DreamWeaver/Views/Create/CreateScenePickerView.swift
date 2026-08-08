@@ -77,7 +77,7 @@ struct CreateScenePickerView: View {
     private func draftRow(_ draft: CreateSceneDraft) -> some View {
         sourceRow(
             title: draft.name,
-            subtitle: "本机草稿 · \(draft.soundSources.count) 个声源",
+            subtitle: "本机草稿 · \(draft.sourceGroupCount) 个声源",
             symbol: "doc.text.fill",
             accent: sceneAccent
         )

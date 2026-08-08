@@ -3,6 +3,9 @@ import Foundation
 
 /// Persisted Create-tab draft so「保存草稿」can be reopened from the hub.
 struct CreateSceneDraft: Identifiable, Codable, Equatable {
+    /// Version 2 stores one logical source per `soundSources` entry and keeps
+    /// independently editable ranges in `audioClips`. Missing means a v1 draft.
+    var schemaVersion: Int? = nil
     var id: UUID
     /// Linked remote private scene when cloud sync succeeded.
     var privateSceneId: UUID?
@@ -10,10 +13,16 @@ struct CreateSceneDraft: Identifiable, Codable, Equatable {
     var sourceSceneId: UUID?
     var sourceSceneSubtitle: String?
     var soundSources: [SpatialEditorSource]
+    var audioClips: [SpatialEditorAudioClip]? = nil
     var textCues: [SpatialTextCue]
     /// Optional for backward compatibility with locally saved v1 drafts.
     var durationSeconds: Double? = nil
     var updatedAt: Date
+
+    var sourceGroupCount: Int {
+        if schemaVersion == 2 { return soundSources.count }
+        return SpatialEditorDocument.migrate(legacySources: soundSources).sourceGroups.count
+    }
 }
 
 @MainActor

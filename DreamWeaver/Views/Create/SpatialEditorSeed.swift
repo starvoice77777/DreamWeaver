@@ -7,6 +7,7 @@ struct SpatialEditorSeed: Equatable {
     var privateSceneID: UUID?
     var sceneName: String
     var soundSources: [SpatialEditorSource]
+    var audioClips: [SpatialEditorAudioClip]? = nil
     var textCues: [SpatialTextCue]
     var durationSeconds: Double?
     var sourceSceneID: UUID?
@@ -38,6 +39,8 @@ struct SpatialEditorSeed: Equatable {
             let matched = matchMaterial(for: source)
             sources.append(
                 SpatialEditorSource(
+                    id: source.id,
+                    sourceGroupID: source.id,
                     materialID: matched?.id,
                     assetID: source.assetId,
                     resourceName: source.resourceName,
@@ -112,6 +115,7 @@ struct SpatialEditorSeed: Equatable {
             privateSceneID: draft.privateSceneId,
             sceneName: draft.name,
             soundSources: draft.soundSources,
+            audioClips: draft.audioClips,
             textCues: draft.textCues,
             durationSeconds: draft.durationSeconds,
             sourceSceneID: draft.sourceSceneId,
@@ -135,7 +139,10 @@ struct SpatialEditorSeed: Equatable {
             return imported
         }
         let sources: [SpatialEditorSource]
-        if let composition, !composition.tracks.isEmpty {
+        if let composition,
+           (!composition.tracks.isEmpty
+                || !(composition.source_groups ?? []).isEmpty
+                || !(composition.clips ?? []).isEmpty) {
             sources = SceneCompositionMapper.editorSources(from: composition)
         } else {
             sources = []

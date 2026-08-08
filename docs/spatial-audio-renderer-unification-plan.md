@@ -31,6 +31,15 @@
 - 官方快照门禁固定洗头 138 cues/242 actions、20 句人声和 10 次 oneshot，雨景 27 cues/55 actions/26 个位置动作。
 - 后端全量 pytest 已通过；本次涉及的 composition 文件 Ruff 已通过。全仓 Ruff 仍报告 Alembic 历史格式问题，与本次重构无关。
 
+### 0.2 2026-08-08 创建时间轴分段重构
+
+- 实施基线更新为 `integration/frontend-backend@1e3b23f`，保留最新创建入口 Popover、Modal 和圆盘视觉。
+- Create 编辑状态由“一个 clip 一行”调整为“一个 SourceGroup 一行、多个 AudioClip 块”，组级轨迹不再复制为多条可见轨道。
+- 旧本地草稿继续解码；新版草稿以 schema 2 保存组和片段，远端仍使用 `scene_composition_v2`，不增加接口或数据库迁移。
+- 同一素材再次添加时在原轨道末尾追加30秒；场景自动延长，同轨交互禁止产生新重叠。
+- 片段静音间隙由 compiler 派生 clip 边界保持锚点，锚点不污染用户轨迹；Create 预览和 Now 播放统一按 `while_active` 显示声源。
+- 时间轴默认显示30秒，并增加底部范围滑条用于5秒至全场景范围的缩放和平移。
+
 本计划解决以下已确认问题：
 
 1. 创建页能够连续展示并预览轨迹，但播放页只执行离散位置跳变。

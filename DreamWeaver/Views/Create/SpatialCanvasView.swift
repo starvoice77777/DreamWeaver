@@ -23,9 +23,10 @@ struct SpatialCanvasView: View {
                    viewModel.hasTrajectory(for: selected),
                    !viewModel.isPlaying || viewModel.isRecordingTrajectory {
                     SpatialPathView(
-                        source: selected,
+                        source: viewModel.trajectorySource(for: selected),
                         currentTime: viewModel.currentTime,
                         fieldRadius: fieldRadius,
+                        selectedKeyPointID: viewModel.selectedKeyPointID,
                         liveSamples: viewModel.recordingTrajectorySourceID == selected.id
                             ? viewModel.liveRecordingSamples
                             : []
@@ -37,13 +38,15 @@ struct SpatialCanvasView: View {
                 listenerNode
                     .position(x: side / 2, y: side / 2)
 
-                ForEach(viewModel.visibleSoundSources, id: \.effectiveSourceGroupID) { source in
+                ForEach(viewModel.visibleSoundSources, id: \.id) { source in
                     SoundSourceNodeView(
                         source: source,
                         position: viewModel.position(for: source),
                         isSelected: viewModel.isSourceGroupSelected(source),
                         isPlaying: viewModel.isPlaying,
                         isRecording: viewModel.recordingTrajectorySourceID == source.id,
+                        isGhost: !viewModel.isSourceActive(source.id)
+                            && viewModel.recordingTrajectorySourceID != source.id,
                         side: side,
                         fieldRadius: fieldRadius,
                         viewModel: viewModel
@@ -90,6 +93,7 @@ private struct SoundSourceNodeView: View {
     let isSelected: Bool
     let isPlaying: Bool
     let isRecording: Bool
+    let isGhost: Bool
     let side: CGFloat
     let fieldRadius: CGFloat
     @ObservedObject var viewModel: SpatialTimelineViewModel
@@ -200,7 +204,7 @@ private struct SoundSourceNodeView: View {
                 isDragging = false
             }
         )
-        .opacity(isOutsideField ? 0.55 : 1)
+        .opacity(isOutsideField ? 0.55 : (isGhost ? 0.46 : 1))
         .animation(.easeInOut(duration: 0.24), value: isSelected)
         .accessibilityLabel("\(source.name)，\(distanceText)")
         .accessibilityHint(
@@ -285,6 +289,7 @@ private struct SpatialPathView: View {
     let source: SpatialEditorSource
     let currentTime: Double
     let fieldRadius: CGFloat
+    let selectedKeyPointID: UUID?
     let liveSamples: [SpatialMotionSample]
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
 
@@ -352,6 +357,27 @@ private struct SpatialPathView: View {
                 context.fill(
                     marker,
                     with: .color(source.themeColor.opacity(0.48))
+                )
+            }
+
+            if let selected = source.keyPoints.first(where: { $0.id == selectedKeyPointID }) {
+                let canvasPoint = SpatialCanvasTransform.canvasPoint(
+                    from: selected.position,
+                    side: min(size.width, size.height),
+                    fieldRadius: fieldRadius
+                )
+                let halo = Path(
+                    ellipseIn: CGRect(
+                        x: canvasPoint.x - 9,
+                        y: canvasPoint.y - 9,
+                        width: 18,
+                        height: 18
+                    )
+                )
+                context.stroke(
+                    halo,
+                    with: .color(sceneAccent.opacity(0.92)),
+                    style: StrokeStyle(lineWidth: 2)
                 )
             }
         }

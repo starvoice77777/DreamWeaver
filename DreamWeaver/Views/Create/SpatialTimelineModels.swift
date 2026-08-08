@@ -110,7 +110,7 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
     var assetID: UUID? = nil
     var resourceName: String? = nil
     var audioDuration: Double? = nil
-    /// Voice clips remain independent timeline rows but share one source group.
+    /// Voice clips remain independent audio blocks while sharing one source track.
     var isVoice: Bool = false
 
     var themeColor: Color { theme.color }
@@ -313,6 +313,213 @@ struct SpatialEditorSource: Identifiable, Equatable, Codable {
         self.fadeInMilliseconds = max(fadeInMilliseconds, 0)
         self.fadeOutMilliseconds = max(fadeOutMilliseconds, 0)
         self.isVoice = isVoice
+    }
+}
+
+/// One independently editable audio range owned by a logical spatial source.
+/// The editor keeps clips separate from the disk source so repeated appearances
+/// share one track and one trajectory without duplicating authoring state.
+struct SpatialEditorAudioClip: Identifiable, Equatable, Codable {
+    let id: UUID
+    var sourceGroupID: UUID
+    var assetID: UUID?
+    var resourceName: String?
+    var startTime: Double
+    var duration: Double
+    var isLooping: Bool
+    var sourceOffsetSeconds: Double
+    var crossfadeMilliseconds: Int?
+    var fadeInMilliseconds: Int
+    var fadeOutMilliseconds: Int
+    var isVoicePhrase: Bool
+
+    var endTime: Double { startTime + duration }
+
+    init(
+        id: UUID = UUID(),
+        sourceGroupID: UUID,
+        assetID: UUID? = nil,
+        resourceName: String? = nil,
+        startTime: Double,
+        duration: Double,
+        isLooping: Bool,
+        sourceOffsetSeconds: Double = 0,
+        crossfadeMilliseconds: Int? = nil,
+        fadeInMilliseconds: Int = 0,
+        fadeOutMilliseconds: Int = 0,
+        isVoicePhrase: Bool = false
+    ) {
+        self.id = id
+        self.sourceGroupID = sourceGroupID
+        self.assetID = assetID
+        self.resourceName = resourceName
+        self.startTime = max(startTime, 0)
+        self.duration = max(duration, 1)
+        self.isLooping = isLooping
+        self.sourceOffsetSeconds = max(sourceOffsetSeconds, 0)
+        self.crossfadeMilliseconds = crossfadeMilliseconds.map { max($0, 0) }
+        self.fadeInMilliseconds = max(fadeInMilliseconds, 0)
+        self.fadeOutMilliseconds = max(fadeOutMilliseconds, 0)
+        self.isVoicePhrase = isVoicePhrase
+    }
+}
+
+/// Transitional name for the group-level editor model. `SpatialEditorSource`
+/// remains Codable so existing local drafts can be migrated without data loss.
+typealias SpatialEditorSourceGroup = SpatialEditorSource
+
+struct SpatialEditorDocument: Equatable {
+    var sourceGroups: [SpatialEditorSourceGroup]
+    var audioClips: [SpatialEditorAudioClip]
+
+    static func migrate(
+        legacySources: [SpatialEditorSource]
+    ) -> SpatialEditorDocument {
+        var inferredGroupIDs: [String: UUID] = [:]
+        var groupIDBySourceID: [UUID: UUID] = [:]
+        for source in legacySources {
+            if let explicit = source.sourceGroupID {
+                groupIDBySourceID[source.id] = explicit
+                continue
+            }
+            let identity = source.materialID.map { "material:\($0)" }
+                ?? source.assetID.map { "asset:\($0.uuidString)" }
+                ?? source.resourceName.map { "resource:\($0)" }
+                ?? "display:\(source.name):\(source.iconName)"
+            let groupID = inferredGroupIDs[identity] ?? source.id
+            inferredGroupIDs[identity] = groupID
+            groupIDBySourceID[source.id] = groupID
+        }
+        let grouped = Dictionary(grouping: legacySources) {
+            groupIDBySourceID[$0.id] ?? $0.effectiveSourceGroupID
+        }
+        let orderedGroupIDs = legacySources.reduce(into: [UUID]()) { result, source in
+            let id = groupIDBySourceID[source.id] ?? source.effectiveSourceGroupID
+            if !result.contains(id) { result.append(id) }
+        }
+        let groups = orderedGroupIDs.compactMap { groupID -> SpatialEditorSourceGroup? in
+            guard let members = grouped[groupID], let representative = members.first else {
+                return nil
+            }
+            var points: [SpatialKeyPoint] = []
+            for point in members.flatMap(\.keyPoints).sorted(by: { $0.time < $1.time }) {
+                if let index = points.firstIndex(where: { abs($0.time - point.time) < 0.001 }) {
+                    points[index] = point
+                } else {
+                    points.append(point)
+                }
+            }
+            var motionClips: [SpatialMotionClip] = []
+            for clip in members.flatMap({ $0.motionClips ?? [] }) {
+                if !motionClips.contains(where: { $0.id == clip.id }) {
+                    motionClips.append(clip)
+                }
+            }
+            return SpatialEditorSource(
+                id: groupID,
+                sourceGroupID: groupID,
+                materialID: representative.materialID,
+                assetID: representative.assetID,
+                resourceName: representative.resourceName,
+                name: representative.name,
+                iconName: representative.iconName,
+                theme: representative.theme,
+                defaultPosition: representative.defaultPosition,
+                keyPoints: points,
+                motionClips: motionClips,
+                audioStartTime: 0,
+                audioDuration: 1,
+                isLooping: representative.isLooping,
+                isVoice: members.contains(where: \.isVoice)
+            )
+        }
+        let clips = legacySources.map { source in
+            SpatialEditorAudioClip(
+                id: source.id,
+                sourceGroupID: groupIDBySourceID[source.id] ?? source.effectiveSourceGroupID,
+                assetID: source.assetID,
+                resourceName: source.resourceName,
+                startTime: source.audioStartTime,
+                duration: source.audioDuration,
+                isLooping: source.isLooping ?? !source.isVoice,
+                sourceOffsetSeconds: source.sourceOffsetSeconds ?? 0,
+                crossfadeMilliseconds: source.crossfadeMilliseconds,
+                fadeInMilliseconds: source.fadeInMilliseconds ?? 0,
+                fadeOutMilliseconds: source.fadeOutMilliseconds ?? 0,
+                isVoicePhrase: source.isVoice
+            )
+        }
+        return SpatialEditorDocument(sourceGroups: groups, audioClips: clips)
+    }
+
+    func legacySources() -> [SpatialEditorSource] {
+        let groupsByID = Dictionary(uniqueKeysWithValues: sourceGroups.map { ($0.id, $0) })
+        return audioClips.compactMap { clip in
+            guard let group = groupsByID[clip.sourceGroupID] else { return nil }
+            return SpatialEditorSource(
+                id: clip.id,
+                sourceGroupID: group.id,
+                materialID: group.materialID,
+                assetID: clip.assetID,
+                resourceName: clip.resourceName,
+                name: group.name,
+                iconName: group.iconName,
+                theme: group.theme,
+                defaultPosition: group.defaultPosition,
+                keyPoints: group.keyPoints,
+                motionClips: group.motionClips ?? [],
+                audioStartTime: clip.startTime,
+                audioDuration: clip.duration,
+                isLooping: clip.isLooping,
+                sourceOffsetSeconds: clip.sourceOffsetSeconds,
+                crossfadeMilliseconds: clip.crossfadeMilliseconds,
+                fadeInMilliseconds: clip.fadeInMilliseconds,
+                fadeOutMilliseconds: clip.fadeOutMilliseconds,
+                isVoice: group.isVoice || clip.isVoicePhrase
+            )
+        }
+    }
+}
+
+struct SpatialGeneratedBoundaryKeyPoint: Identifiable, Equatable {
+    enum Attachment: Equatable {
+        case clipEnd(UUID)
+        case clipStart(UUID)
+    }
+
+    let id: String
+    let time: Double
+    let position: CGPoint
+    let attachment: Attachment
+}
+
+struct TimelineViewport: Equatable {
+    static let defaultSpan: Double = 30
+    static let minimumSpan: Double = 5
+
+    var startTime: Double
+    var span: Double
+
+    var endTime: Double { startTime + span }
+
+    init(sceneDuration: Double, startTime: Double = 0, span: Double = defaultSpan) {
+        let safeDuration = max(sceneDuration, 1)
+        self.span = min(max(span, min(Self.minimumSpan, safeDuration)), safeDuration)
+        self.startTime = min(max(startTime, 0), max(safeDuration - self.span, 0))
+    }
+
+    mutating func clamp(to sceneDuration: Double) {
+        let safeDuration = max(sceneDuration, 1)
+        span = min(max(span, min(Self.minimumSpan, safeDuration)), safeDuration)
+        startTime = min(max(startTime, 0), max(safeDuration - span, 0))
+    }
+
+    func x(for time: Double, width: CGFloat) -> CGFloat {
+        CGFloat((time - startTime) / max(span, 0.000_1)) * width
+    }
+
+    func time(for x: CGFloat, width: CGFloat) -> Double {
+        startTime + Double(min(max(x / max(width, 1), 0), 1)) * span
     }
 }
 

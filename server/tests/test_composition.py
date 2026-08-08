@@ -3,6 +3,7 @@ from __future__ import annotations
 TRACK_ID = "e5555555-5555-4555-8555-555555555510"
 GROUP_ID = "e5555555-5555-4555-8555-555555555520"
 CLIP_ID = "e5555555-5555-4555-8555-555555555521"
+SECOND_CLIP_ID = "e5555555-5555-4555-8555-555555555522"
 
 
 def _valid_composition(*, end_seconds: float = 120.0, keyframes: list[dict] | None = None) -> dict:
@@ -41,7 +42,7 @@ def _valid_v2_composition() -> dict:
                 "name": "轻声陪伴",
                 "symbol_name": "quote.bubble.fill",
                 "layer": "voice",
-                "display_policy": "always_in_window",
+                "display_policy": "while_active",
                 "position_keyframes": [
                     {
                         "t": 0.0,
@@ -142,6 +143,27 @@ def test_validate_v2_preserves_group_clip_identity() -> None:
     assert out["source_groups"][0]["id"] == GROUP_ID
     assert out["clips"][0]["source_group_id"] == GROUP_ID
     assert out["source_groups"][0]["position_keyframes"][1]["interpolation"] == "smoothstep"
+
+
+def test_validate_v2_accepts_multiple_disjoint_clips_for_one_group() -> None:
+    from app.services.composition import validate_composition
+
+    doc = _valid_v2_composition()
+    second = dict(doc["clips"][0])
+    second.update(
+        {
+            "id": SECOND_CLIP_ID,
+            "resource_key": "voice_phrase_02",
+            "start_seconds": 12.0,
+            "end_seconds": 16.5,
+        }
+    )
+    doc["clips"].append(second)
+
+    out = validate_composition(doc)
+    assert len(out["source_groups"]) == 1
+    assert [clip["source_group_id"] for clip in out["clips"]] == [GROUP_ID, GROUP_ID]
+    assert out["source_groups"][0]["display_policy"] == "while_active"
 
 
 def test_validate_v2_rejects_dangling_group_reference() -> None:

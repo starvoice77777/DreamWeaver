@@ -963,8 +963,7 @@ struct SpatialEditorView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(material.name)
-        .accessibilityHint(inUse ? "已在声场中，点按选中" : "点按加入声场")
-        .accessibilityAddTraits(inUse ? .isSelected : [])
+        .accessibilityHint(inUse ? "点按在现有轨道后追加30秒" : "点按加入声场")
     }
 
     private func closeSoundTray(then action: @escaping () -> Void) {

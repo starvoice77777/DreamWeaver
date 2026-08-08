@@ -23,7 +23,7 @@
       "name": "轻声陪伴",
       "symbol_name": "quote.bubble.fill",
       "layer": "voice",
-      "display_policy": "always_in_window",
+      "display_policy": "while_active",
       "position_keyframes": [
         {
           "t": 0,
