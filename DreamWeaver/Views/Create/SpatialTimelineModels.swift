@@ -382,10 +382,7 @@ struct SpatialEditorDocument: Equatable {
                 groupIDBySourceID[source.id] = explicit
                 continue
             }
-            let identity = source.materialID.map { "material:\($0)" }
-                ?? source.assetID.map { "asset:\($0.uuidString)" }
-                ?? source.resourceName.map { "resource:\($0)" }
-                ?? "display:\(source.name):\(source.iconName)"
+            let identity = legacyIdentity(for: source)
             let groupID = inferredGroupIDs[identity] ?? source.id
             inferredGroupIDs[identity] = groupID
             groupIDBySourceID[source.id] = groupID
@@ -450,6 +447,19 @@ struct SpatialEditorDocument: Equatable {
             )
         }
         return SpatialEditorDocument(sourceGroups: groups, audioClips: clips)
+    }
+
+    private static func legacyIdentity(for source: SpatialEditorSource) -> String {
+        if let materialID = source.materialID {
+            return "material:\(materialID)"
+        }
+        if let assetID = source.assetID {
+            return "asset:\(assetID.uuidString)"
+        }
+        if let resourceName = source.resourceName {
+            return "resource:\(resourceName)"
+        }
+        return "display:\(source.name):\(source.iconName)"
     }
 
     func legacySources() -> [SpatialEditorSource] {

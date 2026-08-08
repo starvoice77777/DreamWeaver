@@ -33,7 +33,7 @@
 
 ### 0.2 2026-08-08 创建时间轴分段重构
 
-- 实施基线更新为 `integration/frontend-backend@1e3b23f`，保留最新创建入口 Popover、Modal 和圆盘视觉。
+- 实施基线更新为 `integration/frontend-backend@1e3b23a`，保留最新创建入口 Popover、Modal 和圆盘视觉。
 - Create 编辑状态由“一个 clip 一行”调整为“一个 SourceGroup 一行、多个 AudioClip 块”，组级轨迹不再复制为多条可见轨道。
 - 旧本地草稿继续解码；新版草稿以 schema 2 保存组和片段，远端仍使用 `scene_composition_v2`，不增加接口或数据库迁移。
 - 同一素材再次添加时在原轨道末尾追加30秒；场景自动延长，同轨交互禁止产生新重叠。

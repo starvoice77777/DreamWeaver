@@ -870,11 +870,12 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     func isMaterialInUse(_ material: SpatialEditorMaterial) -> Bool {
-        sourceGroups.contains {
-            $0.materialID == material.id
-                || (material.assetID != nil && $0.assetID == material.assetID)
-                || (material.resourceName != nil && $0.resourceName == material.resourceName)
-        }
+        sourceGroups.contains { $0.materialID == material.id }
+            || audioClips.contains {
+                (material.assetID != nil && $0.assetID == material.assetID)
+                    || (material.resourceName != nil
+                        && $0.resourceName == material.resourceName)
+            }
     }
 
     var hasVoiceSource: Bool {
@@ -884,7 +885,8 @@ final class SpatialTimelineViewModel: ObservableObject {
     func addMaterial(_ material: SpatialEditorMaterial) {
         pause()
         let existing = sourceGroups.first(where: {
-            $0.materialID == material.id
+            (material.isVoice && $0.isVoice)
+                || $0.materialID == material.id
                 || (material.assetID != nil && $0.assetID == material.assetID)
                 || (material.resourceName != nil && $0.resourceName == material.resourceName)
         })
