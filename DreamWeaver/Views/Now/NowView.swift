@@ -6,6 +6,7 @@ struct NowView: View {
     @State private var showTimerPicker = false
     @State private var showSceneLibrary = false
     @State private var swipeOffset: CGFloat = 0
+    @State private var isSceneSwipeActive = false
     @State private var isSwipeSwitching = false
     @State private var stageWidth: CGFloat = 390
     /// Adjacent scenes in library order, preloaded so swipe commits never wait on I/O.
@@ -19,27 +20,14 @@ struct NowView: View {
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
+            let height = proxy.size.height
 
             ZStack {
-                // Incoming scene peek (preloaded cover / palette) — short-video style.
-                if swipeOffset < -1, let peek = rightNeighbor {
-                    SceneSwipePeekBackdrop(scene: peek)
-                        .offset(x: width + swipeOffset)
-                        .allowsHitTesting(false)
-                } else if swipeOffset > 1, let peek = leftNeighbor {
-                    SceneSwipePeekBackdrop(scene: peek)
-                        .offset(x: -width + swipeOffset)
-                        .allowsHitTesting(false)
-                }
-
-                LinearGradient(
-                    colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-                .offset(x: swipeOffset * 0.55)
-                .allowsHitTesting(false)
+                sceneSwipeVisualLayer(width: width, height: height)
+                    // The visual layer is permanently full-bleed, so showing
+                    // a neighbor no longer changes the parent's safe-area
+                    // proposal midway through a gesture.
+                    .ignoresSafeArea()
 
                 // Tap blank area: dismiss overlays first, otherwise toggle controls.
                 Color.clear
@@ -49,84 +37,19 @@ struct NowView: View {
                     }
                     .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动按顺序切换场景")
 
-                // Same opacity/scale fade as the tab bar (not insert/remove transition).
-                SoundMixCircleEditor(showTimerPicker: $showTimerPicker)
-                    .opacity(appState.controlsVisible ? 1 : 0)
-                    .scaleEffect(appState.controlsVisible ? 1 : 0.98)
-                    .allowsHitTesting(appState.controlsVisible)
-                    .accessibilityHidden(!appState.controlsVisible)
-                    .zIndex(1)
-
-                VStack(spacing: 0) {
-                    ZStack(alignment: .topLeading) {
-                        HStack(alignment: .top) {
-                            NowTimerButton(showPicker: $showTimerPicker)
-
-                            Spacer()
-
-                            Button {
-                                appState.bumpInteraction()
-                                showTimerPicker = false
-                                appState.closeMixPalette()
-                                showSceneLibrary = true
-                            } label: {
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.system(size: DreamIconSize.primary, weight: .medium))
-                                    .foregroundStyle(
-                                        DreamTheme.componentAccent.opacity(0.92)
-                                    )
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("浏览全部场景")
-                        }
-
-                        if showTimerPicker {
-                            NowTimerScale()
-                                .frame(
-                                    width: min(max(width - 152, 168), 228),
-                                    height: 44
-                                )
-                                .offset(x: 52, y: 0)
-                                .transition(
-                                    .scale(scale: 0.88, anchor: .leading)
-                                        .combined(with: .offset(x: -8))
-                                        .combined(with: .opacity)
-                                )
-                                .zIndex(1)
+                fixedChrome(width: width)
+                    .frame(width: width, height: height)
+                    // The background handoff owns the horizontal animation.
+                    // Prevent that transaction from being inherited by glass
+                    // controls, whose refractive layers otherwise relayout on
+                    // device and appear to jump vertically during the swipe.
+                    .transaction { transaction in
+                        if isSceneSwipeActive || isSwipeSwitching {
+                            transaction.animation = nil
                         }
                     }
-                    .frame(height: 44, alignment: .top)
-                    .padding(.leading, 20)
-                    .padding(.trailing, 28)
-                    .padding(.top, 18)
-                    .animation(
-                        .spring(response: 0.34, dampingFraction: 0.84),
-                        value: showTimerPicker
-                    )
-
-                    Spacer()
-                }
-                .opacity(appState.controlsVisible ? 1 : 0)
-                .allowsHitTesting(appState.controlsVisible)
-                .zIndex(2)
-
-                VStack {
-                    SceneTitleOverlay(
-                        name: appState.currentScene.name,
-                        subtitle: appState.currentScene.subtitle,
-                        visible: appState.sceneTitleVisible
-                    )
-                    .padding(.top, appState.controlsVisible ? 16 : 72)
-                    .allowsHitTesting(false)
-
-                    Spacer(minLength: 0)
-                        .allowsHitTesting(false)
-                }
-                .allowsHitTesting(false)
             }
-            .frame(width: width, height: proxy.size.height)
+            .frame(width: width, height: height)
             .onAppear { stageWidth = width }
             .onChange(of: width) { _, newWidth in
                 stageWidth = newWidth
@@ -162,6 +85,7 @@ struct NowView: View {
         .onChange(of: appState.isTransitioningScene) { _, transitioning in
             if !transitioning {
                 swipeOffset = 0
+                isSceneSwipeActive = false
                 isSwipeSwitching = false
                 refillSwipeNeighbors()
             }
@@ -173,15 +97,128 @@ struct NowView: View {
         }
     }
 
+    @ViewBuilder
+    private func sceneSwipeVisualLayer(width: CGFloat, height: CGFloat) -> some View {
+        // This layer is the only part of the page allowed to move while the
+        // user swipes. Its explicit size also keeps the conditional preview
+        // from changing the safe-area proposal received by the chrome layer.
+        ZStack {
+            if swipeOffset < -1, let peek = rightNeighbor {
+                SceneSwipePeekBackdrop(scene: peek)
+                    .frame(width: width, height: height)
+                    .offset(x: width + swipeOffset)
+            } else if swipeOffset > 1, let peek = leftNeighbor {
+                SceneSwipePeekBackdrop(scene: peek)
+                    .frame(width: width, height: height)
+                    .offset(x: -width + swipeOffset)
+            }
+
+            LinearGradient(
+                colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .offset(x: swipeOffset * 0.55)
+        }
+        .frame(width: width, height: height)
+        .clipped()
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func fixedChrome(width: CGFloat) -> some View {
+        ZStack {
+            // Same opacity/scale fade as the tab bar (not insert/remove transition).
+            SoundMixCircleEditor(showTimerPicker: $showTimerPicker)
+                .opacity(appState.controlsVisible ? 1 : 0)
+                .scaleEffect(appState.controlsVisible ? 1 : 0.98)
+                .allowsHitTesting(appState.controlsVisible)
+                .accessibilityHidden(!appState.controlsVisible)
+                .zIndex(1)
+
+            VStack(spacing: 0) {
+                ZStack(alignment: .topLeading) {
+                    HStack(alignment: .top) {
+                        NowTimerButton(showPicker: $showTimerPicker)
+
+                        Spacer()
+
+                        Button {
+                            appState.bumpInteraction()
+                            showTimerPicker = false
+                            appState.closeMixPalette()
+                            showSceneLibrary = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: DreamIconSize.primary, weight: .medium))
+                                .foregroundStyle(
+                                    DreamTheme.componentAccent.opacity(0.92)
+                                )
+                                .frame(width: 44, height: 44)
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("浏览全部场景")
+                    }
+
+                    if showTimerPicker {
+                        NowTimerScale()
+                            .frame(
+                                width: min(max(width - 152, 168), 228),
+                                height: 44
+                            )
+                            .offset(x: 52, y: 0)
+                            .transition(
+                                .scale(scale: 0.88, anchor: .leading)
+                                    .combined(with: .offset(x: -8))
+                                    .combined(with: .opacity)
+                            )
+                            .zIndex(1)
+                    }
+                }
+                .frame(height: 44, alignment: .top)
+                .padding(.leading, 20)
+                .padding(.trailing, 28)
+                .padding(.top, 18)
+                .animation(
+                    .spring(response: 0.34, dampingFraction: 0.84),
+                    value: showTimerPicker
+                )
+
+                Spacer()
+            }
+            .opacity(appState.controlsVisible ? 1 : 0)
+            .allowsHitTesting(appState.controlsVisible)
+            .zIndex(2)
+
+            VStack {
+                SceneTitleOverlay(
+                    name: appState.currentScene.name,
+                    subtitle: appState.currentScene.subtitle,
+                    visible: appState.sceneTitleVisible
+                )
+                .padding(.top, appState.controlsVisible ? 16 : 72)
+                .allowsHitTesting(false)
+
+                Spacer(minLength: 0)
+                    .allowsHitTesting(false)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
     /// Short-video style: horizontal flick → seamless handoff into prefetched neighbor.
     private var sceneSwipeGesture: some Gesture {
         DragGesture(minimumDistance: 20, coordinateSpace: .local)
             .onChanged { value in
-                guard canBeginSceneSwipe(value) else { return }
+                if !isSceneSwipeActive {
+                    guard canBeginSceneSwipe(value) else { return }
+                    isSceneSwipeActive = true
+                }
                 swipeOffset = value.translation.width * (reduceMotion ? 0.22 : 0.42)
             }
             .onEnded { value in
-                guard canBeginSceneSwipe(value) else {
+                guard isSceneSwipeActive else {
                     settleSwipeOffset()
                     return
                 }
@@ -208,8 +245,14 @@ struct NowView: View {
     }
 
     private func settleSwipeOffset() {
+        guard isSceneSwipeActive || swipeOffset != 0 else { return }
         withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
             swipeOffset = 0
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !isSwipeSwitching, abs(swipeOffset) < 0.5 else { return }
+            isSceneSwipeActive = false
         }
     }
 
@@ -241,6 +284,7 @@ struct NowView: View {
             withTransaction(cut) {
                 appState.swipeIntoDream(sceneId: next.id)
                 swipeOffset = 0
+                isSceneSwipeActive = false
                 isSwipeSwitching = false
             }
             refillSwipeNeighbors()
@@ -305,7 +349,6 @@ private struct SceneSwipePeekBackdrop: View {
             )
         }
         .clipped()
-        .ignoresSafeArea()
     }
 }
 
