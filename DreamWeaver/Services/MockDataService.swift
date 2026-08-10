@@ -469,7 +469,7 @@ enum MockDataService {
         return DreamScene(
             id: DemoIDs.rainEavesScene,
             name: "檐下听雨",
-            subtitle: "雨声落在窗外，房间里仍有一盏灯。",
+            subtitle: "小楼一夜听春雨",
             description: "檐角细雨轻轻敲打，暖灯把夜色留在窗边。适合慢慢放下一天的声音。",
             category: .rainyNight,
             tags: ["雨夜", "温暖"],

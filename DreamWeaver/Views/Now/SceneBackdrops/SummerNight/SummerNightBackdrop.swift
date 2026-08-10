@@ -1,12 +1,17 @@
 import SwiftUI
 
-/// Full-bleed painted backdrop for「夏夜」.
+/// Full-bleed, silent looping video backdrop for「夏夜」.
 struct SummerNightBackdrop: View {
     var intensity: Double
+    var isPlaying: Bool
+    var reduceMotion: Bool
 
     var body: some View {
-        PaintedCoverBackdrop(
+        BundledVideoSceneBackdrop(
             style: .summerNight,
+            resourceName: "summer_night_bg",
+            resourceSubdirectory: "Scenes/SummerNight",
+            isActive: isPlaying && !reduceMotion,
             intensity: intensity,
             fallbackColors: [
                 Color(hex: 0x142018),
@@ -18,5 +23,9 @@ struct SummerNightBackdrop: View {
 }
 
 #Preview {
-    SummerNightBackdrop(intensity: 0.8)
+    SummerNightBackdrop(
+        intensity: 0.8,
+        isPlaying: true,
+        reduceMotion: false
+    )
 }

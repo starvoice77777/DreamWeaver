@@ -19,6 +19,13 @@ struct SpatialCanvasView: View {
             ZStack {
                 soundFieldBackground(side: side)
 
+                Color.clear
+                    .frame(width: side, height: side)
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        viewModel.clearSourceSelection()
+                    }
+
                 if let selected = viewModel.selectedSource,
                    viewModel.hasTrajectory(for: selected),
                    !viewModel.isPlaying || viewModel.isRecordingTrajectory {
@@ -168,7 +175,7 @@ private struct SoundSourceNodeView: View {
                 .allowsHitTesting(false)
         }
         .onTapGesture {
-            viewModel.selectSource(source.id)
+            viewModel.toggleSourceSelection(source.id)
         }
         .highPriorityGesture(
             DragGesture(

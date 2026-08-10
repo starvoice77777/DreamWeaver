@@ -37,7 +37,7 @@ enum SceneBackdropKind: Equatable {
     case alpsCableCar
     /// Looping dusk footage for「黄昏」.
     case twilight
-    /// Still cinematic opening frame for「序幕」.
+    /// Looping cinematic opening footage for「序幕」.
     case prelude
     /// Still monochrome architectural frame for「雕梁画栋」.
     case ornateArchitecture

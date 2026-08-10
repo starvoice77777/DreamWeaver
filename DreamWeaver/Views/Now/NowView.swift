@@ -18,41 +18,51 @@ struct NowView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-
-            ZStack {
-                sceneSwipeVisualLayer(width: width, height: height)
-                    // The visual layer is permanently full-bleed, so showing
-                    // a neighbor no longer changes the parent's safe-area
-                    // proposal midway through a gesture.
-                    .ignoresSafeArea()
-
-                // Tap blank area: dismiss overlays first, otherwise toggle controls.
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        dismissOverlayOrToggleControls()
-                    }
-                    .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动按顺序切换场景")
-
-                fixedChrome(width: width)
-                    .frame(width: width, height: height)
-                    // The background handoff owns the horizontal animation.
-                    // Prevent that transaction from being inherited by glass
-                    // controls, whose refractive layers otherwise relayout on
-                    // device and appear to jump vertically during the swipe.
-                    .transaction { transaction in
-                        if isSceneSwipeActive || isSwipeSwitching {
-                            transaction.animation = nil
-                        }
-                    }
+        ZStack {
+            // Measure the moving scene independently in the ignored-safe-area
+            // region. Applying `ignoresSafeArea` after a content-sized frame
+            // only extended the container; its clipped artwork still stopped
+            // above the home indicator and exposed the outgoing scene.
+            GeometryReader { backdropProxy in
+                sceneSwipeVisualLayer(
+                    width: backdropProxy.size.width,
+                    height: backdropProxy.size.height
+                )
             }
-            .frame(width: width, height: height)
-            .onAppear { stageWidth = width }
-            .onChange(of: width) { _, newWidth in
-                stageWidth = newWidth
+            .ignoresSafeArea()
+
+            // Chrome keeps the original safe-area proposal and therefore the
+            // exact same coordinates before, during and after the swipe.
+            GeometryReader { chromeProxy in
+                let width = chromeProxy.size.width
+                let height = chromeProxy.size.height
+
+                ZStack {
+                    // Tap blank area: dismiss overlays first, otherwise toggle controls.
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            dismissOverlayOrToggleControls()
+                        }
+                        .accessibilityHint("点按空白处返回或显示隐藏控件；左右滑动按顺序切换场景")
+
+                    fixedChrome(width: width)
+                        .frame(width: width, height: height)
+                        // The background handoff owns the horizontal animation.
+                        // Prevent that transaction from being inherited by glass
+                        // controls, whose refractive layers otherwise relayout on
+                        // device and appear to jump vertically during the swipe.
+                        .transaction { transaction in
+                            if isSceneSwipeActive || isSwipeSwitching {
+                                transaction.animation = nil
+                            }
+                        }
+                }
+                .frame(width: width, height: height)
+                .onAppear { stageWidth = width }
+                .onChange(of: width) { _, newWidth in
+                    stageWidth = newWidth
+                }
             }
         }
         .simultaneousGesture(sceneSwipeGesture)
@@ -99,26 +109,38 @@ struct NowView: View {
 
     @ViewBuilder
     private func sceneSwipeVisualLayer(width: CGFloat, height: CGFloat) -> some View {
+        let maximumDepthOffset = SceneDepthMotionMetrics.maximumOffset(
+            for: appState.animationIntensity
+        )
+        let previewOverscan = SceneDepthMotionMetrics.overscan(
+            isEnabled: !reduceMotion,
+            maximumOffset: maximumDepthOffset
+        )
+
         // This layer is the only part of the page allowed to move while the
         // user swipes. Its explicit size also keeps the conditional preview
         // from changing the safe-area proposal received by the chrome layer.
         ZStack {
             if swipeOffset < -1, let peek = rightNeighbor {
                 SceneSwipePeekBackdrop(scene: peek)
+                    .frame(
+                        width: width + previewOverscan * 2,
+                        height: height + previewOverscan * 2
+                    )
                     .frame(width: width, height: height)
+                    .clipped()
                     .offset(x: width + swipeOffset)
             } else if swipeOffset > 1, let peek = leftNeighbor {
                 SceneSwipePeekBackdrop(scene: peek)
+                    .frame(
+                        width: width + previewOverscan * 2,
+                        height: height + previewOverscan * 2
+                    )
                     .frame(width: width, height: height)
+                    .clipped()
                     .offset(x: -width + swipeOffset)
             }
 
-            LinearGradient(
-                colors: [.black.opacity(0.25), .clear, .black.opacity(0.45)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .offset(x: swipeOffset * 0.55)
         }
         .frame(width: width, height: height)
         .clipped()
@@ -193,6 +215,7 @@ struct NowView: View {
 
             VStack {
                 SceneTitleOverlay(
+                    sceneID: appState.currentScene.id,
                     name: appState.currentScene.name,
                     subtitle: appState.currentScene.subtitle,
                     visible: appState.sceneTitleVisible
@@ -215,7 +238,14 @@ struct NowView: View {
                     guard canBeginSceneSwipe(value) else { return }
                     isSceneSwipeActive = true
                 }
-                swipeOffset = value.translation.width * (reduceMotion ? 0.22 : 0.42)
+                // Track the finger 1:1. The old 0.42/0.22 damping made the
+                // incoming scene visibly lag behind the drag and cover only
+                // part of the screen even after a full-width gesture.
+                let fullWidth = max(stageWidth, 1)
+                swipeOffset = min(
+                    max(value.translation.width, -fullWidth),
+                    fullWidth
+                )
             }
             .onEnded { value in
                 guard isSceneSwipeActive else {
@@ -353,23 +383,84 @@ private struct SceneSwipePeekBackdrop: View {
 }
 
 struct SceneTitleOverlay: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let sceneID: UUID
     let name: String
     let subtitle: String
     var visible: Bool
+    @State private var displayedName: String
+    @State private var displayedSubtitle: String
+    @State private var contentOpacity = 1.0
+    @State private var titleTransitionTask: Task<Void, Never>?
+
+    init(sceneID: UUID, name: String, subtitle: String, visible: Bool) {
+        self.sceneID = sceneID
+        self.name = name
+        self.subtitle = subtitle
+        self.visible = visible
+        _displayedName = State(initialValue: name)
+        _displayedSubtitle = State(initialValue: subtitle)
+    }
 
     var body: some View {
         VStack(spacing: 10) {
-            Text(name)
+            Text(displayedName)
                 .font(DreamTypography.dreamDisplay)
                 .foregroundStyle(DreamTheme.moonWhite)
-            Text(subtitle)
+            Text(displayedSubtitle)
                 .font(DreamTypography.callout)
                 .foregroundStyle(DreamTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 36)
         }
-        .opacity(visible ? 1 : 0)
+        .opacity(visible ? contentOpacity : 0)
         .allowsHitTesting(false)
+        .onChange(of: sceneID) { _, targetSceneID in
+            transitionTitle(
+                toName: name,
+                subtitle: subtitle,
+                sceneID: targetSceneID
+            )
+        }
+        .onDisappear {
+            titleTransitionTask?.cancel()
+        }
+    }
+
+    private func transitionTitle(
+        toName name: String,
+        subtitle: String,
+        sceneID targetSceneID: UUID
+    ) {
+        titleTransitionTask?.cancel()
+        let fadeOutDuration = reduceMotion ? 0.16 : 0.34
+        let fadeInDuration = reduceMotion ? 0.22 : 0.56
+
+        titleTransitionTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeInOut(duration: fadeOutDuration)) {
+                contentOpacity = 0
+            }
+
+            try? await Task.sleep(
+                nanoseconds: UInt64(fadeOutDuration * 1_000_000_000)
+            )
+            guard !Task.isCancelled, sceneID == targetSceneID else { return }
+
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                displayedName = name
+                displayedSubtitle = subtitle
+            }
+
+            withAnimation(.easeOut(duration: fadeInDuration)) {
+                contentOpacity = 1
+            }
+        }
     }
 }
 

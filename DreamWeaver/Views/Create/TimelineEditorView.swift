@@ -1,5 +1,12 @@
 import SwiftUI
 
+private enum TimelineCoordinateSpace {
+    static let ruler = "timeline.ruler.fixed"
+    static let track = "timeline.track.fixed"
+    static let navigator = "timeline.navigator.fixed"
+    static let playhead = "timeline.playhead.fixed"
+}
+
 struct TimelineEditorView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
@@ -23,7 +30,9 @@ struct TimelineEditorView: View {
                         TimelineRulerView(
                             viewport: viewModel.timelineViewport,
                             currentTime: viewModel.currentTime,
-                            onScrub: viewModel.scrub
+                            onScrubBegin: viewModel.beginScrubbing,
+                            onScrubUpdate: viewModel.updateScrubbing,
+                            onScrubEnd: viewModel.endScrubbing
                         )
                         .frame(width: timelineWidth, height: rulerHeight)
                     }
@@ -59,7 +68,9 @@ struct TimelineEditorView: View {
                         viewport: viewModel.timelineViewport,
                         timelineWidth: timelineWidth,
                         height: rulerHeight + CGFloat(viewModel.sourceGroups.count) * trackHeight,
-                        onScrub: viewModel.scrub
+                        onScrubBegin: viewModel.beginScrubbing,
+                        onScrubUpdate: viewModel.updateScrubbing,
+                        onScrubEnd: viewModel.endScrubbing
                     )
                     .offset(x: labelWidth + 12)
                 }
@@ -81,7 +92,9 @@ struct TimelineEditorView: View {
 private struct TimelineRulerView: View {
     let viewport: TimelineViewport
     let currentTime: Double
-    let onScrub: (Double) -> Void
+    let onScrubBegin: () -> Void
+    let onScrubUpdate: (Double) -> Void
+    let onScrubEnd: (Double) -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -106,11 +119,24 @@ private struct TimelineRulerView: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .gesture(
-                        DragGesture(minimumDistance: 0).onChanged { value in
-                            onScrub(viewport.time(for: value.location.x, width: proxy.size.width))
+                        DragGesture(
+                            minimumDistance: 0,
+                            coordinateSpace: .named(TimelineCoordinateSpace.ruler)
+                        )
+                        .onChanged { value in
+                            onScrubBegin()
+                            onScrubUpdate(
+                                viewport.time(for: value.location.x, width: proxy.size.width)
+                            )
+                        }
+                        .onEnded { value in
+                            onScrubEnd(
+                                viewport.time(for: value.location.x, width: proxy.size.width)
+                            )
                         }
                     )
             }
+            .coordinateSpace(name: TimelineCoordinateSpace.ruler)
         }
         .accessibilityLabel("时间指针")
         .accessibilityValue(SpatialTimeText.string(currentTime))
@@ -231,6 +257,7 @@ private struct TimelineTrackView: View {
                 }
             }
             .frame(width: timelineWidth, height: trackHeight)
+            .coordinateSpace(name: TimelineCoordinateSpace.track)
             .clipped()
         }
         .frame(height: trackHeight)
@@ -375,7 +402,10 @@ private struct AudioClipRangeView: View {
     }
 
     private var moveGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
+        DragGesture(
+            minimumDistance: 4,
+            coordinateSpace: .named(TimelineCoordinateSpace.track)
+        )
             .onChanged { value in
                 if moveOriginStart == nil {
                     moveOriginStart = clip.startTime
@@ -394,7 +424,10 @@ private struct AudioClipRangeView: View {
     }
 
     private var leadingResizeGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(
+            minimumDistance: 2,
+            coordinateSpace: .named(TimelineCoordinateSpace.track)
+        )
             .onChanged { value in
                 if leadingOriginStart == nil {
                     leadingOriginStart = clip.startTime
@@ -416,7 +449,10 @@ private struct AudioClipRangeView: View {
     }
 
     private var trailingResizeGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(
+            minimumDistance: 2,
+            coordinateSpace: .named(TimelineCoordinateSpace.track)
+        )
             .onChanged { value in
                 if trailingOriginEnd == nil {
                     trailingOriginEnd = clip.endTime
@@ -539,7 +575,10 @@ private struct SpatialKeyPointView: View {
                     viewModel.selectKeyPoint(sourceID: sourceID, keyPointID: point.id)
                 }
                 .highPriorityGesture(
-                    DragGesture(minimumDistance: 4)
+                    DragGesture(
+                        minimumDistance: 4,
+                        coordinateSpace: .named(TimelineCoordinateSpace.track)
+                    )
                         .onChanged { value in
                             if dragStartTime == nil {
                                 dragStartTime = point.time
@@ -614,6 +653,7 @@ private struct TimelineNavigatorView: View {
                         .highPriorityGesture(trailingGesture(width: proxy.size.width))
                 }
                 .frame(maxHeight: .infinity)
+                .coordinateSpace(name: TimelineCoordinateSpace.navigator)
                 .onTapGesture { viewModel.clearTimelineItemSelection() }
             }
             .frame(width: timelineWidth)
@@ -628,7 +668,10 @@ private struct TimelineNavigatorView: View {
     }
 
     private func bodyGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(
+            minimumDistance: 2,
+            coordinateSpace: .named(TimelineCoordinateSpace.navigator)
+        )
             .onChanged { value in
                 if bodyOriginStart == nil {
                     bodyOriginStart = viewport.startTime
@@ -647,7 +690,10 @@ private struct TimelineNavigatorView: View {
     }
 
     private func leadingGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(
+            minimumDistance: 2,
+            coordinateSpace: .named(TimelineCoordinateSpace.navigator)
+        )
             .onChanged { value in
                 if leadingOriginStart == nil {
                     leadingOriginStart = viewport.startTime
@@ -670,7 +716,10 @@ private struct TimelineNavigatorView: View {
     }
 
     private func trailingGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(
+            minimumDistance: 2,
+            coordinateSpace: .named(TimelineCoordinateSpace.navigator)
+        )
             .onChanged { value in
                 if trailingOriginEnd == nil {
                     trailingOriginEnd = viewport.endTime
@@ -699,32 +748,54 @@ private struct TimelinePlayheadView: View {
     let viewport: TimelineViewport
     let timelineWidth: CGFloat
     let height: CGFloat
-    let onScrub: (Double) -> Void
+    let onScrubBegin: () -> Void
+    let onScrubUpdate: (Double) -> Void
+    let onScrubEnd: (Double) -> Void
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
-    @State private var dragStartTime: Double?
 
     var body: some View {
         let x = viewport.x(for: currentTime, width: timelineWidth)
-        ZStack(alignment: .top) {
-            Rectangle().fill(sceneAccent.opacity(0.86)).frame(width: 1.2, height: height - 4)
-            Diamond()
-                .fill(sceneAccent)
-                .frame(width: 10, height: 10)
-                .shadow(color: sceneAccent.opacity(0.55), radius: 5)
-                .offset(y: -2)
-                .contentShape(Rectangle().size(width: 34, height: 28))
+        ZStack(alignment: .topLeading) {
+            ZStack(alignment: .top) {
+                Rectangle()
+                    .fill(sceneAccent.opacity(0.86))
+                    .frame(width: 1.2, height: height - 4)
+                Diamond()
+                    .fill(sceneAccent)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: sceneAccent.opacity(0.55), radius: 5)
+                    .offset(y: -2)
+            }
+            .frame(width: 1.2, height: height, alignment: .top)
+            .offset(x: x)
+            .allowsHitTesting(false)
+
+            // The hit target moves visually with the playhead, but its drag
+            // locations are measured in this fixed, full-width coordinate space.
+            Color.clear
+                .frame(width: 34, height: 28)
+                .contentShape(Rectangle())
+                .position(x: x, y: 14)
                 .highPriorityGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            if dragStartTime == nil { dragStartTime = currentTime }
-                            let delta = Double(value.translation.width / max(timelineWidth, 1)) * viewport.span
-                            onScrub((dragStartTime ?? currentTime) + delta)
-                        }
-                        .onEnded { _ in dragStartTime = nil }
+                    DragGesture(
+                        minimumDistance: 0,
+                        coordinateSpace: .named(TimelineCoordinateSpace.playhead)
+                    )
+                    .onChanged { value in
+                        onScrubBegin()
+                        onScrubUpdate(
+                            viewport.time(for: value.location.x, width: timelineWidth)
+                        )
+                    }
+                    .onEnded { value in
+                        onScrubEnd(
+                            viewport.time(for: value.location.x, width: timelineWidth)
+                        )
+                    }
                 )
         }
-        .frame(width: 1.2, height: height, alignment: .top)
-        .offset(x: x)
+        .frame(width: timelineWidth, height: height, alignment: .topLeading)
+        .coordinateSpace(name: TimelineCoordinateSpace.playhead)
     }
 }
 
