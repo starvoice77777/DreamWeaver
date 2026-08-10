@@ -10,10 +10,12 @@ struct SpatialEditorView: View {
     @State private var showsSoundTray = false
     @State private var showsAdvancedEditor = false
     @State private var showsCreationOptions = false
+    @State private var showsCreateSoundOptions = false
     private let isCreateTabRoot: Bool
     private let onResetRequested: (() -> Void)?
     private let onExistingSceneRequested: (() -> Void)?
-    private let onCreateSoundRequested: (() -> Void)?
+    private let onRecordSoundRequested: (() -> Void)?
+    private let onUploadSoundRequested: (() -> Void)?
     private let onManageSoundsRequested: (() -> Void)?
     private let onFinished: (() -> Void)?
 
@@ -22,7 +24,8 @@ struct SpatialEditorView: View {
         isCreateTabRoot: Bool = false,
         onResetRequested: (() -> Void)? = nil,
         onExistingSceneRequested: (() -> Void)? = nil,
-        onCreateSoundRequested: (() -> Void)? = nil,
+        onRecordSoundRequested: (() -> Void)? = nil,
+        onUploadSoundRequested: (() -> Void)? = nil,
         onManageSoundsRequested: (() -> Void)? = nil,
         onFinished: (() -> Void)? = nil
     ) {
@@ -30,7 +33,8 @@ struct SpatialEditorView: View {
         self.isCreateTabRoot = isCreateTabRoot
         self.onResetRequested = onResetRequested
         self.onExistingSceneRequested = onExistingSceneRequested
-        self.onCreateSoundRequested = onCreateSoundRequested
+        self.onRecordSoundRequested = onRecordSoundRequested
+        self.onUploadSoundRequested = onUploadSoundRequested
         self.onManageSoundsRequested = onManageSoundsRequested
         self.onFinished = onFinished
     }
@@ -109,17 +113,6 @@ struct SpatialEditorView: View {
             soundTray
                 .dreamModalPresentation([.medium, .large])
         }
-        .confirmationDialog("保存场景", isPresented: $showSaveChooser, titleVisibility: .visible) {
-            Button("保存为草稿") {
-                Task { await saveDraft() }
-            }
-            Button("保存为个人场景") {
-                Task { await saveAsPersonalScene() }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("草稿可在创建页继续修改；个人场景会出现在场景库中，可直接播放。")
-        }
     }
 
     private var editorHeader: some View {
@@ -158,6 +151,14 @@ struct SpatialEditorView: View {
             }
             .buttonStyle(.plain)
             .disabled(isSaving)
+            .popover(
+                isPresented: $showSaveChooser,
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .top
+            ) {
+                saveOptionsPopover
+                    .dreamPopoverPresentation()
+            }
             .accessibilityLabel("保存场景")
             .accessibilityHint("可选择保存为草稿或个人场景")
         }
@@ -207,8 +208,8 @@ struct SpatialEditorView: View {
         onResetRequested: @escaping () -> Void,
         onExistingSceneRequested: (() -> Void)?
     ) -> some View {
-        VStack(spacing: 0) {
-            creationOptionButton(
+        editorPopoverMenu {
+            editorPopoverButton(
                 title: "从空白重新开始",
                 symbol: "arrow.counterclockwise"
             ) {
@@ -219,7 +220,7 @@ struct SpatialEditorView: View {
                 Divider()
                     .overlay(Color.white.opacity(0.08))
 
-                creationOptionButton(
+                editorPopoverButton(
                     title: "从已有场景创建",
                     symbol: "square.stack.3d.up.fill"
                 ) {
@@ -227,11 +228,40 @@ struct SpatialEditorView: View {
                 }
             }
         }
+    }
+
+    private var saveOptionsPopover: some View {
+        editorPopoverMenu {
+            editorPopoverButton(
+                title: "保存为草稿",
+                symbol: "doc.badge.plus"
+            ) {
+                closeSaveOptions { await saveDraft() }
+            }
+
+            Divider()
+                .overlay(Color.white.opacity(0.08))
+
+            editorPopoverButton(
+                title: "保存为个人场景",
+                symbol: "square.and.arrow.down"
+            ) {
+                closeSaveOptions { await saveAsPersonalScene() }
+            }
+        }
+    }
+
+    private func editorPopoverMenu<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
         .frame(width: 220)
         .padding(.vertical, 6)
     }
 
-    private func creationOptionButton(
+    private func editorPopoverButton(
         title: String,
         symbol: String,
         action: @escaping () -> Void
@@ -246,6 +276,17 @@ struct SpatialEditorView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func closeSaveOptions(
+        then action: @escaping @MainActor () async -> Void
+    ) {
+        showSaveChooser = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            await action()
+        }
     }
 
     private func closeCreationOptions(then action: @escaping () -> Void) {
@@ -660,7 +701,7 @@ struct SpatialEditorView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 9) {
                 creationActionButton(
-                    symbol: "plus",
+                    symbol: "waveform.badge.plus",
                     accessibilityLabel: "添加声音"
                 ) {
                     showsSoundTray = true
@@ -700,7 +741,7 @@ struct SpatialEditorView: View {
         let isSelected = viewModel.isSourceGroupSelected(source)
 
         return Button {
-            viewModel.selectSource(source.id)
+            viewModel.toggleSourceSelection(source.id)
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: source.iconName)
@@ -718,6 +759,12 @@ struct SpatialEditorView: View {
                         .lineLimit(1)
                         .padding(.trailing, 5)
                         .transition(.opacity.combined(with: .move(edge: .leading)))
+
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: DreamIconSize.compact, weight: .semibold))
+                        .foregroundStyle(DreamTheme.tertiaryText)
+                        .padding(.trailing, 4)
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
             }
             .padding(.horizontal, isSelected ? 5 : 0)
@@ -730,6 +777,7 @@ struct SpatialEditorView: View {
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.18), value: isSelected)
         .accessibilityLabel(source.name)
+        .accessibilityHint(isSelected ? "再次点按取消选择" : "点按选择音源")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -837,12 +885,20 @@ struct SpatialEditorView: View {
 
             if isCreateTabRoot {
                 HStack(spacing: 36) {
-                    if let onCreateSoundRequested {
+                    if onRecordSoundRequested != nil || onUploadSoundRequested != nil {
                         soundTrayUtilityButton(
                             title: "录制或上传",
                             symbol: "waveform.badge.plus"
                         ) {
-                            closeSoundTray(then: onCreateSoundRequested)
+                            showsCreateSoundOptions = true
+                        }
+                        .popover(
+                            isPresented: $showsCreateSoundOptions,
+                            attachmentAnchor: .rect(.bounds),
+                            arrowEdge: .top
+                        ) {
+                            createSoundOptionsPopover
+                                .dreamPopoverPresentation()
                         }
                     }
                     if let onManageSoundsRequested {
@@ -869,6 +925,33 @@ struct SpatialEditorView: View {
                 }
                 .padding(.top, 18)
                 .padding(.bottom, 32)
+            }
+        }
+    }
+
+    private var createSoundOptionsPopover: some View {
+        editorPopoverMenu {
+            if let onRecordSoundRequested {
+                editorPopoverButton(
+                    title: "现场录音",
+                    symbol: "mic"
+                ) {
+                    closeCreateSoundOptions(then: onRecordSoundRequested)
+                }
+            }
+
+            if onRecordSoundRequested != nil, onUploadSoundRequested != nil {
+                Divider()
+                    .overlay(Color.white.opacity(0.08))
+            }
+
+            if let onUploadSoundRequested {
+                editorPopoverButton(
+                    title: "上传文件",
+                    symbol: "doc.badge.plus"
+                ) {
+                    closeCreateSoundOptions(then: onUploadSoundRequested)
+                }
             }
         }
     }
@@ -973,6 +1056,15 @@ struct SpatialEditorView: View {
             action()
         }
     }
+
+    private func closeCreateSoundOptions(then action: @escaping () -> Void) {
+        showsCreateSoundOptions = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            closeSoundTray(then: action)
+        }
+    }
 }
 
 private struct SoundTraySection: Identifiable {
@@ -1019,32 +1111,97 @@ private struct SoundTraySection: Identifiable {
 struct PlaybackControlView: View {
     @ObservedObject var viewModel: SpatialTimelineViewModel
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
+    @State private var isScrubbing = false
+
+    private let coordinateSpaceName = "create.playback.overview.fixed"
 
     var body: some View {
         GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let duration = max(viewModel.duration, 1)
+            let currentFraction = min(max(viewModel.currentTime / duration, 0), 1)
+            let playheadX = width * CGFloat(currentFraction)
+
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.white.opacity(0.08))
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                sceneAccent.opacity(0.72),
-                                sceneAccent
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                    .frame(height: 5)
+
+                if let selectedSource = viewModel.selectedSource {
+                    ForEach(viewModel.clips(for: selectedSource.effectiveSourceGroupID)) { clip in
+                        let start = min(max(clip.startTime / duration, 0), 1)
+                        let end = min(max(clip.endTime / duration, start), 1)
+                        let isActive = viewModel.currentTime >= clip.startTime
+                            && viewModel.currentTime < clip.endTime
+
+                        Capsule()
+                            .fill(
+                                selectedSource.themeColor.opacity(isActive ? 0.94 : 0.58)
+                            )
+                            .frame(
+                                width: max(width * CGFloat(end - start), 3),
+                                height: isActive ? 9 : 7
+                            )
+                            .offset(x: width * CGFloat(start))
+                            .shadow(
+                                color: selectedSource.themeColor.opacity(isActive ? 0.42 : 0),
+                                radius: isActive ? 4 : 0
+                            )
+                    }
+                } else {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    sceneAccent.opacity(0.72),
+                                    sceneAccent
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .frame(
-                        width: proxy.size.width
-                            * CGFloat(viewModel.currentTime / viewModel.duration)
-                    )
+                        .frame(width: playheadX, height: 5)
+                }
+
+                Capsule()
+                    .fill(DreamTheme.moonWhite.opacity(0.92))
+                    .frame(width: 2, height: 15)
+                    .position(x: playheadX, y: proxy.size.height / 2)
+                    .shadow(color: sceneAccent.opacity(0.40), radius: 3)
             }
+            .frame(width: width, height: proxy.size.height)
+            .contentShape(Rectangle())
+            .coordinateSpace(name: coordinateSpaceName)
+            .gesture(
+                DragGesture(
+                    minimumDistance: 0,
+                    coordinateSpace: .named(coordinateSpaceName)
+                )
+                .onChanged { value in
+                    if !isScrubbing {
+                        isScrubbing = true
+                        viewModel.beginScrubbing()
+                    }
+                    viewModel.updateScrubbing(
+                        to: Double(min(max(value.location.x / width, 0), 1)) * duration
+                    )
+                }
+                .onEnded { value in
+                    isScrubbing = false
+                    viewModel.endScrubbing(
+                        at: Double(min(max(value.location.x / width, 0), 1)) * duration
+                    )
+                }
+            )
         }
-        .frame(height: 3)
+        .frame(height: 18)
         .padding(.horizontal, 4)
-        .padding(.vertical, 6)
+        .accessibilityElement()
+        .accessibilityLabel(
+            viewModel.selectedSource.map { "\($0.name)时间条" } ?? "场景时间条"
+        )
+        .accessibilityValue(SpatialTimeText.string(viewModel.currentTime))
+        .accessibilityHint("左右拖动定位播放时间")
     }
 }
 

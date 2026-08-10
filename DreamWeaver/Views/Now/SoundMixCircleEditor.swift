@@ -6,6 +6,10 @@ struct SoundMixCircleEditor: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @Binding var showTimerPicker: Bool
+    @State private var displayedSources: [SoundSource] = []
+    @State private var displayedSceneID: UUID?
+    @State private var sourceIconsOpacity = 1.0
+    @State private var sourceTransitionTask: Task<Void, Never>?
 
     /// Dock center sits at 75% of the screen height.
     private let dockFromTop: CGFloat = 0.75
@@ -14,10 +18,6 @@ struct SoundMixCircleEditor: View {
     private var reduceMotion: Bool {
         appState.reduceMotion || systemReduceMotion
     }
-    private var activeSources: [SoundSource] {
-        appState.currentScene.soundSources.filter(\.isEnabled)
-    }
-
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
@@ -41,15 +41,18 @@ struct SoundMixCircleEditor: View {
 
                 GlassEffectContainer(spacing: 18) {
                     ZStack {
-                        ForEach(activeSources) { source in
-                            sourceNode(
-                                source,
-                                circleSize: localCircleSize,
-                                circleOrigin: origin
-                            )
-                            .allowsHitTesting(false)
-                            .zIndex(2)
+                        ZStack {
+                            ForEach(displayedSources) { source in
+                                sourceNode(
+                                    source,
+                                    circleSize: localCircleSize,
+                                    circleOrigin: origin
+                                )
+                                .allowsHitTesting(false)
+                                .zIndex(2)
+                            }
                         }
+                        .opacity(sourceIconsOpacity)
 
                         listenerAnchor(at: center)
                             .zIndex(3)
@@ -67,7 +70,67 @@ struct SoundMixCircleEditor: View {
             .frame(width: size.width, height: size.height)
         }
         .animation(.easeInOut(duration: 0.35), value: showTimerPicker)
+        .onAppear {
+            syncDisplayedSourcesImmediately()
+        }
+        .onChange(of: appState.currentSceneId) { _, sceneID in
+            transitionSources(
+                to: appState.currentScene.soundSources.filter(\.isEnabled),
+                sceneID: sceneID
+            )
+        }
+        .onChange(of: appState.currentScene.soundSources) { _, sources in
+            guard displayedSceneID == appState.currentSceneId else { return }
+            displayedSources = sources.filter(\.isEnabled)
+        }
+        .onDisappear {
+            sourceTransitionTask?.cancel()
+        }
         .accessibilityHint("圆盘仅展示当前场景中各音源的空间位置")
+    }
+
+    private func syncDisplayedSourcesImmediately() {
+        sourceTransitionTask?.cancel()
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            displayedSources = appState.currentScene.soundSources.filter(\.isEnabled)
+            displayedSceneID = appState.currentSceneId
+            sourceIconsOpacity = 1
+        }
+    }
+
+    private func transitionSources(to sources: [SoundSource], sceneID: UUID) {
+        sourceTransitionTask?.cancel()
+        let fadeOutDuration = reduceMotion ? 0.16 : 0.34
+        let fadeInDuration = reduceMotion ? 0.22 : 0.54
+
+        sourceTransitionTask = Task { @MainActor in
+            // Escape the scene switch's animation-disabled transaction. Only
+            // opacity animates; source positions still change while invisible.
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeInOut(duration: fadeOutDuration)) {
+                sourceIconsOpacity = 0
+            }
+
+            try? await Task.sleep(
+                nanoseconds: UInt64(fadeOutDuration * 1_000_000_000)
+            )
+            guard !Task.isCancelled, appState.currentSceneId == sceneID else { return }
+
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                displayedSources = sources
+                displayedSceneID = sceneID
+            }
+
+            withAnimation(.easeOut(duration: fadeInDuration)) {
+                sourceIconsOpacity = 1
+            }
+        }
     }
 
     private func listenerAnchor(at center: CGPoint) -> some View {

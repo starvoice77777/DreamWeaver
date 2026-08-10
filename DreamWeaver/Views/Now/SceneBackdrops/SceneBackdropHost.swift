@@ -39,7 +39,11 @@ struct SceneBackdropHost: View {
                     reduceMotion: reduceMotion
                 )
             case .mistTide:
-                MistTideBackdrop(intensity: intensity)
+                MistTideBackdrop(
+                    intensity: intensity,
+                    isPlaying: isPlaying,
+                    reduceMotion: reduceMotion
+                )
             case .valleyStream:
                 ValleyStreamBackdrop(intensity: intensity)
             case .snowStudy:
@@ -69,7 +73,11 @@ struct SceneBackdropHost: View {
             case .fireplaceWhisper:
                 FireplaceWhisperBackdrop(intensity: intensity)
             case .summerNight:
-                SummerNightBackdrop(intensity: intensity)
+                SummerNightBackdrop(
+                    intensity: intensity,
+                    isPlaying: isPlaying,
+                    reduceMotion: reduceMotion
+                )
             case .alpsCableCar:
                 BundledVideoSceneBackdrop(
                     style: .alpsCableCar,
@@ -97,8 +105,11 @@ struct SceneBackdropHost: View {
                     ]
                 )
             case .prelude:
-                PaintedCoverBackdrop(
+                BundledVideoSceneBackdrop(
                     style: .prelude,
+                    resourceName: "prelude_bg",
+                    resourceSubdirectory: "Scenes/Prelude",
+                    isActive: isPlaying && !reduceMotion,
                     intensity: intensity,
                     fallbackColors: [
                         Color(hex: 0x51484A),
@@ -131,6 +142,6 @@ struct SceneBackdropHost: View {
     private var depthOffset: CGFloat {
         // Keep the effect ambient: the listener sees a scene respond to tilt,
         // not a foreground card floating over the UI.
-        CGFloat(7 + 9 * min(max(intensity, 0.2), 1))
+        SceneDepthMotionMetrics.maximumOffset(for: intensity)
     }
 }

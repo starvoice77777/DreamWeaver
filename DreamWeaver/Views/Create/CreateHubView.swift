@@ -37,7 +37,8 @@ struct CreateHubView: View {
                 isCreateTabRoot: true,
                 onResetRequested: { openEditor(with: .blank) },
                 onExistingSceneRequested: { isScenePickerPresented = true },
-                onCreateSoundRequested: { showUploadChooser = true },
+                onRecordSoundRequested: { beginRecordUpload() },
+                onUploadSoundRequested: { beginFileUpload() },
                 onManageSoundsRequested: { showSoundLibrary = true },
                 onFinished: { openEditor(with: .blank) }
             )

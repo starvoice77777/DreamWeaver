@@ -153,11 +153,67 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
             defaultPosition: CGPoint(x: -0.36, y: 0.36)
         ),
         .init(
+            id: "lofi",
+            name: "Lo-Fi",
+            iconName: "headphones",
+            theme: .music,
+            defaultPosition: CGPoint(x: 0.34, y: 0.30)
+        ),
+        .init(
+            id: "acoustic-guitar",
+            name: "木吉他",
+            iconName: "guitars",
+            theme: .music,
+            defaultPosition: CGPoint(x: -0.52, y: 0.08)
+        ),
+        .init(
+            id: "soft-strings",
+            name: "轻弦乐",
+            iconName: "music.quarternote.3",
+            theme: .music,
+            defaultPosition: CGPoint(x: 0.50, y: -0.08)
+        ),
+        .init(
+            id: "music-box",
+            name: "八音盒",
+            iconName: "music.note.list",
+            theme: .music,
+            defaultPosition: CGPoint(x: -0.20, y: -0.46)
+        ),
+        .init(
+            id: "singing-bowl",
+            name: "颂钵",
+            iconName: "bell.fill",
+            theme: .music,
+            defaultPosition: CGPoint(x: 0.18, y: -0.52)
+        ),
+        .init(
+            id: "ambient-pad",
+            name: "氛围铺底",
+            iconName: "waveform.path",
+            theme: .music,
+            defaultPosition: CGPoint(x: 0, y: 0.58)
+        ),
+        .init(
             id: "insect",
             name: "虫鸣",
             iconName: "ant.fill",
             theme: .nature,
             defaultPosition: CGPoint(x: 0.52, y: 0.28)
+        ),
+        .init(
+            id: "forest-birds",
+            name: "森林鸟鸣",
+            iconName: "bird.fill",
+            theme: .nature,
+            defaultPosition: CGPoint(x: -0.46, y: -0.34)
+        ),
+        .init(
+            id: "distant-thunder",
+            name: "远雷",
+            iconName: "cloud.bolt.rain.fill",
+            theme: .rain,
+            defaultPosition: CGPoint(x: 0.42, y: -0.58)
         ),
         .init(
             id: "tide",
@@ -186,6 +242,13 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
             iconName: "hand.raised.fingers.spread.fill",
             theme: .texture,
             defaultPosition: CGPoint(x: 0.40, y: 0.02)
+        ),
+        .init(
+            id: "white-noise",
+            name: "白噪声",
+            iconName: "waveform",
+            theme: .texture,
+            defaultPosition: CGPoint(x: -0.34, y: 0.12)
         )
     ]
 

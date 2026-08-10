@@ -20,6 +20,10 @@ struct SharedTabAtmosphereBackground: View {
         selectedTab == .profile ? 1 : 0
     }
 
+    private var nowDepth: Double {
+        selectedTab == .now ? 1 : 0
+    }
+
     private var transitionAnimation: Animation {
         .easeInOut(duration: reduceMotion ? 0.20 : 0.92)
     }
@@ -54,13 +58,15 @@ struct SharedTabAtmosphereBackground: View {
                 LinearGradient(
                     colors: [
                         Color.black.opacity(
-                            abstraction * (0.08 + profileDepth * 0.08)
+                            nowDepth * 0.25
+                                + abstraction * (0.08 + profileDepth * 0.08)
                         ),
                         Color.black.opacity(
                             abstraction * (0.18 + profileDepth * 0.10)
                         ),
                         Color.black.opacity(
-                            abstraction * (0.40 + profileDepth * 0.12)
+                            nowDepth * 0.45
+                                + abstraction * (0.40 + profileDepth * 0.12)
                         )
                     ],
                     startPoint: .top,

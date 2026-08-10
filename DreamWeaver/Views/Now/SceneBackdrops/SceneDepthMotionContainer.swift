@@ -1,6 +1,20 @@
 import SwiftUI
 import UIKit
 
+/// Shared sizing rules for the live depth backdrop and its swipe preview.
+/// Both layers must use the same overscan or the handoff looks like a zoom.
+enum SceneDepthMotionMetrics {
+    private static let edgePadding: CGFloat = 6
+
+    static func maximumOffset(for intensity: Double) -> CGFloat {
+        CGFloat(7 + 9 * min(max(intensity, 0.2), 1))
+    }
+
+    static func overscan(isEnabled: Bool, maximumOffset: CGFloat) -> CGFloat {
+        (isEnabled ? max(maximumOffset, 0) : 0) + edgePadding
+    }
+}
+
 /// Adds a subtle device-tilt parallax to a full-bleed scene backdrop.
 ///
 /// The hosted content is oversized before applying UIKit's motion effect so
@@ -99,7 +113,10 @@ final class SceneDepthMotionViewController<Content: View>: UIViewController {
 
     private func applyDepthEffect() {
         let offset = isMotionEnabled ? max(appliedMaximumOffset, 0) : 0
-        let overscan = offset + 6
+        let overscan = SceneDepthMotionMetrics.overscan(
+            isEnabled: isMotionEnabled,
+            maximumOffset: appliedMaximumOffset
+        )
         edgeConstraints[0].constant = -overscan
         edgeConstraints[1].constant = overscan
         edgeConstraints[2].constant = -overscan

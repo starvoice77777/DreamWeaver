@@ -41,7 +41,10 @@ final class SpatialTimelineViewModel: ObservableObject {
     private var previewGraphSignature: String?
     private var recordingSourceSnapshot: SpatialEditorSource?
     private var trajectoryUndoState: TrajectoryUndoState?
+    private var isTimelineScrubbing = false
+    private var lastScrubPreviewSeekUptime: TimeInterval?
     private let recordingSampleInterval: Double = 0.05
+    private let scrubPreviewSeekInterval: TimeInterval = 1.0 / 15.0
     /// Raw normalized pull distance required before a dragged source is removed.
     private let sourceRemovalRadius: CGFloat = 1.28
 
@@ -210,6 +213,22 @@ final class SpatialTimelineViewModel: ObservableObject {
         if source(id: sourceID)?.keyPoints.contains(where: { $0.id == selectedKeyPointID }) != true {
             selectedKeyPointID = nil
         }
+    }
+
+    func toggleSourceSelection(_ sourceID: UUID) {
+        if selectedSourceID == sourceID {
+            clearSourceSelection()
+        } else {
+            selectSource(sourceID)
+        }
+    }
+
+    func clearSourceSelection() {
+        guard draggingSourceID == nil, !isRecordingTrajectory else { return }
+        selectedSourceID = nil
+        selectedAudioClipID = nil
+        selectedKeyPointID = nil
+        armedTrajectorySourceID = nil
     }
 
     func beginSourceDrag(_ sourceID: UUID) {
@@ -700,13 +719,43 @@ final class SpatialTimelineViewModel: ObservableObject {
         selectedKeyPointID = nil
     }
 
-    func scrub(to time: Double) {
+    func beginScrubbing() {
+        guard !isTimelineScrubbing else { return }
+        isTimelineScrubbing = true
         pause()
-        currentTime = min(max(time, 0), duration)
+        lastScrubPreviewSeekUptime = nil
         selectedAudioClipID = nil
         selectedKeyPointID = nil
         selectedTextCueID = nil
+    }
+
+    func updateScrubbing(to time: Double) {
+        if !isTimelineScrubbing {
+            beginScrubbing()
+        }
+        currentTime = min(max(time, 0), duration)
+
+        let now = ProcessInfo.processInfo.systemUptime
+        if let lastSeek = lastScrubPreviewSeekUptime,
+           now - lastSeek < scrubPreviewSeekInterval {
+            return
+        }
+        lastScrubPreviewSeekUptime = now
+        previewPlayback.seek(to: currentTime)
+    }
+
+    func endScrubbing(at time: Double) {
+        currentTime = min(max(time, 0), duration)
+        isTimelineScrubbing = false
+        lastScrubPreviewSeekUptime = nil
         syncPreviewAudio(playIfReady: false)
+    }
+
+    /// One-shot compatibility entry point for callers that are not gesture driven.
+    func scrub(to time: Double) {
+        beginScrubbing()
+        updateScrubbing(to: time)
+        endScrubbing(at: time)
     }
 
     func addTextCue() {
