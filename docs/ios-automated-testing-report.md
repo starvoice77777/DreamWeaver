@@ -4,8 +4,10 @@
 
 - Date: 2026-08-10
 - Git branch: `integration/frontend-backend`
-- Git commit: `ce94ba8d1ffda719f6a2c2923916eb2bfa5002d2`
-- Commit subject: `ce94ba8 merge: sync creation controls and scene transitions`
+- Production baseline commit: `ce94ba8d1ffda719f6a2c2923916eb2bfa5002d2`
+- Production baseline subject: `ce94ba8 merge: sync creation controls and scene transitions`
+- Automated-test implementation commit: `fd666d3d9a69a65fb5528350e34e3fe1330b2def`
+- Automated-test implementation subject: `fd666d3 test: cover timeline scene plan compilation`
 - Worktree before this task: clean
 - macOS: 26.5.2 (25F84)
 - Xcode: 26.6 (17F113)
@@ -27,12 +29,12 @@
 - Test target: `DreamWeaverTests`, hosted by `DreamWeaver`
 - Shared scheme: `DreamWeaver`
 - Baseline Debug app build: passed before test-target changes (approximately 6.5 seconds)
-- Formal complete run 1: passed; 111 parameterized executions, 0 failed, 0 skipped
-- Formal complete run 2: passed; 111 parameterized executions, 0 failed, 0 skipped
-- Xcode result-summary count: 87 test identifiers in each run. Xcode separately
-  reports 111 device-configuration passes because six tests use dynamic parameters.
-- Run 1 result duration: 14.828 seconds
-- Run 2 result duration: 13.911 seconds
+- Formal complete run 1: passed; 114 parameterized executions, 0 failed, 0 skipped
+- Formal complete run 2: passed; 114 parameterized executions, 0 failed, 0 skipped
+- Xcode result-summary count: 89 test identifiers in each run. Xcode separately
+  reports 114 device-configuration passes because seven tests use dynamic parameters.
+- Run 1 result duration: 15.087 seconds
+- Run 2 result duration: 16.356 seconds
 - Final Debug app build: passed
 - Formal run 2 build-result diagnostics: 0 errors, 0 warnings
 - Network dependency: none
@@ -54,7 +56,7 @@ build summary reports zero warnings.
 | `SpatialTrajectoryEvaluatorTests` | position and automation interpolation, sorting, clamp, angle normalization and shortest path | Passed |
 | `LoopCrossfadeControllerTests` | equal-power gains, progress clamp, duration validation/cap, resource presets | Passed |
 | `SceneRenderPlanModelTests` | clip/group/plan invariants, stable clip ordering, event ordering and renderer version | Passed |
-| `ScenePlanCompilerTests` | v1, v2 and editor inputs; group/clip separation; field retention; gap guards and events | Passed |
+| `ScenePlanCompilerTests` | v1, v2, editor and Timeline inputs; repeat expansion, baseline normalization, same-time precedence, interrupted fades, group/clip separation, field retention, gap guards and events | Passed |
 | `SpatialTrajectoryProcessingTests` | sparse/recorded evaluation, flattening, sorting/deduplication, time-aware simplification and slicing | Passed |
 | `SceneCompositionMapperTests` | v2 serialization, v1 migration, polar mapping, timing clamps, text cues and JSON round trip | Passed |
 | `SceneRendererStateTests` | deterministic load/seek/stop, half-open clip bounds, activity, trajectory, gain, automation and manual override | Passed |
@@ -71,12 +73,12 @@ Selected production-file line coverage from formal run 2:
 | `SceneAudioClip.swift` | 100.00% (18/18) |
 | `SpatialTrajectoryEvaluator.swift` | 97.37% (74/76) |
 | `LocalTimelineFixture.swift` | 82.46% (47/57) |
-| `ScenePlanCompiler.swift` | 79.76% (540/677) |
+| `ScenePlanCompiler.swift` | 96.01% (650/677) |
 | `SceneRenderer.swift` | 67.98% (121/178) |
-| `SceneCompositionMapper.swift` | 60.62% (602/993) |
+| `SceneCompositionMapper.swift` | 82.48% (819/993) |
 | `SpatialTimelineModels.swift` | 44.16% (291/659) |
 
-The full app target reports 24.34% line coverage because this task intentionally
+The full app target reports 24.98% line coverage because this task intentionally
 targets deterministic algorithms and contracts rather than SwiftUI rendering,
 authentication, networking, or hardware audio behavior.
 
@@ -91,18 +93,22 @@ authentication, networking, or hardware audio behavior.
 ## Reproduction Commands
 
 ```bash
+xcodebuild -showdestinations \
+  -project DreamWeaver.xcodeproj \
+  -scheme DreamWeaver
+
 xcodebuild build \
   -project DreamWeaver.xcodeproj \
   -scheme DreamWeaver \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,id=8091EB6F-BD6E-477B-B764-C068EA70D091' \
+  -destination 'platform=iOS Simulator,id=<SIMULATOR_UDID>' \
   -derivedDataPath "$PWD/.build/DerivedData"
 
 xcodebuild test \
   -project DreamWeaver.xcodeproj \
   -scheme DreamWeaver \
   -configuration Debug \
-  -destination 'platform=iOS Simulator,id=8091EB6F-BD6E-477B-B764-C068EA70D091' \
+  -destination 'platform=iOS Simulator,id=<SIMULATOR_UDID>' \
   -derivedDataPath "$PWD/.build/DerivedData" \
   -resultBundlePath "$PWD/.build/TestResults/DreamWeaverTests-<unique-run>.xcresult" \
   -enableCodeCoverage YES
@@ -139,7 +145,8 @@ different result-bundle name for each run.
 - `plutil -lint DreamWeaver.xcodeproj/project.pbxproj`: passed
 - `git diff --check`: passed
 - No production source files changed
-- No existing user file changed
+- Only the automated-test source and this verification report changed in the
+  review follow-up
 - No `.xcresult`, DerivedData, `.xctest` binary, Simulator data, audio, or video is
   tracked or shown by `git status`
 - `.build/` is ignored by the repository
