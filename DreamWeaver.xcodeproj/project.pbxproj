@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		D70000000000000000000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0D02A0BD3016657E00EF51F8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0D02A0C43016657E00EF51F8;
+			remoteInfo = DreamWeaver;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0D02A0C53016657E00EF51F8 /* DreamWeaver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DreamWeaver.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D70000000000000000000001 /* DreamWeaverTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DreamWeaverTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +40,22 @@
 			path = DreamWeaver;
 			sourceTree = "<group>";
 		};
+		D70000000000000000000002 /* DreamWeaverTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DreamWeaverTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0D02A0C23016657E00EF51F8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				0D02A0C73016657E00EF51F8 /* DreamWeaver */,
+				D70000000000000000000002 /* DreamWeaverTests */,
 				0D02A0C63016657E00EF51F8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				0D02A0C53016657E00EF51F8 /* DreamWeaver.app */,
+				D70000000000000000000001 /* DreamWeaverTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = 0D02A0C53016657E00EF51F8 /* DreamWeaver.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D70000000000000000000003 /* DreamWeaverTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7000000000000000000000B /* Build configuration list for PBXNativeTarget "DreamWeaverTests" */;
+			buildPhases = (
+				D70000000000000000000004 /* Sources */,
+				D70000000000000000000005 /* Frameworks */,
+				D70000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D70000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D70000000000000000000002 /* DreamWeaverTests */,
+			);
+			name = DreamWeaverTests;
+			packageProductDependencies = (
+			);
+			productName = DreamWeaverTests;
+			productReference = D70000000000000000000001 /* DreamWeaverTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,10 @@
 				TargetAttributes = {
 					0D02A0C43016657E00EF51F8 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					D70000000000000000000003 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 0D02A0C43016657E00EF51F8;
 					};
 				};
 			};
@@ -113,12 +165,20 @@
 			projectRoot = "";
 			targets = (
 				0D02A0C43016657E00EF51F8 /* DreamWeaver */,
+				D70000000000000000000003 /* DreamWeaverTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0D02A0C33016657E00EF51F8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +195,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D70000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D70000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0D02A0C43016657E00EF51F8 /* DreamWeaver */;
+			targetProxy = D70000000000000000000007 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0D02A0CE3016657E00EF51F8 /* Debug */ = {
@@ -340,6 +415,62 @@
 			};
 			name = Release;
 		};
+		D70000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DF548S4JJY;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = zhimeng.DreamWeaver.dfTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DreamWeaver.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DreamWeaver";
+				TEST_TARGET_NAME = DreamWeaver;
+			};
+			name = Debug;
+		};
+		D7000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DF548S4JJY;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = zhimeng.DreamWeaver.dfTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DreamWeaver.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DreamWeaver";
+				TEST_TARGET_NAME = DreamWeaver;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -357,6 +488,15 @@
 			buildConfigurations = (
 				0D02A0D13016657E00EF51F8 /* Debug */,
 				0D02A0D23016657E00EF51F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7000000000000000000000B /* Build configuration list for PBXNativeTarget "DreamWeaverTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D70000000000000000000009 /* Debug */,
+				D7000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
