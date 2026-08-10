@@ -346,6 +346,212 @@ struct ScenePlanCompilerTests {
         #expect(sharedGroup.positionKeyframes.contains { $0.interpolation == .recordedLinear })
         #expect(plan.version == SceneRenderPlan.rendererVersion)
     }
+
+    @Test("Timeline automation expands repeats, normalizes baselines, and resolves conflicts")
+    func timelineAutomationCompilation() throws {
+        let source = SoundSource(
+            id: TestFixtures.groupID,
+            name: "Rain",
+            symbolName: "cloud.rain.fill",
+            initialEnvelope: 0.8,
+            position: SpatialPosition(angle: 0, radius: 0.5),
+            resourceName: "rain_soft",
+            layer: .environment
+        )
+        let scene = DreamScene(
+            id: TestFixtures.sceneID,
+            name: "Automation fixture",
+            subtitle: "",
+            description: "",
+            category: .nature,
+            tags: [],
+            palette: ScenePalette(top: 0, mid: 0, bottom: 0, accent: 0),
+            soundSources: [source],
+            isFavorite: false,
+            isFrequentlyUsed: false,
+            listenCount: 0,
+            mockListenerCount: 0,
+            visualStyle: .rainEaves
+        )
+        let phrase = APIContentDTO.Phrase(
+            id: TestFixtures.phraseID,
+            text: "Automation phrase binding",
+            review_status: "approved",
+            voice_binding: APIContentDTO.VoiceBinding(
+                kind: "official_resource",
+                resource_key: nil,
+                asset_id: nil,
+                track_id: source.id,
+                track_layer: AudioLayerKind.environment.rawValue
+            )
+        )
+        let timeline = APIContentDTO.SceneTimeline(
+            scene_id: scene.id,
+            version: 1,
+            automation_mode: "official_auto",
+            duration_hint_seconds: 20,
+            override_policy: "per_source_manual_exit",
+            manual_override_track_ids: [],
+            phrases: [phrase],
+            cues: [
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000001",
+                    at: 0,
+                    actions: [APIContentDTO.CueAction(type: "play", track_id: source.id)]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000002",
+                    at: 2,
+                    repeatEvery: 4,
+                    until: 10,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "set_envelope",
+                            track_id: source.id,
+                            envelope: 0.4
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000003",
+                    at: 6,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "set_envelope",
+                            track_id: source.id,
+                            envelope: 0.8
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000004",
+                    at: 12,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "fade_out",
+                            track_id: source.id,
+                            fade_ms: 8_000
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000005",
+                    at: 14,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "set_envelope",
+                            track_id: source.id,
+                            envelope: 0.4
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000006",
+                    at: 15,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "fade_in",
+                            track_id: source.id,
+                            envelope: 0.8,
+                            fade_ms: 1_000
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000007",
+                    at: 18,
+                    actions: [
+                        APIContentDTO.CueAction(
+                            type: "set_envelope",
+                            phrase_id: phrase.id,
+                            envelope: 0.4
+                        )
+                    ]
+                ),
+                TestTimelineDTO.cue(
+                    id: "91000000-0000-4000-8000-000000000008",
+                    at: 20,
+                    actions: [APIContentDTO.CueAction(type: "pause", track_id: source.id)]
+                )
+            ]
+        )
+
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        #expect(plan.durationSeconds == 20)
+        #expect(plan.sourceGroups.map(\.id) == [source.id])
+        #expect(plan.clips.count == 1)
+        #expect(plan.clips.first?.startSeconds == 0)
+        #expect(plan.clips.first?.endSeconds == 20)
+
+        let curve = try #require(plan.automationCurves.first)
+        #expect(curve.target == .sourceGroup(source.id))
+        #expect(curve.parameter == .envelope)
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 2, keyframes: curve.keyframes),
+            0.5
+        ))
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 6, keyframes: curve.keyframes),
+            1
+        ))
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 10, keyframes: curve.keyframes),
+            0.5
+        ))
+
+        let interrupted = try #require(curve.keyframes.first {
+            approximatelyEqual($0.time, 13.9999, tolerance: 1e-8)
+        })
+        #expect(approximatelyEqual(interrupted.value, 0.375))
+        #expect(interrupted.interpolation == .hold)
+        #expect(!curve.keyframes.contains { $0.time == 20 && $0.value == 0 })
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 14, keyframes: curve.keyframes),
+            0.5
+        ))
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 16, keyframes: curve.keyframes),
+            1
+        ))
+        #expect(approximatelyEqual(
+            SpatialTrajectoryEvaluator.automationValue(at: 18, keyframes: curve.keyframes),
+            0.5
+        ))
+    }
+
+    @Test(
+        "Bundled formal timelines compile through the runtime entry point",
+        arguments: [DemoIDs.hairCareScene, DemoIDs.rainEavesScene]
+    )
+    func bundledTimelineCompilation(sceneID: UUID) throws {
+        let timeline = LocalTimelineFixture.timeline(for: sceneID)
+        var scene = try #require(MockDataService.makeScenes().first { $0.id == sceneID })
+        // Voice and trigger actions resolve media duration through AVAudioFile.
+        // Keep this contract test media-independent while compiling the formal
+        // continuous environment/ambience tracks through the exact runtime entry.
+        scene.soundSources = scene.soundSources.filter {
+            $0.layer == .environment || $0.layer == .ambience
+        }
+
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        let groupIDs = Set(plan.sourceGroups.map(\.id))
+        #expect(plan.sceneID == sceneID)
+        #expect(plan.durationSeconds == 620)
+        #expect(!plan.sourceGroups.isEmpty)
+        #expect(!plan.clips.isEmpty)
+        #expect(plan.events.count == plan.clips.count * 2)
+        #expect(plan.clips.allSatisfy {
+            groupIDs.contains($0.sourceGroupID)
+                && $0.startSeconds >= 0
+                && $0.endSeconds <= plan.durationSeconds
+        })
+        #expect(plan.automationCurves.allSatisfy { curve in
+            if case let .sourceGroup(id) = curve.target {
+                return groupIDs.contains(id)
+            }
+            return false
+        })
+    }
 }
 
 private nonisolated enum TestCompilerDTO {
@@ -365,6 +571,25 @@ private nonisolated enum TestCompilerDTO {
             phrase_id: nil,
             text_cue_id: nil,
             mastering_profile_key: nil
+        )
+    }
+}
+
+private nonisolated enum TestTimelineDTO {
+    static func cue(
+        id: String,
+        at: Double,
+        repeatEvery: Double? = nil,
+        until: Double? = nil,
+        actions: [APIContentDTO.CueAction]
+    ) -> APIContentDTO.Cue {
+        APIContentDTO.Cue(
+            id: UUID(uuidString: id)!,
+            at_seconds: at,
+            progress: nil,
+            repeat_every_seconds: repeatEvery,
+            until_seconds: until,
+            actions: actions
         )
     }
 }
