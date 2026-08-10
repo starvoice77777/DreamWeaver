@@ -271,6 +271,20 @@ final class LocalPlaybackService: ObservableObject, PlaybackService {
         applySpatialization(for: id, position: position)
     }
 
+    /// Temporarily overrides an authored trajectory while Create is recording
+    /// a live disk drag. Unlike `updateSource`, this does not change the group's
+    /// enabled/manual-mix state and must be paired with `clearTransientSourcePosition`.
+    func setTransientSourcePosition(id: UUID, position: SpatialPosition) {
+        guard activeRenderPlan != nil else { return }
+        renderer.setManualPosition(position, for: id)
+    }
+
+    /// Returns a Create preview source to its compiled keyframe trajectory.
+    func clearTransientSourcePosition(id: UUID) {
+        guard activeRenderPlan != nil else { return }
+        renderer.clearManualPosition(for: id)
+    }
+
     func syncSources(_ sources: [SoundSource]) {
         if let renderGraph, activeRenderPlan != nil {
             let incoming = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })

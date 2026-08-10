@@ -240,7 +240,10 @@ final class SpatialTimelineViewModel: ObservableObject {
         dragPositions[groupID] = position
         if recordingTrajectorySourceID == sourceID {
             captureRecordingSample(force: false)
-            syncPreviewAudio(playIfReady: true, showsEmptyWarning: false)
+            previewPlayback.setTransientSourcePosition(
+                id: groupID,
+                position: Self.spatialPosition(from: position)
+            )
         }
     }
 
@@ -409,6 +412,11 @@ final class SpatialTimelineViewModel: ObservableObject {
     }
 
     private func clearActiveRecording() {
+        if let recordingTrajectorySourceID {
+            let groupID = source(id: recordingTrajectorySourceID)?.effectiveSourceGroupID
+                ?? recordingTrajectorySourceID
+            previewPlayback.clearTransientSourcePosition(id: groupID)
+        }
         recordingTrajectorySourceID = nil
         recordingSourceSnapshot = nil
         liveRecordingSamples = []
@@ -1018,7 +1026,9 @@ final class SpatialTimelineViewModel: ObservableObject {
                     "\($0.time),\($0.position.angle),\($0.position.radius),\($0.interpolation.rawValue)"
                 }
                 .joined(separator: ";")
-                return "\(group.id.uuidString):\(frames)"
+                return "\(group.id.uuidString)"
+                    + ":\(group.defaultPosition.angle),\(group.defaultPosition.radius)"
+                    + ":\(frames)"
             }
             .sorted()
             .joined(separator: "|")
@@ -1036,19 +1046,11 @@ final class SpatialTimelineViewModel: ObservableObject {
                 showToast(error.localizedDescription)
                 return false
             }
-        } else {
-            for source in sourceGroupRepresentatives {
-                let point = position(for: source)
-                previewPlayback.updateSource(
-                    id: source.id,
-                    position: SpatialPosition(
-                        angle: atan2(point.x, -point.y),
-                        radius: min(max(hypot(point.x, point.y), 0), 1)
-                    ),
-                    enabled: true
-                )
-            }
         }
+
+        // A reused render plan must keep evaluating its authored trajectory.
+        // `updateSource` is a persistent manual-mix override, so using it here
+        // after a scrub or resume would freeze every group at one bearing.
 
         if rebuiltGraph || !playIfReady || !previewPlayback.isPlaying {
             previewPlayback.seek(to: requestedTime)
@@ -1066,6 +1068,14 @@ final class SpatialTimelineViewModel: ObservableObject {
             }
         }
         return true
+    }
+
+    private static func spatialPosition(from point: CGPoint) -> SpatialPosition {
+        let clamped = SpatialTrajectory.clampedToUnitCircle(point)
+        return SpatialPosition(
+            angle: atan2(clamped.x, -clamped.y),
+            radius: min(max(hypot(clamped.x, clamped.y), 0), 1)
+        )
     }
 
     private static func previewHostScene(name: String) -> DreamScene {
