@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin import router as admin_router
+from app.api.v1.ai_scene import router as ai_scene_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.compositions import router as compositions_router
 from app.api.v1.content import auth_router, users_router
@@ -17,6 +18,7 @@ router.include_router(compositions_router)
 router.include_router(seeds_router)
 router.include_router(analytics_router)
 router.include_router(admin_router)
+router.include_router(ai_scene_router)
 
 
 @router.get("/", summary="Describe the active API version")
