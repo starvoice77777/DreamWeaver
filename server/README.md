@@ -54,6 +54,11 @@ uvicorn app.main:app --reload
 | POST | `/v1/users/me/scenes/{id}/save` | Bearer | 显式保存正式版本（快照 sources / timeline / composition） |
 | DELETE | `/v1/users/me/scenes/{id}` | Bearer | 软删除个人场景 |
 | POST | `/v1/compositions/validate` | Bearer | 校验 `scene_composition_v1`（不落库；见 `docs/scene-composition-contract.md`） |
+| POST | `/v1/ai/scene-assist/outline` | Bearer | AI 生成场景大纲（draft-only） |
+| POST | `/v1/ai/scene-assist/arrangement` | Bearer | AI 生成轨道编排（draft-only） |
+| POST | `/v1/ai/scene-assist/compile` | Bearer | 将大纲与编排编译为 `scene_composition_v2` 草稿 |
+| POST | `/v1/ai/scene-assist/generate` | Bearer | 顺序执行 outline → arrangement → compile |
+| POST | `/v1/ai/scene-assist/adjust` | Bearer | 调整已有场景并返回新的草稿组合 |
 | POST | `/v1/uploads` | Bearer | 创建预签名上传会话（返回 `put_url`） |
 | POST | `/v1/uploads/{id}/complete` | Bearer | 确认对象已上传并创建 `SoundAsset` |
 | GET | `/v1/library/assets` | Bearer | 当前用户声音资产列表 |
@@ -75,6 +80,14 @@ uvicorn app.main:app --reload
 | POST | `/v1/admin/reseed-catalog` | 否 | **非 production**：upsert 官方场景元数据 / 音轨 / 预设并刷新时间线（不删孤儿轨） |
 
 上传限制：扩展名 `m4a/mp3/wav/caf`；最大 25MB；`kind` ∈ `life|voice|environment|official`。客户端流程：`POST /uploads` → PUT 到 `put_url`（带 `required_headers`）→ `POST .../complete`。
+
+### AI 场景辅助（前端交接）
+
+AI 场景辅助的完整请求/响应 JSON、阶段顺序、错误码、`draft_composition` 写入方式和前端限制见 [`docs/ai-scene-assist-api.md`](../docs/ai-scene-assist-api.md)。所有接口都要求 Bearer 鉴权；生成结果只进入客户端编辑预览，不会自动保存。
+
+DeepSeek 密钥只放在本地 `server/.env` 的 `DW_DEEPSEEK_API_KEY`，或部署平台 Secret 中同名的 `DW_DEEPSEEK_API_KEY` 环境变量。不要放入 iOS、日志、仓库或 `server/.env.example` 的实际值。
+
+`scene_composition_v2` 通过接口校验后仍然只是草稿。写入 `PUT /v1/users/me/scenes/{id}/draft` 的 `draft_composition` 前，前端必须完成资产 QC、许可证检查和移动端试听；正式版本仍需用户明确执行保存流程。
 
 Seed 流程：授权 → `analyze` → `process`（StubVoiceProvider）→ 轮询 `jobs/{id}` → `finalize`。进度对齐本地 iOS，**不依赖 Celery worker**；可选任务名 `seeds.advance_job` 仅骨架，正式异步执行留阶段 8 之后。
 
