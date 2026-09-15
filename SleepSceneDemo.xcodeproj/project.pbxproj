@@ -1,0 +1,435 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1A1A1A11A1A1A1A1A1A11A11 /* SleepSceneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A61A1A1A1A1A1A11A10 /* SleepSceneDemoApp.swift */; };
+		A1A1A1A21A1A1A1A1A1A11A12 /* SceneComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A61A1A1A1A1A1A11A11 /* SceneComposerTests.swift */; };
+		A1A1B001A1A1A1A1A1A11A01 /* SoundCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1B001A1A1A1A1A1A11A11 /* SoundCategory.swift */; };
+		A1A1B001A1A1A1A1A1A11A02 /* SoundElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1B001A1A1A1A1A1A11A12 /* SoundElement.swift */; };
+		A1A1B001A1A1A1A1A1A11A03 /* SceneSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1B001A1A1A1A1A1A11A13 /* SceneSlot.swift */; };
+		A1A1B001A1A1A1A1A1A11A04 /* SceneState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1B001A1A1A1A1A1A11A14 /* SceneState.swift */; };
+		A1A1B001A1A1A1A1A1A11A05 /* SceneComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1B001A1A1A1A1A1A11A15 /* SceneComposer.swift */; };
+		B40000000000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000011 /* ContentView.swift */; };
+		B40000000000000000000002 /* SceneHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000012 /* SceneHeaderView.swift */; };
+		B40000000000000000000003 /* SceneStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000013 /* SceneStageView.swift */; };
+		B40000000000000000000004 /* SceneSlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000014 /* SceneSlotView.swift */; };
+		B40000000000000000000005 /* EmptySlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000015 /* EmptySlotView.swift */; };
+		B40000000000000000000006 /* SoundTrayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000016 /* SoundTrayView.swift */; };
+		B40000000000000000000007 /* SoundElementCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40000000000000000000017 /* SoundElementCard.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1A1A1A31A1A1A1A1A1A11A13 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1A1A1A41A1A1A1A1A1A11A14 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1A1A1A51A1A1A1A1A1A11A15;
+			remoteInfo = SleepSceneDemo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A1A1A1A61A1A1A1A1A1A11A10 /* SleepSceneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepSceneDemoApp.swift; sourceTree = "<group>"; };
+		A1A1A1A61A1A1A1A1A1A11A11 /* SceneComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneComposerTests.swift; sourceTree = "<group>"; };
+		A1A1A1A61A1A1A1A1A1A11A16 /* SleepSceneDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SleepSceneDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1A1A1A61A1A1A1A1A1A11A17 /* SleepSceneDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SleepSceneDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1A1B001A1A1A1A1A1A11A11 /* SoundCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundCategory.swift; sourceTree = "<group>"; };
+		A1A1B001A1A1A1A1A1A11A12 /* SoundElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundElement.swift; sourceTree = "<group>"; };
+		A1A1B001A1A1A1A1A1A11A13 /* SceneSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSlot.swift; sourceTree = "<group>"; };
+		A1A1B001A1A1A1A1A1A11A14 /* SceneState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneState.swift; sourceTree = "<group>"; };
+		A1A1B001A1A1A1A1A1A11A15 /* SceneComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneComposer.swift; sourceTree = "<group>"; };
+		B40000000000000000000011 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B40000000000000000000012 /* SceneHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneHeaderView.swift; sourceTree = "<group>"; };
+		B40000000000000000000013 /* SceneStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneStageView.swift; sourceTree = "<group>"; };
+		B40000000000000000000014 /* SceneSlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSlotView.swift; sourceTree = "<group>"; };
+		B40000000000000000000015 /* EmptySlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySlotView.swift; sourceTree = "<group>"; };
+		B40000000000000000000016 /* SoundTrayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundTrayView.swift; sourceTree = "<group>"; };
+		B40000000000000000000017 /* SoundElementCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundElementCard.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1A1A1A71A1A1A1A1A1A11A18 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1A1A1A71A1A1A1A1A1A11A19 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1A1A1A81A1A1A1A1A1A11A20 = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A81A1A1A1A1A1A11A21 /* SleepSceneDemo */,
+				A1A1A1A81A1A1A1A1A1A11A22 /* SleepSceneDemoTests */,
+				A1A1A1A81A1A1A1A1A1A11A23 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1A1A1A81A1A1A1A1A1A11A21 /* SleepSceneDemo */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A61A1A1A1A1A1A11A10 /* SleepSceneDemoApp.swift */,
+				A1A1B001A1A1A1A1A1A11A20 /* Models */,
+				A1A1B001A1A1A1A1A1A11A30 /* Stores */,
+				B40000000000000000000020 /* Views */,
+			);
+			path = SleepSceneDemo;
+			sourceTree = "<group>";
+		};
+		A1A1A1A81A1A1A1A1A1A11A22 /* SleepSceneDemoTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A61A1A1A1A1A1A11A11 /* SceneComposerTests.swift */,
+			);
+			path = SleepSceneDemoTests;
+			sourceTree = "<group>";
+		};
+		A1A1A1A81A1A1A1A1A1A11A23 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1A1A61A1A1A1A1A1A11A16 /* SleepSceneDemo.app */,
+				A1A1A1A61A1A1A1A1A1A11A17 /* SleepSceneDemoTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1A1B001A1A1A1A1A1A11A20 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1B001A1A1A1A1A1A11A11 /* SoundCategory.swift */,
+				A1A1B001A1A1A1A1A1A11A12 /* SoundElement.swift */,
+				A1A1B001A1A1A1A1A1A11A13 /* SceneSlot.swift */,
+				A1A1B001A1A1A1A1A1A11A14 /* SceneState.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A1A1B001A1A1A1A1A1A11A30 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				A1A1B001A1A1A1A1A1A11A15 /* SceneComposer.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000020 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B40000000000000000000011 /* ContentView.swift */,
+				B40000000000000000000012 /* SceneHeaderView.swift */,
+				B40000000000000000000013 /* SceneStageView.swift */,
+				B40000000000000000000014 /* SceneSlotView.swift */,
+				B40000000000000000000015 /* EmptySlotView.swift */,
+				B40000000000000000000016 /* SoundTrayView.swift */,
+				B40000000000000000000017 /* SoundElementCard.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1A1A1A51A1A1A1A1A1A11A15 /* SleepSceneDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1A1A1AC1A1A1A1A1A1A11A25 /* Build configuration list for PBXNativeTarget "SleepSceneDemo" */;
+			buildPhases = (
+				A1A1A1A61A1A1A1A1A1A11A26 /* Sources */,
+				A1A1A1A71A1A1A1A1A1A11A18 /* Frameworks */,
+				A1A1A1A81A1A1A1A1A1A11A27 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SleepSceneDemo;
+			productName = SleepSceneDemo;
+			productReference = A1A1A1A61A1A1A1A1A1A11A16 /* SleepSceneDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1A1A1A51A1A1A1A1A1A11A24 /* SleepSceneDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1A1A1AC1A1A1A1A1A1A11A28 /* Build configuration list for PBXNativeTarget "SleepSceneDemoTests" */;
+			buildPhases = (
+				A1A1A1A61A1A1A1A1A1A11A29 /* Sources */,
+				A1A1A1A71A1A1A1A1A1A11A19 /* Frameworks */,
+				A1A1A1A81A1A1A1A1A1A11A2A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1A1A1A31A1A1A1A1A1A11A2B /* PBXTargetDependency */,
+			);
+			name = SleepSceneDemoTests;
+			productName = SleepSceneDemoTests;
+			productReference = A1A1A1A61A1A1A1A1A1A11A17 /* SleepSceneDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1A1A1A41A1A1A1A1A1A11A14 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A1A1A1A51A1A1A1A1A1A11A15 = {
+						LastSwiftMigration = 1600;
+					};
+					A1A1A1A51A1A1A1A1A1A11A24 = {
+						LastSwiftMigration = 1600;
+					};
+				};
+			};
+			buildConfigurationList = A1A1A1A91A1A1A1A1A1A11A14 /* Build configuration list for PBXProject "SleepSceneDemo" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1A1A1A81A1A1A1A1A1A11A20;
+			packageReferences = (
+			);
+			productRefGroup = A1A1A1A81A1A1A1A1A1A11A23 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1A1A1A51A1A1A1A1A1A11A15 /* SleepSceneDemo */,
+				A1A1A1A51A1A1A1A1A1A11A24 /* SleepSceneDemoTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1A1A1A81A1A1A1A1A1A11A27 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1A1A1A81A1A1A1A1A1A11A2A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1A1A1A61A1A1A1A1A1A11A26 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1A1A1A11A1A1A1A1A1A11A11 /* SleepSceneDemoApp.swift in Sources */,
+				A1A1B001A1A1A1A1A1A11A01 /* SoundCategory.swift in Sources */,
+				A1A1B001A1A1A1A1A1A11A02 /* SoundElement.swift in Sources */,
+				A1A1B001A1A1A1A1A1A11A03 /* SceneSlot.swift in Sources */,
+				A1A1B001A1A1A1A1A1A11A04 /* SceneState.swift in Sources */,
+				A1A1B001A1A1A1A1A1A11A05 /* SceneComposer.swift in Sources */,
+				B40000000000000000000001 /* ContentView.swift in Sources */,
+				B40000000000000000000002 /* SceneHeaderView.swift in Sources */,
+				B40000000000000000000003 /* SceneStageView.swift in Sources */,
+				B40000000000000000000004 /* SceneSlotView.swift in Sources */,
+				B40000000000000000000005 /* EmptySlotView.swift in Sources */,
+				B40000000000000000000006 /* SoundTrayView.swift in Sources */,
+				B40000000000000000000007 /* SoundElementCard.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1A1A1A61A1A1A1A1A1A11A29 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1A1A1A21A1A1A1A1A1A11A12 /* SceneComposerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1A1A1A31A1A1A1A1A1A11A2B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1A1A1A51A1A1A1A1A1A11A15 /* SleepSceneDemo */;
+			targetProxy = A1A1A1A31A1A1A1A1A1A11A13 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1A1A1AB1A1A1A1A1A1A11A2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DF548S4JJY;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = SleepSceneDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1A1A1AB1A1A1A1A1A1A11A2D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DF548S4JJY;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = SleepSceneDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1A1A1AB1A1A1A1A1A1A11A2E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 959Q925YTR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"$(SDKROOT)/usr/lib/swift",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.SleepSceneDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SleepSceneDemo.app/$(EXECUTABLE_PATH)";
+			};
+			name = Debug;
+		};
+		A1A1A1AB1A1A1A1A1A1A11A2F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 959Q925YTR;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"$(SDKROOT)/usr/lib/swift",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.SleepSceneDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SleepSceneDemo.app/$(EXECUTABLE_PATH)";
+			};
+			name = Release;
+		};
+		A1A1A1AB1A1A1A1A1A1A11A30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				INDEX_ENABLE_DATA_STORE = NO;
+			};
+			name = Debug;
+		};
+		A1A1A1AB1A1A1A1A1A1A11A31 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				INDEX_ENABLE_DATA_STORE = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1A1A1A91A1A1A1A1A1A11A14 /* Build configuration list for PBXProject "SleepSceneDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1A1A1AB1A1A1A1A1A1A11A30 /* Debug */,
+				A1A1A1AB1A1A1A1A1A1A11A31 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1A1A1AC1A1A1A1A1A1A11A25 /* Build configuration list for PBXNativeTarget "SleepSceneDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1A1A1AB1A1A1A1A1A1A11A2C /* Debug */,
+				A1A1A1AB1A1A1A1A1A1A11A2D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1A1A1AC1A1A1A1A1A1A11A28 /* Build configuration list for PBXNativeTarget "SleepSceneDemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1A1A1AB1A1A1A1A1A1A11A2E /* Debug */,
+				A1A1A1AB1A1A1A1A1A1A11A2F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1A1A1A41A1A1A1A1A1A11A14 /* Project object */;
+}
