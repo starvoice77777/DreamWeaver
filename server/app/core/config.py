@@ -33,6 +33,12 @@ class Settings(BaseSettings):
 
     voice_provider: str = "stub"
 
+    deepseek_api_key: str | None = None
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-v4-pro"
+    deepseek_timeout_seconds: float = 90.0
+    deepseek_max_retries: int = 1
+
     # Sign in with Apple — audience is the iOS Bundle ID (or Services ID for web).
     apple_client_id: str = "zhimeng.DreamWeaver"
     apple_issuer: str = "https://appleid.apple.com"
