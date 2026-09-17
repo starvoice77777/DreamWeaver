@@ -17,7 +17,7 @@ struct SpatialEditorView: View {
     private let onRecordSoundRequested: (() -> Void)?
     private let onUploadSoundRequested: (() -> Void)?
     private let onManageSoundsRequested: (() -> Void)?
-    private let onFinished: (() -> Void)?
+    private let onFinished: ((DreamScene) -> Void)?
 
     init(
         seed: SpatialEditorSeed? = nil,
@@ -27,7 +27,7 @@ struct SpatialEditorView: View {
         onRecordSoundRequested: (() -> Void)? = nil,
         onUploadSoundRequested: (() -> Void)? = nil,
         onManageSoundsRequested: (() -> Void)? = nil,
-        onFinished: (() -> Void)? = nil
+        onFinished: ((DreamScene) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
         self.isCreateTabRoot = isCreateTabRoot
@@ -376,7 +376,7 @@ struct SpatialEditorView: View {
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 650_000_000)
                 if let onFinished {
-                    onFinished()
+                    onFinished(scene)
                 } else {
                     dismiss()
                 }

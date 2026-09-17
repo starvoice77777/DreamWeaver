@@ -70,7 +70,9 @@ struct CreateHubView: View {
                     onRecordSoundRequested: { beginRecordUpload() },
                     onUploadSoundRequested: { beginFileUpload() },
                     onManageSoundsRequested: { showSoundLibrary = true },
-                    onFinished: { openEditor(with: .blank) }
+                    onFinished: { scene in
+                        appState.enterDream(sceneId: scene.id)
+                    }
                 )
                 .id(editorPresentationID)
                 .environmentObject(appState)
