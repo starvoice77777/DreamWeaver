@@ -25,7 +25,7 @@ struct RootTabView: View {
                     NowView()
                 case .create:
                     CreateHubView()
-                        // Every tab entry starts with a fresh blank workspace.
+                        // Every tab entry starts with a fresh creation entry point.
                         .id(createHubEntryID)
                 case .profile:
                     ProfileView()
