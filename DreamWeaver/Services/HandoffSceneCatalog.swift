@@ -16,15 +16,25 @@ enum HandoffSceneCatalog {
 
     private static let presets: [Preset] = {
         #if DEBUG
+        return [
+            ("handoff_fireplace_v4", DemoIDs.fireplaceScene),
+            ("handoff_mist_v4", DemoIDs.mistTideScene)
+        ].compactMap { name, sceneID in load(name, sceneID: sceneID) }
+        #else
+        return []
+        #endif
+    }()
+
+    private static func load(_ name: String, sceneID: UUID) -> Preset? {
         do {
-            guard let url = Bundle.main.url(forResource: "handoff_fireplace_v4", withExtension: "json", subdirectory: "Mock")
-                ?? Bundle.main.url(forResource: "handoff_fireplace_v4", withExtension: "json") else {
-                assertionFailure("Missing fireplace review preset")
-                return []
+            guard let url = Bundle.main.url(forResource: name, withExtension: "json", subdirectory: "Mock")
+                ?? Bundle.main.url(forResource: name, withExtension: "json") else {
+                assertionFailure("Missing review preset: \(name)")
+                return nil
             }
             let preset = try JSONDecoder().decode(Preset.self, from: Data(contentsOf: url))
             guard !preset.releaseReady, preset.usage == "debug_review_only",
-                  preset.sceneID == DemoIDs.fireplaceScene,
+                  preset.sceneID == sceneID,
                   preset.timeline.scene_id == preset.sceneID,
                   !preset.sources.isEmpty,
                   Set(preset.sources.map(\.id)).count == preset.sources.count,
@@ -32,16 +42,15 @@ enum HandoffSceneCatalog {
                       guard let key = source.resourceName else { return false }
                       return LocalPlaybackService.url(forResource: key) != nil
                   }) else {
-                assertionFailure("Invalid fireplace review preset")
-                return []
+                assertionFailure("Invalid review preset: \(name)")
+                return nil
             }
-            return [preset]
+            return preset
         } catch {
-            assertionFailure("Cannot decode fireplace review preset: \(error)")
+            assertionFailure("Cannot decode review preset \(name): \(error)")
         }
-        #endif
-        return []
-    }()
+        return nil
+    }
 
     static func replacing(_ scenes: [DreamScene]) -> [DreamScene] {
         scenes.map { original in

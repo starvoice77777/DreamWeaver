@@ -142,6 +142,54 @@ struct BundledTimelineContractTests {
         #endif
     }
 
+    @Test("Mist review preserves moving water, long fades and all seven one-shots")
+    func mistReviewContract() throws {
+        let scene = try #require(MockDataService.makeScenes().first { $0.id == DemoIDs.mistTideScene })
+        #if DEBUG
+        #expect(scene.name == "雾海缓潮" && scene.soundSources.count == 6)
+        #expect(scene.soundSources.allSatisfy { $0.initialEnvelope == 1 && $0.assetId == nil })
+        #expect(scene.soundSources.map(\.layer) == [
+            .environment, .environment, .ambience, .ambience, .trigger, .trigger
+        ])
+        let timeline = LocalTimelineFixture.timeline(for: scene.id)
+        #expect(timeline.version == 4 && timeline.duration_hint_seconds == 600)
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        #expect(plan.sourceGroups.count == 6 && plan.clips.count == 11)
+        for (key, start, end, crossfade) in [
+            ("handoff_ocean_bed_soft", 0.0, 600.0, 1200),
+            ("handoff_sea_wind_soft", 0.0, 600.0, 500),
+            ("handoff_shore_water_soft", 0.0, 330.0, 750),
+            ("handoff_boat_water_lap", 300.0, 600.0, 750)
+        ] {
+            let clip = try #require(plan.clips.first { $0.resourceKey == key })
+            #expect(clip.startSeconds == start && clip.endSeconds == end)
+            #expect(clip.playbackMode == .boundedLoop && clip.crossfadeMilliseconds == crossfade)
+            #expect(LocalPlaybackService.url(forResource: key) != nil)
+        }
+        let shots = plan.clips.filter { $0.playbackMode == .oneshot }.sorted { $0.startSeconds < $1.startSeconds }
+        #expect(shots.map(\.startSeconds) == [105, 220, 335, 405, 465, 475, 535])
+        #expect(shots.allSatisfy { abs($0.duration - 5) < 0.05 })
+        for (key, gain) in [("handoff_shore_water_soft", 0.14), ("handoff_boat_water_lap", 0.15)] {
+            let source = try #require(scene.soundSources.first { $0.resourceName == key })
+            let curve = try #require(plan.automationCurves.first { $0.target == .sourceGroup(source.id) })
+            #expect(approximatelyEqual(SpatialTrajectoryEvaluator.automationValue(at: 315, keyframes: curve.keyframes), gain))
+        }
+        let shore = try #require(scene.soundSources.first { $0.resourceName == "handoff_shore_water_soft" })
+        let group = try #require(plan.sourceGroups.first { $0.id == shore.id })
+        for (time, angle, radius) in [(0.0, -1.05, 0.92), (90.0, -0.65, 0.92),
+                                     (180.0, -0.1, 0.93), (270.0, 0.5, 0.95), (330.0, 0.95, 0.98)] {
+            let position = SpatialTrajectoryEvaluator.position(
+                at: time, keyframes: group.positionKeyframes, defaultPosition: group.defaultPosition
+            )
+            #expect(approximatelyEqual(position.angle, angle))
+            #expect(approximatelyEqual(position.radius, radius))
+        }
+        #else
+        #expect(HandoffSceneCatalog.timeline(for: scene.id) == nil)
+        #expect(!scene.soundSources.contains { $0.resourceName?.hasPrefix("handoff_") == true })
+        #endif
+    }
+
     @Test("Unknown scenes receive an empty identity-preserving timeline")
     func unknownSceneContract() {
         let unknown = UUID(uuidString: "90000000-0000-4000-8000-000000000001")!
