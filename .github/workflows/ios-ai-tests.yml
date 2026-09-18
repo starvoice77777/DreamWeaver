@@ -39,13 +39,15 @@ jobs:
           print(matches[0])')
           echo "id=$device_id" >> "$GITHUB_OUTPUT"
 
-      - name: Test RemoteAISceneService
+      - name: Test AI service and material editor contracts
         run: |
           xcodebuild test \
             -project DreamWeaver.xcodeproj \
             -scheme DreamWeaver \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}" \
             -only-testing:DreamWeaverTests/RemoteAISceneServiceTests \
+            -only-testing:DreamWeaverTests/HandoffAudioCatalogTests \
+            -only-testing:DreamWeaverTests/SceneCompositionMapperTests \
             -parallel-testing-enabled NO \
             -resultBundlePath TestResults/RemoteAISceneService.xcresult \
             CODE_SIGNING_ALLOWED=NO

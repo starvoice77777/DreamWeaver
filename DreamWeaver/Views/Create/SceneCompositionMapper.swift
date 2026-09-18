@@ -447,6 +447,9 @@ enum SceneCompositionMapper {
 
     private static func layer(for source: SpatialEditorSource) -> String {
         if source.isVoice { return "voice" }
+        if let entry = HandoffAudioCatalog.entry(for: source.materialID) {
+            return entry.layer.rawValue
+        }
         switch source.theme {
         case .narration:
             return "voice"
@@ -469,6 +472,9 @@ enum SceneCompositionMapper {
     private static func material(forResourceKey key: String?) -> SpatialEditorMaterial? {
         guard let key else { return nil }
         let catalog = SpatialEditorMaterial.catalog
+        if let exact = catalog.first(where: { $0.resourceName == key }) {
+            return exact
+        }
         switch key {
         case "rain_soft", "rain_parasol":
             return catalog.first { $0.id == "rain" }
