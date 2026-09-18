@@ -54,6 +54,8 @@ Debug 构建的手动空间编辑器素材列表追加全部 57 项。通过索�
 源包 v11 转换为应用内部修订号 12（旧雨景已使用修订号 11）。
 `scripts/import_rain_handoff.py <sc_rain_v1包路径>` 校验四条母带与 Bundle 哈希一致，
 保留源 cue 顺序及所有位置关键帧，映射稳定声源 ID，并生成两份一致的本地/后端 fixture。
+导入器固定校验已审查的源时间线 SHA-256 `b11c88c…8749e`，因此修改 timeline 或只更新
+包内旧 `package_manifest.csv` 都不能覆盖正式 fixture；时间线变更必须先更新代码中的可信哈希并重新审查。
 两次阵风的结束时间按真实时长补上 pause/disable；原始音频不重新编码。
 fixture 中 `_handoff` 保存源文件哈希、音频哈希及 `release_ready=false`，API 的字段形状不变。
 后端旧库升级与新版数据、重复读取、客户端编译出的混音增益均有对应测试。

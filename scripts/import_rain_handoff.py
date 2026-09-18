@@ -9,6 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENE = uuid.UUID("a1111111-1111-4111-8111-111111111102")
+EXPECTED_TIMELINE_SHA256 = (
+    "b11c88c62670154312a69ca63f67bbd825c58a77906798102d9da8788d88749e"
+)
 TRACKS = {
     "rain_soft": "e5555555-5555-4555-8555-555555555510",
     "rain_parasol": "e5555555-5555-4555-8555-555555555501",
@@ -19,7 +22,14 @@ TRACKS = {
 
 def convert(package):
     path = package / "scene/timeline.json"
-    source = json.loads(path.read_text(encoding="utf-8-sig"))
+    timeline_bytes = path.read_bytes()
+    timeline_digest = hashlib.sha256(timeline_bytes).hexdigest()
+    if timeline_digest != EXPECTED_TIMELINE_SHA256:
+        raise ValueError(
+            "Unexpected scene/timeline.json SHA-256: "
+            f"expected={EXPECTED_TIMELINE_SHA256}, received={timeline_digest}"
+        )
+    source = json.loads(timeline_bytes.decode("utf-8-sig"))
     if source.get("scene_id") != "sc_rain" or source.get("version") != 11:
         raise ValueError("Expected sc_rain timeline version 11")
     tracks = source.get("tracks")
@@ -83,7 +93,7 @@ def convert(package):
             "package": "sc_rain_v1",
             "source_version": 11,
             "release_ready": False,
-            "timeline_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "timeline_sha256": timeline_digest,
             "audio_sha256": hashes,
         },
         "cues": [
