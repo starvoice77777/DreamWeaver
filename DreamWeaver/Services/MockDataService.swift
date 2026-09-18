@@ -13,7 +13,7 @@ enum MockDataService {
     static let frequentSceneLimit = 6
 
     static func makeScenes() -> [DreamScene] {
-        markTopFrequentScenes([
+        markTopFrequentScenes(HandoffSceneCatalog.replacing([
             hairCareScene(),
             rainEavesScene(),
             scene(
@@ -260,7 +260,7 @@ enum MockDataService {
                     source("风声", "wind", angle: .pi * 1.35, radius: 0.75, initialEnvelope: 0.18, enabled: false)
                 ]
             )
-        ])
+        ]))
     }
 
     private static func hairCareScene() -> DreamScene {
