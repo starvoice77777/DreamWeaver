@@ -7,6 +7,7 @@
 - Base path：`/v1/ai/scene-assist`
 - 鉴权：所有接口都需要 `Authorization: Bearer <access_token>`。
 - `Content-Type: application/json`。
+- iOS `RemoteAISceneService` 的生成和调整请求默认等待 300 秒（5 分钟）。前端需同步代码并重新构建 App 才会生效；此设置不改变后端 `DW_DEEPSEEK_TIMEOUT_SECONDS` 的单次调用超时，也不保证每次生成都能在 5 分钟内完成。
 - 所有示例中的 `source_id` 仅为示例 UUID；客户端必须传入当前选中的声音目录项。
 - `selected_sources` 是模型可用的白名单。服务端会拒绝模型返回未选中的 `source_id`、`resource_key` 或不一致的绑定。
 - 输出中的 `composition` 是 `scene_composition_v2`，可直接作为个人场景草稿的 `draft_composition` 值。
