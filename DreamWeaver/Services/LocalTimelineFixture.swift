@@ -3,6 +3,7 @@ import Foundation
 /// Local / remote-aligned timeline fixtures (Stage 6).
 enum LocalTimelineFixture {
     static func timeline(for sceneId: UUID) -> APIContentDTO.SceneTimeline {
+        if let review = HandoffSceneCatalog.timeline(for: sceneId) { return review }
         if sceneId == DemoIDs.hairCareScene, let scripted = loadHairCareV11() {
             return scripted
         }

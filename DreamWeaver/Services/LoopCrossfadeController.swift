@@ -28,6 +28,8 @@ nonisolated enum LoopCrossfadeController {
     /// fields, so the compiler restores them by stable resource key.
     static func preferredMilliseconds(for resourceKey: String?) -> Int {
         switch resourceKey {
+        case "handoff_room_quiet": return 500
+        case "handoff_fire_soft_01": return 1000
         case "rain_soft": return 1000
         case "rain_parasol", "hair_wash_water_cycle", "hair_wash_foam_rub",
              "hair_wash_scalp_foam", "hair_wash_finger_massage": return 1200

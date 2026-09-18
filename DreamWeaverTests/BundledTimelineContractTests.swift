@@ -103,6 +103,45 @@ struct BundledTimelineContractTests {
         }
     }
 
+    @Test("Fireplace review replaces only the local preset and compiles its authored intervals")
+    func fireplaceReviewContract() throws {
+        let scene = try #require(MockDataService.makeScenes().first { $0.id == DemoIDs.fireplaceScene })
+        #if DEBUG
+        #expect(scene.name == "炉边静夜")
+        #expect(scene.soundSources.count == 5 && scene.isDemoPlayable)
+        #expect(scene.soundSources.allSatisfy { $0.initialEnvelope == 1 && $0.assetId == nil })
+        let timeline = LocalTimelineFixture.timeline(for: scene.id)
+        #expect(timeline.version == 4 && timeline.duration_hint_seconds == 620)
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        #expect(plan.clips.count == 7)
+        #expect(plan.sourceGroups.count == 5)
+        for (key, start, end, crossfade) in [
+            ("handoff_room_quiet", 0.0, 620.0, 500),
+            ("handoff_fire_soft_01", 10.0, 620.0, 1000)
+        ] {
+            let clip = try #require(plan.clips.first { $0.resourceKey == key })
+            #expect(clip.startSeconds == start && clip.endSeconds == end)
+            #expect(clip.playbackMode == .boundedLoop && clip.crossfadeMilliseconds == crossfade)
+        }
+        let triggers = plan.clips.filter { $0.playbackMode == .oneshot }.sorted { $0.startSeconds < $1.startSeconds }
+        #expect(triggers.map(\.startSeconds) == [75, 168, 278, 389, 505])
+        for (clip, end) in zip(triggers, [80.0, 172.696, 282.597, 394.0, 509.696]) {
+            #expect(abs(clip.endSeconds - end) < 0.05)
+            #expect(clip.crossfadeMilliseconds == 0)
+            let key = try #require(clip.resourceKey)
+            #expect(LocalPlaybackService.url(forResource: key) != nil)
+        }
+        let fire = try #require(scene.soundSources.first { $0.resourceName == "handoff_fire_soft_01" })
+        let curve = try #require(plan.automationCurves.first { $0.target == .sourceGroup(fire.id) })
+        for (time, gain) in [(10.0, 0.0), (25.0, 0.34), (590.0, 0.3), (620.0, 0.0)] {
+            #expect(approximatelyEqual(SpatialTrajectoryEvaluator.automationValue(at: time, keyframes: curve.keyframes), gain))
+        }
+        #else
+        #expect(HandoffSceneCatalog.timeline(for: scene.id) == nil)
+        #expect(!scene.soundSources.contains { $0.resourceName?.hasPrefix("handoff_") == true })
+        #endif
+    }
+
     @Test("Unknown scenes receive an empty identity-preserving timeline")
     func unknownSceneContract() {
         let unknown = UUID(uuidString: "90000000-0000-4000-8000-000000000001")!
