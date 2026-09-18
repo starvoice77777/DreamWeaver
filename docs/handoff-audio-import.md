@@ -78,3 +78,16 @@ Debug 的 `LocalContentService` 用交接包 `sc_fire_v01_review` v4 替换旧�
 未修改 API、数据库或远端 catalog；远端模式尚未替换炉火，后端同步另作切片。
 Swift 回归测试已加入现有 `BundledTimelineContractTests` CI 选择范围，需 Mac/Xcode 执行。
 仍需外放/耳机试听及至少两分钟循环接缝验收；QC、授权和 release blockers 未被本次接线解除。
+
+## 切片 5：炉火远端联调
+
+后端使用随 `server/app/fixtures` 打包的同一份炉火 fixture，不依赖原交接目录或 iOS 工程路径。
+在 `development`、`local` 或 `test` 环境，设置 `DW_ENABLE_HANDOFF_REVIEW_PRESETS=true` 并重启 API 后，
+场景列表、详情与时间线会返回新版炉火；默认值为 false。生产和其他环境即使设置 true 也不会启用。
+联调客户端须使用包含 handoff 音频的新版 Debug 构建，Release 不包含这些音频。
+
+旧数据库首次读取时，在同一事务中替换炉火轨道与时间线；无需清库或 Alembic 迁移。
+关闭开关并重启后，下一次场景读取会恢复旧炉火目录和空时间线，移除官方场景中的 review 轨道。
+这里只更新固定 ID 的官方炉火场景，用户自己的混音/场景副本不受此迁移影响。
+API 字段未改；`initial_envelope`、`resource_key`、`loop` 与 Bundle fixture 对齐，循环交叉淡化由新版客户端恢复。
+开关切换时应重启客户端以清除当前会话已缓存的时间线；本机 `.env` 未由本切片修改。
