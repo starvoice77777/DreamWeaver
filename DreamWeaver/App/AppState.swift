@@ -1179,19 +1179,9 @@ final class AppState: ObservableObject {
             }
 
             // Preserve the user's position/enabled state, but always rebind an
-            // official track to the current catalog metadata and mastered file.
+            // official track to the current catalog metadata, baseline, and mastered file.
             // This repairs mixes persisted before a preset package upgrade.
-            let canonicalByID = Dictionary(
-                uniqueKeysWithValues: official.map { ($0.id, $0) }
-            )
-            for index in scoped.indices {
-                guard let canonical = canonicalByID[scoped[index].id] else { continue }
-                scoped[index].name = canonical.name
-                scoped[index].symbolName = canonical.symbolName
-                scoped[index].assetId = canonical.assetId
-                scoped[index].resourceName = canonical.resourceName
-                scoped[index].layer = canonical.layer
-            }
+            scoped = Self.sourcesByRebindingOfficialMetadata(scoped, to: official)
             if scoped != personal {
                 personal = scoped
                 personalMixByScene[scene.id] = scoped
@@ -1219,6 +1209,26 @@ final class AppState: ObservableObject {
             personalMixByScene[scene.id] = merged
             persistPersonalMix()
         }
+    }
+
+    static func sourcesByRebindingOfficialMetadata(
+        _ sources: [SoundSource],
+        to official: [SoundSource]
+    ) -> [SoundSource] {
+        let canonicalByID = Dictionary(
+            uniqueKeysWithValues: official.map { ($0.id, $0) }
+        )
+        var rebound = sources
+        for index in rebound.indices {
+            guard let canonical = canonicalByID[rebound[index].id] else { continue }
+            rebound[index].name = canonical.name
+            rebound[index].symbolName = canonical.symbolName
+            rebound[index].initialEnvelope = canonical.initialEnvelope
+            rebound[index].assetId = canonical.assetId
+            rebound[index].resourceName = canonical.resourceName
+            rebound[index].layer = canonical.layer
+        }
+        return rebound
     }
 
     /// Map preset / restore sources onto catalog track IDs by `resourceName` (timeline-safe).

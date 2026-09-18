@@ -70,6 +70,39 @@ struct BundledTimelineContractTests {
         }
     }
 
+    @Test("Rain v1.2 upgrades persisted personal-mix baselines")
+    func rainPersistedMixUpgrade() throws {
+        let scene = try #require(MockDataService.makeScenes().first { $0.id == DemoIDs.rainEavesScene })
+        var persisted = scene.soundSources
+        let legacyBaselines: [UUID: Double] = [
+            DemoIDs.sourceRainSoftFar: 0.22,
+            DemoIDs.sourceRain: 0,
+            DemoIDs.sourceRainBambooLeaf: 0,
+            DemoIDs.sourceWind: 0,
+        ]
+        for index in persisted.indices {
+            persisted[index].initialEnvelope = legacyBaselines[persisted[index].id] ?? 0
+            persisted[index].isEnabled = index.isMultiple(of: 2)
+            persisted[index].position = SpatialPosition(
+                angle: Double(index) * 0.2,
+                radius: 0.3 + Double(index) * 0.1
+            )
+        }
+
+        let upgraded = AppState.sourcesByRebindingOfficialMetadata(
+            persisted,
+            to: scene.soundSources
+        )
+
+        #expect(upgraded.count == persisted.count)
+        for source in upgraded {
+            let before = try #require(persisted.first { $0.id == source.id })
+            #expect(source.initialEnvelope == 1)
+            #expect(source.isEnabled == before.isEnabled)
+            #expect(source.position == before.position)
+        }
+    }
+
     @Test("Unknown scenes receive an empty identity-preserving timeline")
     func unknownSceneContract() {
         let unknown = UUID(uuidString: "90000000-0000-4000-8000-000000000001")!
