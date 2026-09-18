@@ -95,7 +95,12 @@ class DeepSeekClient:
                 or not isinstance(usage, dict)
             ):
                 raise TypeError
-            parsed_usage = {str(key): int(value) for key, value in usage.items()}
+            # Token breakdowns may be objects or null; usage exposes only flat counters.
+            parsed_usage = {
+                str(key): int(value)
+                for key, value in usage.items()
+                if key not in {"prompt_tokens_details", "completion_tokens_details"}
+            }
             return DeepSeekCompletion(content=content, model=model, usage=parsed_usage)
         except (IndexError, KeyError, TypeError, ValueError) as exc:
             raise DeepSeekProviderError("DeepSeek returned a malformed response") from exc

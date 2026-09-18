@@ -221,6 +221,7 @@ def _composition_from_arrangement(
             )
     else:
         group_sources: dict[str, Any] = {}
+        group_id_map: dict[str, str] = {}
         clip_sources = {
             str(clip.get("source_group_id")): _source(clip, by_id, by_key)
             for clip in (clips or [])
@@ -232,6 +233,9 @@ def _composition_from_arrangement(
             if not isinstance(group, dict):
                 raise CompositionValidationError("source group must be an object")
             group.setdefault("id", _stable(f"group:{index}"))
+            original_id = str(group["id"])
+            if original_id in group_id_map:
+                raise CompositionValidationError("source group ids must be unique")
             source = (
                 _source(group, by_id, by_key)
                 if any(
@@ -248,6 +252,9 @@ def _composition_from_arrangement(
                 if _is_uuid(group["id"])
                 else _stable(f"group:{source.source_id}:{index}")
             )
+            if group["id"] in group_sources:
+                raise CompositionValidationError("source group ids must be unique")
+            group_id_map[original_id] = group["id"]
             group.setdefault("name", source.name)
             group.setdefault("layer", source.layer)
             group.setdefault("display_policy", "while_active")
@@ -256,6 +263,20 @@ def _composition_from_arrangement(
                 [{"t": 0, "angle": source.angle, "radius": source.radius}],
             )
             group_sources[str(group["id"])] = source
+        for index, clip in enumerate(clips or []):
+            if not isinstance(clip, dict):
+                raise CompositionValidationError("clip must be an object")
+            original_group_id = str(clip.get("source_group_id"))
+            if original_group_id not in group_id_map:
+                raise CompositionValidationError(
+                    "clip source_group_id does not reference a source group"
+                )
+            clip["source_group_id"] = group_id_map[original_group_id]
+            clip["id"] = (
+                str(uuid.UUID(str(clip["id"])))
+                if _is_uuid(clip.get("id"))
+                else _stable(f"clip:{clip['source_group_id']}:{index}:{clip.get('id')}")
+            )
         _normalize_clip_sources(clips or [], group_sources, by_id, by_key)
     composition["duration_seconds"] = float(composition.get("duration_seconds", duration))
     composition["source_groups"] = groups

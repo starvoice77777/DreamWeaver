@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from app.core.config import Settings
-from app.services.deepseek import DeepSeekClient
+from app.services.deepseek import DeepSeekClient, DeepSeekProviderError
 
 
 def test_deepseek_settings_have_safe_defaults(monkeypatch):
@@ -17,7 +17,27 @@ def test_deepseek_settings_have_safe_defaults(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_client_posts_json_mode_and_returns_content():
+@pytest.mark.parametrize(
+    "details",
+    [
+        {},
+        {
+            "prompt_tokens_details": {"cached_tokens": 1},
+            "completion_tokens_details": {"reasoning_tokens": 1},
+        },
+        {"prompt_tokens_details": None, "completion_tokens_details": None},
+    ],
+    ids=["flat-usage", "nested-usage-details", "null-usage-details"],
+)
+async def test_client_posts_json_mode_and_returns_content(details):
+    counters = {
+        "prompt_tokens": 3,
+        "completion_tokens": 2,
+        "total_tokens": 5,
+        "prompt_cache_hit_tokens": 1,
+        "prompt_cache_miss_tokens": 2,
+    }
+
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/chat/completions"
         assert request.headers["authorization"] == "Bearer test-key"
@@ -29,7 +49,7 @@ async def test_client_posts_json_mode_and_returns_content():
             json={
                 "model": "deepseek-v4-pro",
                 "choices": [{"message": {"content": '{"ok":true}'}}],
-                "usage": {"prompt_tokens": 3, "completion_tokens": 2},
+                "usage": {**counters, **details},
             },
         )
 
@@ -38,4 +58,24 @@ async def test_client_posts_json_mode_and_returns_content():
     result = await client.complete(system_prompt="Return JSON", user_prompt="{}", max_tokens=32)
     assert result.content == '{"ok":true}'
     assert result.model == "deepseek-v4-pro"
-    assert result.usage == {"prompt_tokens": 3, "completion_tokens": 2}
+    assert result.usage == counters
+
+
+@pytest.mark.asyncio
+async def test_client_rejects_malformed_usage_counter():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "model": "deepseek-v4-pro",
+                "choices": [{"message": {"content": '{"ok":true}'}}],
+                "usage": {"prompt_tokens": {"invalid": 3}},
+            },
+        )
+
+    async with DeepSeekClient(
+        Settings(_env_file=None, deepseek_api_key="test-key"),
+        transport=httpx.MockTransport(handler),
+    ) as client:
+        with pytest.raises(DeepSeekProviderError, match="malformed response"):
+            await client.complete(system_prompt="Return JSON", user_prompt="{}", max_tokens=32)

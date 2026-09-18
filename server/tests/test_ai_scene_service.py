@@ -157,6 +157,67 @@ async def test_generate_scene_rejects_unknown_source():
 
 
 @pytest.mark.asyncio
+async def test_compile_normalizes_generated_ids_and_preserves_group_references():
+    from app.schemas.ai_scene import CompileRequest
+    from app.services.ai_scene import compile_scene
+
+    request = CompileRequest.model_validate({
+        **_request_two().model_dump(), "outline": _outline(), "arrangement": _arrangement(),
+    })
+    composition = _composition_two()
+    for index, (group, clip) in enumerate(zip(
+        composition["source_groups"], composition["clips"], strict=True,
+    )):
+        group["id"] = f"group_{index}"
+        clip["id"] = f"clip_{index}"
+        clip["source_group_id"] = group["id"]
+    payload = {"scene": {"name": "Rain and fire"}, "composition": composition}
+    client = FakeClient([payload, payload])
+    result = await compile_scene(client, request)
+    assert client.calls == 1
+    groups = result.composition["source_groups"]
+    clips = result.composition["clips"]
+    for group, clip, key in zip(groups, clips, ["rain_soft", "fire_soft"], strict=True):
+        assert str(uuid.UUID(group["id"])) == group["id"]
+        assert str(uuid.UUID(clip["id"])) == clip["id"]
+        assert clip["source_group_id"] == group["id"]
+        assert clip["resource_key"] == key
+    assert len({group["id"] for group in groups}) == 2
+    again = await compile_scene(FakeClient([payload]), request)
+    assert again.composition == result.composition
+    assert composition["source_groups"][0]["id"] == "group_0"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["unknown-group", "mismatched-source", "duplicate-group"])
+async def test_compile_id_normalization_rejects_invalid_bindings(failure):
+    from app.schemas.ai_scene import CompileRequest
+    from app.services.ai_scene import compile_scene
+
+    request = CompileRequest.model_validate({
+        **_request_two().model_dump(), "outline": _outline(), "arrangement": _arrangement(),
+    })
+    composition = _composition_two()
+    for index, (group, clip) in enumerate(zip(
+        composition["source_groups"], composition["clips"], strict=True,
+    )):
+        group["id"] = f"group_{index}"
+        group["resource_key"] = clip["resource_key"]
+        clip["id"] = f"clip_{index}"
+        clip["source_group_id"] = group["id"]
+    if failure == "unknown-group":
+        composition["clips"][0]["source_group_id"] = "unknown"
+    elif failure == "mismatched-source":
+        composition["clips"][0]["resource_key"] = "fire_soft"
+    else:
+        composition["source_groups"][1]["id"] = "group_0"
+        composition["clips"][1]["source_group_id"] = "group_0"
+    payload = {"scene": {"name": "Rain"}, "composition": composition}
+    with pytest.raises(SceneAssistGenerationError):
+        await compile_scene(FakeClient([payload, payload]), request)
+
+
+@pytest.mark.asyncio
 async def test_arrangement_rejects_mismatched_source_id_and_resource_key():
     bad = _arrangement()
     bad["tracks"][0]["source_id"] = "dddddddd-dddd-dddd-dddd-dddddddddddd"

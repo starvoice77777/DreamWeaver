@@ -7,7 +7,7 @@ struct RemoteAISceneServiceTests {
     @MainActor
     @Test("Generation waits past the ordinary session timeout")
     func generationUsesDedicatedTimeout() async throws {
-        #expect(RemoteAISceneService.requestTimeout == 180)
+        #expect(RemoteAISceneService.requestTimeout == 300)
 
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [DelayedResponseURLProtocol.self]
