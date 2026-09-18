@@ -28,6 +28,7 @@ struct AssistedMaterialCanvasView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 22) {
                     AssistedCanvasStage(
+                        framework: draft.framework,
                         selections: draft.selections,
                         onRemove: removeMaterial
                     )
@@ -123,26 +124,21 @@ private struct AssistedMaterialHeader: View {
 }
 
 private struct AssistedCanvasStage: View {
+    let framework: AssistedCreationFramework
     let selections: [AssistedSoundSelection]
     let onRemove: (String) -> Void
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Circle()
-                    .fill(DreamTheme.diskSurface.opacity(0.78))
-                    .overlay {
-                        Circle().stroke(DreamTheme.chromeStroke, lineWidth: 1)
-                    }
+                AssistedCanvasBackdrop(framework: framework)
 
-                Circle()
-                    .stroke(DreamTheme.divider, style: StrokeStyle(lineWidth: 1, dash: [4, 7]))
-                    .padding(42)
-
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(DreamTheme.moonWhite)
-                    .accessibilityLabel("聆听位置")
+                if framework != .boundaryGate {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(DreamTheme.moonWhite)
+                        .accessibilityLabel("聆听位置")
+                }
 
                 ForEach(selections) { selection in
                     AssistedSoundNode(
@@ -157,8 +153,9 @@ private struct AssistedCanvasStage: View {
                     )
                 }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         }
-        .frame(height: 250)
+        .frame(height: 280)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("声音空间草图")
     }
@@ -293,7 +290,7 @@ private struct AssistedCanvasFooter: View {
                 .foregroundStyle(DreamTheme.secondaryText)
 
             Button(action: onContinue) {
-                Text("进入精细调整")
+                Text("直接生成场景")
                     .font(.headline)
                     .foregroundStyle(selectedCount == 0 ? DreamTheme.tertiaryText : Color.black)
                     .frame(maxWidth: .infinity)
