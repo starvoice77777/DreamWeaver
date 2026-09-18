@@ -43,9 +43,16 @@ actor APIClient {
     func post<Body: Encodable, T: Decodable>(
         _ path: String,
         body: Body,
-        authorized: Bool = false
+        authorized: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> T {
-        try await request(path, method: "POST", body: body, authorized: authorized)
+        try await request(
+            path,
+            method: "POST",
+            body: body,
+            authorized: authorized,
+            timeoutInterval: timeoutInterval
+        )
     }
 
     /// POST with empty body; decodes JSON or accepts 204 No Content when `T` is unused via `postNoContent`.
@@ -113,11 +120,15 @@ actor APIClient {
         method: String,
         body: Body?,
         authorized: Bool,
+        timeoutInterval: TimeInterval? = nil,
         allowEmptyBody: Bool = false,
         isRetryAfterRefresh: Bool = false
     ) async throws -> T {
         let url = try makeURL(path)
         var request = URLRequest(url: url)
+        if let timeoutInterval {
+            request.timeoutInterval = timeoutInterval
+        }
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil {
@@ -148,6 +159,7 @@ actor APIClient {
                     method: method,
                     body: body,
                     authorized: authorized,
+                    timeoutInterval: timeoutInterval,
                     allowEmptyBody: allowEmptyBody,
                     isRetryAfterRefresh: true
                 )

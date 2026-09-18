@@ -3,10 +3,17 @@ import Foundation
 /// Authenticated access to `/v1/ai/scene-assist`.
 @MainActor
 final class RemoteAISceneService {
-    private let client: APIClient
+    static let requestTimeout: TimeInterval = 180
 
-    init(client: APIClient = .shared) {
+    private let client: APIClient
+    private let requestTimeout: TimeInterval
+
+    init(
+        client: APIClient = .shared,
+        requestTimeout: TimeInterval = RemoteAISceneService.requestTimeout
+    ) {
         self.client = client
+        self.requestTimeout = requestTimeout
     }
 
     func generate(
@@ -19,7 +26,8 @@ final class RemoteAISceneService {
                 selectedSources: selectedSources,
                 options: options
             ),
-            authorized: true
+            authorized: true,
+            timeoutInterval: requestTimeout
         )
     }
 
@@ -37,7 +45,8 @@ final class RemoteAISceneService {
                 instruction: instruction,
                 options: options
             ),
-            authorized: true
+            authorized: true,
+            timeoutInterval: requestTimeout
         )
     }
 }
