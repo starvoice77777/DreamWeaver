@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from app.schemas.content import (
     SceneCueOut,
     SceneTimelineOut,
 )
+from app.services.handoff_presets import FIREPLACE_SCENE_ID, fireplace_review
 
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
@@ -51,7 +53,10 @@ def timeline_document_dict(out: SceneTimelineOut) -> dict:
 
 
 def _load_fixture(path: Path) -> dict:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    return _timeline_payload(json.loads(path.read_text(encoding="utf-8")))
+
+
+def _timeline_payload(raw: dict[str, Any]) -> dict[str, Any]:
     out = SceneTimelineOut.model_validate(raw)
     return {
         "version": out.version,
@@ -77,6 +82,10 @@ def _empty_document() -> tuple[list[dict], list[dict]]:
 
 def build_official_timeline_payload(scene: Scene) -> dict:
     duration = scene.recommended_duration_seconds or 2700
+    if scene.id == FIREPLACE_SCENE_ID:
+        if preset := fireplace_review():
+            return _timeline_payload(preset["timeline"])
+        duration = 2700  # Clear a prior review duration when the gate is disabled.
     if scene.visual_style == "hairCare":
         # Fixture is authoritative (script length + cues); do not override
         # with stale scene duration.
@@ -130,12 +139,29 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
     for scene in scenes:
         payload = build_official_timeline_payload(scene)
         row = scene.timeline
+        fireplace_changed = False
+        if scene.id == FIREPLACE_SCENE_ID:
+            from app.services.seed_catalog import (
+                official_scene_specs,
+                refresh_official_scene_tracks,
+            )
+
+            spec = next(s for s in official_scene_specs() if s["id"] == scene.id)
+            fireplace_changed = (
+                row is None or row.version != payload["version"]
+                or {t.id for t in scene.tracks} != {t["id"] for t in spec["tracks"]}
+            )
+            if fireplace_changed:
+                refresh_official_scene_tracks(scene, spec)
+                for key in ("name", "subtitle", "description", "tags", "is_demo_playable"):
+                    setattr(scene, key, spec[key])
+                scene.recommended_duration_seconds = payload["duration_hint_seconds"]
         if scene.visual_style == "rainEaves" and (
             row is None or row.version < RAIN_EAVES_TIMELINE_VERSION
         ):
-            from app.services.seed_catalog import refresh_rain_eaves_tracks
+            from app.services.seed_catalog import refresh_official_scene_tracks
 
-            refresh_rain_eaves_tracks(scene)
+            refresh_official_scene_tracks(scene)
             scene.recommended_duration_seconds = payload["duration_hint_seconds"]
         if row is None:
             session.add(
@@ -158,7 +184,7 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
             scene.visual_style not in {"hairCare", "rainEaves"}
             and (row.version < GENERIC_TIMELINE_VERSION or bool(row.phrases))
         )
-        if needs_upgrade:
+        if needs_upgrade or fireplace_changed:
             row.version = payload["version"]
             row.automation_mode = payload["automation_mode"]
             row.duration_hint_seconds = payload["duration_hint_seconds"]

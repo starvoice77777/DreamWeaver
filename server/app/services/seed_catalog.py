@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import math
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import MixPreset, Scene, SceneTrack
+from app.services.handoff_presets import apply_fireplace_review
 
 DEFAULT_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
 RETIRED_SCENE_IDS = frozenset(
@@ -63,10 +65,10 @@ def _track(
     }
 
 
-def official_scene_specs() -> list[dict]:
+def official_scene_specs() -> list[dict[str, Any]]:
     """Official catalog aligned with iOS MockDataService / DemoIDs (15 scenes)."""
     pi = math.pi
-    specs = [
+    specs: list[dict[str, Any]] = [
         {
             "id": DEFAULT_SCENE_ID,
             "name": "洗头陪伴",
@@ -726,7 +728,7 @@ def official_scene_specs() -> list[dict]:
     for spec in specs:
         if spec["id"] != DEFAULT_SCENE_ID:
             spec["tracks"] = [track for track in spec["tracks"] if track["layer"] != "voice"]
-    return specs
+    return [apply_fireplace_review(spec) for spec in specs]
 
 
 def official_preset_specs() -> list[dict]:
@@ -861,9 +863,12 @@ def _add_scene(session: AsyncSession, spec: dict) -> None:
         session.add(_track_row(spec["id"], track_spec, index))
 
 
-def refresh_rain_eaves_tracks(scene: Scene) -> None:
+def refresh_official_scene_tracks(
+    scene: Scene, spec: dict[str, Any] | None = None
+) -> None:
     """Upgrade only this official scene's tracks with its timeline, in the same transaction."""
-    spec = next(s for s in official_scene_specs() if s["id"] == scene.id)
+    if spec is None:
+        spec = next(s for s in official_scene_specs() if s["id"] == scene.id)
     desired = {t["id"]: t for t in spec["tracks"]}
     for row in list(scene.tracks):
         if row.id not in desired:

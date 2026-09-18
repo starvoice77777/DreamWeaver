@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     # When true (and not production), lifespan upserts official catalog tracks once at startup.
     # Default true outside production so local DBs pick up seed_catalog changes after pull.
     force_reseed_catalog: bool | None = None
+    # Debug clients only; review audio is absent from Release bundles.
+    enable_handoff_review_presets: bool = False
     # When false, /ready skips Redis PING (useful for unit tests without Redis).
     ready_probe_redis: bool = True
 
@@ -69,6 +71,12 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
+    @property
+    def handoff_review_presets_enabled(self) -> bool:
+        return self.enable_handoff_review_presets and self.environment.lower() in {
+            "development", "local", "test"
+        }
 
 
 @lru_cache

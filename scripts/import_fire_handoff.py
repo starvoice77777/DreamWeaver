@@ -193,4 +193,5 @@ if __name__ == "__main__":
             rendered = json.dumps(value, ensure_ascii=False)
         parts.append(f'  "{key}": {rendered}')
     OUTPUT.write_text("{\n" + ",\n".join(parts) + "\n}\n", encoding="utf-8")
+    (ROOT / "server/app/fixtures" / OUTPUT.name).write_bytes(OUTPUT.read_bytes())
     print(f"Generated {OUTPUT.name}: {len(payload['sources'])} sources")
