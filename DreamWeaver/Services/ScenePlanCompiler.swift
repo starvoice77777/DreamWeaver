@@ -450,6 +450,9 @@ enum ScenePlanCompiler {
 
     private static func layer(for source: SpatialEditorSource) -> AudioLayerKind {
         if source.isVoice { return .voice }
+        if let entry = HandoffAudioCatalog.entry(for: source.materialID) {
+            return entry.layer
+        }
         switch source.theme {
         case .texture: return .trigger
         case .rain: return .environment

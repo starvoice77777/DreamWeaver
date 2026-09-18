@@ -67,6 +67,32 @@ struct HandoffAudioCatalogTests {
         #expect(Set(saved.compactMap(\.resourceName)).count == 2)
     }
 
+    @Test("Preview plans preserve every handoff catalog layer")
+    func previewPlanLayers() throws {
+        for expectedLayer in [AudioLayerKind.environment, .ambience, .trigger] {
+            let entry = try #require(HandoffAudioCatalog.entries.first { $0.layer == expectedLayer })
+            let position = CGPoint(x: 0, y: -0.65)
+            let source = SpatialEditorSource(
+                materialID: entry.materialID,
+                resourceName: entry.resourceKey,
+                name: entry.name,
+                iconName: "waveform",
+                theme: entry.layer == .trigger ? .texture : .nature,
+                defaultPosition: position,
+                keyPoints: [SpatialKeyPoint(time: 0, position: position)],
+                audioDuration: entry.durationSeconds,
+                isLooping: entry.isLooping,
+                crossfadeMilliseconds: entry.crossfadeMilliseconds
+            )
+            let plan = ScenePlanCompiler.compile(
+                editorSources: [source],
+                sceneID: UUID(),
+                duration: entry.durationSeconds
+            )
+            #expect(plan.sourceGroups.first?.layer == expectedLayer)
+        }
+    }
+
     @Test("Declared loops get crossfades and repeated additions share one source group")
     func loopInsertion() throws {
         let selected = try material("room_study_quiet_loop")
