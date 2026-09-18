@@ -70,6 +70,8 @@ final class AppState: ObservableObject {
     let remoteUserService: RemoteUserService?
     /// Optional remote library for upload / playback-url helpers (same instance as `libraryService` when remote).
     let remoteLibraryService: RemoteUserLibraryService?
+    /// Authenticated AI scene generation; absent in local-demo mode.
+    let remoteAISceneService: RemoteAISceneService?
     /// Frontend-visible: which content backend this process started with.
     let contentBackendMode: ServiceBackendMode
 
@@ -107,6 +109,7 @@ final class AppState: ObservableObject {
         let remoteUser: RemoteUserService?
         let library: UserLibraryService
         let remoteLibrary: RemoteUserLibraryService?
+        let remoteAI: RemoteAISceneService?
         let analytics: AnalyticsService
         switch mode {
         case .remote:
@@ -117,6 +120,7 @@ final class AppState: ObservableObject {
             let remoteLib = RemoteUserLibraryService(client: client)
             library = remoteLib
             remoteLibrary = remoteLib
+            remoteAI = RemoteAISceneService(client: client)
             analytics = RemoteAnalyticsService(client: client)
         case .local:
             content = LocalContentService()
@@ -124,6 +128,7 @@ final class AppState: ObservableObject {
             remoteUser = nil
             library = LocalUserLibraryService()
             remoteLibrary = nil
+            remoteAI = nil
             analytics = LocalAnalyticsService()
         }
         self.init(
@@ -134,7 +139,8 @@ final class AppState: ObservableObject {
             contentBackendMode: mode,
             authService: auth,
             remoteUserService: remoteUser,
-            remoteLibraryService: remoteLibrary
+            remoteLibraryService: remoteLibrary,
+            remoteAISceneService: remoteAI
         )
     }
 
@@ -146,7 +152,8 @@ final class AppState: ObservableObject {
         contentBackendMode: ServiceBackendMode = .local,
         authService: RemoteAuthService? = nil,
         remoteUserService: RemoteUserService? = nil,
-        remoteLibraryService: RemoteUserLibraryService? = nil
+        remoteLibraryService: RemoteUserLibraryService? = nil,
+        remoteAISceneService: RemoteAISceneService? = nil
     ) {
         self.contentService = contentService
         self.libraryService = libraryService
@@ -156,6 +163,7 @@ final class AppState: ObservableObject {
         self.authService = authService
         self.remoteUserService = remoteUserService
         self.remoteLibraryService = remoteLibraryService
+        self.remoteAISceneService = remoteAISceneService
 
         store.migrateIfNeeded()
 
@@ -1424,6 +1432,26 @@ final class AppState: ObservableObject {
         } catch {
             lastServiceMessage = error.localizedDescription
         }
+    }
+
+    /// Create Tab: generate an editable scene through the authenticated AI service.
+    func generateAssistedScene(
+        selectedSources: [AISceneDTO.SelectedSource],
+        options: AISceneDTO.Options
+    ) async throws -> AISceneDTO.GenerateResult {
+        guard contentBackendMode == .remote else {
+            throw ServiceError.invalidState("AI 辅助生成需要使用远程 API 模式")
+        }
+        guard isRemoteAuthenticated else {
+            throw ServiceError.unauthorized
+        }
+        guard let remoteAISceneService else {
+            throw ServiceError.invalidState("AI 场景服务不可用")
+        }
+        return try await remoteAISceneService.generate(
+            selectedSources: selectedSources,
+            options: options
+        )
     }
 
     /// Create Tab: upsert composition as remote **draft** (not published saved version).

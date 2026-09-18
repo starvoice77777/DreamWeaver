@@ -3,18 +3,23 @@ import SwiftUI
 struct AssistedMaterialCanvasView: View {
     @State private var draft: AssistedCreationDraft
     @State private var selectedZone: AssistedFrameworkZone
+    @State private var generationState: AssistedSceneGenerationState = .idle
+    @State private var generationTask: Task<Void, Never>?
 
     let onBack: () -> Void
+    let onGenerate: (AssistedCreationDraft) async throws -> SpatialEditorSeed
     let onOpenEditor: (SpatialEditorSeed) -> Void
 
     init(
         draft: AssistedCreationDraft,
         onBack: @escaping () -> Void,
+        onGenerate: @escaping (AssistedCreationDraft) async throws -> SpatialEditorSeed,
         onOpenEditor: @escaping (SpatialEditorSeed) -> Void
     ) {
         _draft = State(initialValue: draft)
         _selectedZone = State(initialValue: draft.framework.zones[0])
         self.onBack = onBack
+        self.onGenerate = onGenerate
         self.onOpenEditor = onOpenEditor
     }
 
@@ -47,20 +52,28 @@ struct AssistedMaterialCanvasView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
+                .disabled(generationState.isGenerating)
             }
 
             AssistedCanvasFooter(
                 selectedCount: draft.selections.count,
                 maximumCount: AssistedCreationDraft.maximumSoundCount,
-                onContinue: { onOpenEditor(draft.makeEditorSeed()) }
+                isGenerating: generationState.isGenerating,
+                errorMessage: generationState.errorMessage,
+                onContinue: beginGeneration
             )
         }
         .background(DreamTheme.midnight.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onDisappear {
+            generationTask?.cancel()
+            generationTask = nil
+        }
     }
 
     private func toggleMaterial(_ material: SpatialEditorMaterial) {
         withAnimation(.easeInOut(duration: 0.2)) {
+            generationState = .idle
             if draft.selections.contains(where: { $0.material.id == material.id }) {
                 draft.remove(materialID: material.id)
             } else {
@@ -71,17 +84,37 @@ struct AssistedMaterialCanvasView: View {
 
     private func removeMaterial(_ materialID: String) {
         withAnimation(.easeInOut(duration: 0.2)) {
+            generationState = .idle
             draft.remove(materialID: materialID)
+        }
+    }
+
+    private func beginGeneration() {
+        generationTask?.cancel()
+        let snapshot = draft
+        generationState = .generating
+        generationTask = Task {
+            do {
+                let seed = try await onGenerate(snapshot)
+                try Task.checkCancellation()
+                generationState = .idle
+                onOpenEditor(seed)
+            } catch is CancellationError {
+                generationState = .idle
+            } catch {
+                generationState = .failed(error.localizedDescription)
+            }
+            generationTask = nil
         }
     }
 
     private static let recommendations: [AssistedCreationFramework: [SpatialEditorMaterial]] = {
         let ids: [AssistedCreationFramework: [String]] = [
-            .boundaryGate: ["rain", "wind", "forest-birds"],
-            .enclosureControl: ["ambient-pad", "white-noise", "fire"],
-            .depthReveal: ["distant-thunder", "stream", "insect"],
-            .focusSelector: ["piano", "acoustic-guitar", "forest-birds"],
-            .nearfieldWidth: ["tide", "towel", "singing-bowl"]
+            .boundaryGate: ["rain", "wind", "bamboo"],
+            .enclosureControl: ["rain", "bamboo", "stream"],
+            .depthReveal: ["wind", "stream", "rain"],
+            .focusSelector: ["rain", "bamboo", "towel"],
+            .nearfieldWidth: ["stream", "towel", "bamboo"]
         ]
         return ids.mapValues { materialIDs in
             materialIDs.compactMap { materialID in
@@ -281,32 +314,77 @@ private struct AssistedRecommendationCard: View {
 private struct AssistedCanvasFooter: View {
     let selectedCount: Int
     let maximumCount: Int
+    let isGenerating: Bool
+    let errorMessage: String?
     let onContinue: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red.opacity(0.88))
+                    .multilineTextAlignment(.center)
+                    .accessibilityLabel("生成失败：\(errorMessage)")
+            }
+
             Text("已选择 \(selectedCount) / \(maximumCount)")
                 .font(.caption)
                 .foregroundStyle(DreamTheme.secondaryText)
 
             Button(action: onContinue) {
-                Text("直接生成场景")
-                    .font(.headline)
-                    .foregroundStyle(selectedCount == 0 ? DreamTheme.tertiaryText : Color.black)
+                HStack(spacing: 8) {
+                    if isGenerating {
+                        ProgressView()
+                            .tint(.black)
+                    }
+                    Text(buttonTitle)
+                        .font(.headline)
+                }
+                    .foregroundStyle(isDisabled ? DreamTheme.tertiaryText : Color.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
                     .background(
-                        selectedCount == 0 ? DreamTheme.divider : DreamTheme.moonWhite,
+                        isDisabled ? DreamTheme.divider : DreamTheme.moonWhite,
                         in: Capsule(style: .continuous)
                     )
             }
             .buttonStyle(.plain)
-            .disabled(selectedCount == 0)
+            .disabled(isDisabled)
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
         .padding(.bottom, 8)
         .background(.ultraThinMaterial)
+    }
+
+    private var isDisabled: Bool {
+        selectedCount == 0 || isGenerating
+    }
+
+    private var buttonTitle: LocalizedStringResource {
+        if isGenerating {
+            return "正在生成场景…"
+        }
+        if errorMessage != nil {
+            return "重新生成场景"
+        }
+        return "直接生成场景"
+    }
+}
+
+private enum AssistedSceneGenerationState: Equatable {
+    case idle
+    case generating
+    case failed(String)
+
+    var isGenerating: Bool {
+        self == .generating
+    }
+
+    var errorMessage: String? {
+        guard case .failed(let message) = self else { return nil }
+        return message
     }
 }
 

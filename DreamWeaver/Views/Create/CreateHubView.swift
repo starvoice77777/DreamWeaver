@@ -58,6 +58,7 @@ struct CreateHubView: View {
                 AssistedMaterialCanvasView(
                     draft: assistedDraft,
                     onBack: { route = .frameworkSelection },
+                    onGenerate: generateAssistedScene,
                     onOpenEditor: openEditor
                 )
 
@@ -190,6 +191,24 @@ struct CreateHubView: View {
             sceneName: "未命名场景"
         )
         route = .materialCanvas
+    }
+
+    private func generateAssistedScene(
+        from draft: AssistedCreationDraft
+    ) async throws -> SpatialEditorSeed {
+        let selectedSources = try AssistedAISceneBridge.selectedSources(from: draft)
+        let result = try await appState.generateAssistedScene(
+            selectedSources: selectedSources,
+            options: AISceneDTO.Options(
+                sceneIntent: String(localized: draft.framework.resultDescription),
+                durationSeconds: 120,
+                language: "zh-CN"
+            )
+        )
+        if !result.validationWarnings.isEmpty {
+            creationNotice = "AI 场景已生成，请在保存前检查：\(result.validationWarnings.joined(separator: "；"))"
+        }
+        return try AssistedAISceneBridge.editorSeed(from: draft, result: result)
     }
 
     private var remoteOnlySummaries: [APIContentDTO.PrivateSceneSummary] {

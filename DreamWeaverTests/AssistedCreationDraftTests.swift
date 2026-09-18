@@ -46,4 +46,22 @@ struct AssistedCreationDraftTests {
         #expect(firstSeed.soundSources[1].defaultPosition == AssistedFrameworkZone.inside.editorPosition)
         #expect(firstSeed.soundSources.allSatisfy { $0.keyPoints.count == 1 })
     }
+
+    @Test("AI bridge uses stable backend asset identities and spatial positions")
+    func aiSelectedSourceBridge() throws {
+        var draft = AssistedCreationDraft(framework: .boundaryGate, sceneName: "夜行车厢")
+        let rain = try #require(SpatialEditorMaterial.catalog.first { $0.id == "rain" })
+        let wind = try #require(SpatialEditorMaterial.catalog.first { $0.id == "wind" })
+        #expect(draft.add(rain, to: .outside) == .added)
+        #expect(draft.add(wind, to: .inside) == .added)
+
+        let sources = try AssistedAISceneBridge.selectedSources(from: draft)
+
+        #expect(sources.map(\.sourceID) == [DemoIDs.sourceRainSoftFar, DemoIDs.sourceWind])
+        #expect(sources.map(\.resourceKey) == ["rain_soft", "wind_gust"])
+        #expect(sources[0].radius == 0.78)
+        #expect(sources[1].radius == 0.44)
+        #expect(sources[0].angle == 0)
+        #expect(sources[1].angle == .pi)
+    }
 }
