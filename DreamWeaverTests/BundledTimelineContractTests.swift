@@ -23,16 +23,16 @@ struct BundledTimelineContractTests {
         })
     }
 
-    @Test("Rain Eaves v9 resource decodes to the current runtime contract")
+    @Test("Rain Eaves v1.2 resource decodes to the current runtime contract")
     func rainEavesContract() {
         let timeline = LocalTimelineFixture.timeline(for: DemoIDs.rainEavesScene)
         #expect(timeline.scene_id == DemoIDs.rainEavesScene)
-        #expect(timeline.version == 11)
+        #expect(timeline.version == 12)
         #expect(timeline.duration_hint_seconds == 620)
         #expect(timeline.phrases.isEmpty)
-        #expect(timeline.cues.count == 36)
-        #expect(timeline.cues.flatMap(\.actions).count == 75)
-        #expect(Set(timeline.cues.map(\.id)).count == 36)
+        #expect(timeline.cues.count == 27)
+        #expect(timeline.cues.flatMap(\.actions).count == 59)
+        #expect(Set(timeline.cues.map(\.id)).count == 27)
         #expect(timeline.cues.allSatisfy { cue in
             let absoluteTimeIsValid = cue.at_seconds.map { $0 >= 0 && $0 <= 620 } ?? true
             let progressIsValid = cue.progress.map { $0 >= 0 && $0 <= 1 } ?? true
@@ -44,6 +44,30 @@ struct BundledTimelineContractTests {
                 && repeatIsValid
                 && untilIsValid
         })
+    }
+
+    @Test("Rain handoff gains and playback windows survive the runtime compiler")
+    func rainAuthoredPlayback() throws {
+        let scene = try #require(MockDataService.makeScenes().first { $0.id == DemoIDs.rainEavesScene })
+        let plan = ScenePlanCompiler.compile(
+            timeline: LocalTimelineFixture.timeline(for: scene.id), scene: scene
+        )
+        #expect(plan.clips.count == 5)
+        #expect(plan.clips.first { $0.sourceGroupID == DemoIDs.sourceRainSoftFar }?.startSeconds == 0)
+        #expect(plan.clips.first { $0.sourceGroupID == DemoIDs.sourceRain }?.startSeconds == 30)
+        #expect(plan.clips.first { $0.sourceGroupID == DemoIDs.sourceRainBambooLeaf }?.startSeconds == 220)
+        for (id, time, expected) in [
+            (DemoIDs.sourceRainSoftFar, 30.0, 0.22),
+            (DemoIDs.sourceRain, 340.0, 0.46),
+            (DemoIDs.sourceRain, 360.0, 0.4),
+            (DemoIDs.sourceWind, 458.0, 0.18)
+        ] {
+            let curve = try #require(plan.automationCurves.first { $0.target == .sourceGroup(id) })
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(at: time, keyframes: curve.keyframes),
+                expected
+            ))
+        }
     }
 
     @Test("Unknown scenes receive an empty identity-preserving timeline")

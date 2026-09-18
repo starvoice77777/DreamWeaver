@@ -48,6 +48,7 @@ jobs:
             -only-testing:DreamWeaverTests/RemoteAISceneServiceTests \
             -only-testing:DreamWeaverTests/HandoffAudioCatalogTests \
             -only-testing:DreamWeaverTests/SceneCompositionMapperTests \
+            -only-testing:DreamWeaverTests/BundledTimelineContractTests \
             -parallel-testing-enabled NO \
             -resultBundlePath TestResults/RemoteAISceneService.xcresult \
             CODE_SIGNING_ALLOWED=NO

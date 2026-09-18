@@ -6,25 +6,25 @@ enum LocalTimelineFixture {
         if sceneId == DemoIDs.hairCareScene, let scripted = loadHairCareV11() {
             return scripted
         }
-        if sceneId == DemoIDs.rainEavesScene, let scripted = loadRainEavesV9() {
+        if sceneId == DemoIDs.rainEavesScene, let scripted = loadRainEavesV12() {
             return scripted
         }
         return emptyTimeline(sceneId: sceneId)
     }
 
-    private static func loadRainEavesV9() -> APIContentDTO.SceneTimeline? {
+    private static func loadRainEavesV12() -> APIContentDTO.SceneTimeline? {
         guard let url = Bundle.main.url(
-            forResource: "rain_eaves_timeline_v9",
+            forResource: "rain_eaves_timeline_v12",
             withExtension: "json",
             subdirectory: "Mock"
-        ) ?? Bundle.main.url(forResource: "rain_eaves_timeline_v9", withExtension: "json") else {
+        ) ?? Bundle.main.url(forResource: "rain_eaves_timeline_v12", withExtension: "json") else {
             return nil
         }
         do {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(APIContentDTO.SceneTimeline.self, from: data)
         } catch {
-            assertionFailure("rain_eaves_timeline_v9 decode failed: \(error)")
+            assertionFailure("rain_eaves_timeline_v12 decode failed: \(error)")
             return nil
         }
     }
