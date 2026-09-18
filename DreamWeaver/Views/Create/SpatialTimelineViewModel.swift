@@ -882,10 +882,11 @@ final class SpatialTimelineViewModel: ObservableObject {
             compatibilitySource.assetID = firstClip?.assetID
             compatibilitySource.resourceName = firstClip?.resourceName
             let mappedKey = SceneCompositionMapper.resourceKey(for: compatibilitySource)
+            let reviewAsset = HandoffAudioCatalog.entry(for: editorSource.materialID)
             let baseSource = baseScene?.soundSources.first(where: {
                 $0.id == editorSource.effectiveSourceGroupID
                     || $0.name == editorSource.name
-                    || $0.symbolName == editorSource.iconName
+                    || (reviewAsset == nil && $0.symbolName == editorSource.iconName)
                     || $0.resourceName == mappedKey
             })
             let point = position(for: editorSource, at: 0)
@@ -893,6 +894,7 @@ final class SpatialTimelineViewModel: ObservableObject {
             let angle = atan2(Double(point.x), Double(-point.y))
             let layer: AudioLayerKind = {
                 if editorSource.isVoice { return .voice }
+                if let reviewAsset { return reviewAsset.layer }
                 if let layer = baseSource?.layer { return layer }
                 switch editorSource.materialID {
                 case "wind", "bamboo": return .ambience
@@ -941,6 +943,10 @@ final class SpatialTimelineViewModel: ObservableObject {
 
     func addMaterial(_ material: SpatialEditorMaterial) {
         pause()
+        let reviewAsset = HandoffAudioCatalog.entry(for: material.id)
+        let looping = reviewAsset?.isLooping ?? true
+        let clipDuration = reviewAsset.flatMap { $0.isLooping ? nil : $0.durationSeconds }
+            ?? TimelineViewport.defaultSpan
         let existing = sourceGroups.first(where: {
             (material.isVoice && $0.isVoice)
                 || $0.materialID == material.id
@@ -973,7 +979,7 @@ final class SpatialTimelineViewModel: ObservableObject {
         }
         let start = existing.map { clips(for: $0.id).map(\.endTime).max() ?? currentTime }
             ?? currentTime
-        let newEnd = start + TimelineViewport.defaultSpan
+        let newEnd = start + clipDuration
         if newEnd > duration {
             duration = newEnd
             timelineViewport.clamp(to: duration)
@@ -983,9 +989,10 @@ final class SpatialTimelineViewModel: ObservableObject {
             assetID: material.assetID,
             resourceName: material.resourceName,
             startTime: start,
-            duration: TimelineViewport.defaultSpan,
-            isLooping: true,
-            crossfadeMilliseconds: LoopCrossfadeController.preferredMilliseconds(
+            duration: clipDuration,
+            isLooping: looping,
+            crossfadeMilliseconds: reviewAsset?.crossfadeMilliseconds
+                ?? LoopCrossfadeController.preferredMilliseconds(
                 for: material.resourceName ?? SceneCompositionMapper.resourceKey(for: group)
             ),
             isVoicePhrase: material.isVoice
@@ -1000,7 +1007,8 @@ final class SpatialTimelineViewModel: ObservableObject {
             selectedKeyPointID = nil
         }
         focusTimeline(on: start, preferredSpan: TimelineViewport.defaultSpan)
-        showToast("已加入 \(material.name) · 30 秒")
+        let durationText = clipDuration.formatted(.number.precision(.fractionLength(0...2)))
+        showToast("已加入 \(material.name) · \(durationText) 秒")
     }
 
     func showToast(_ message: String) {

@@ -250,7 +250,17 @@ struct SpatialEditorMaterial: Identifiable, Equatable {
             theme: .texture,
             defaultPosition: CGPoint(x: -0.34, y: 0.12)
         )
-    ]
+    ] + HandoffAudioCatalog.entries.map { entry in
+        SpatialEditorMaterial(
+            id: entry.materialID,
+            name: entry.name,
+            iconName: "waveform",
+            theme: entry.layer == .trigger ? .texture : .nature,
+            defaultPosition: CGPoint(x: 0, y: -0.65),
+            resourceName: entry.resourceKey,
+            audioDuration: entry.durationSeconds
+        )
+    }
 
     static func from(_ asset: SoundAsset) -> SpatialEditorMaterial {
         let isVoice = asset.kind == .seed

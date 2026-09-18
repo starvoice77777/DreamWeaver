@@ -37,6 +37,7 @@ struct SpatialEditorSeed: Equatable {
 
             let position = normalizedPoint(from: source.position)
             let matched = matchMaterial(for: source)
+            let reviewAsset = HandoffAudioCatalog.entry(for: matched?.id)
             sources.append(
                 SpatialEditorSource(
                     id: source.id,
@@ -51,6 +52,11 @@ struct SpatialEditorSeed: Equatable {
                     keyPoints: [
                         SpatialKeyPoint(time: 0, position: position, createdByUser: true)
                     ],
+                    audioDuration: reviewAsset.map {
+                        $0.isLooping ? TimelineViewport.defaultSpan : $0.durationSeconds
+                    } ?? 120,
+                    isLooping: reviewAsset?.isLooping,
+                    crossfadeMilliseconds: reviewAsset?.crossfadeMilliseconds,
                     isVoice: isVoice || (matched?.isVoice ?? false)
                 )
             )
@@ -181,6 +187,10 @@ struct SpatialEditorSeed: Equatable {
         let catalog = SpatialEditorMaterial.catalog
         if source.layer == .voice {
             return catalog.first(where: \.isVoice)
+        }
+        if let key = source.resourceName,
+           let exact = catalog.first(where: { $0.resourceName == key }) {
+            return exact
         }
 
         let symbol = source.symbolName.lowercased()
