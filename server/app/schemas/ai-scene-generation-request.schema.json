@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreamweaver.local/schemas/ai-scene-generation-request-v1.schema.json",
+  "title": "DreamWeaver AI Scene Generation Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "request_id", "idempotency_key", "generation_mode", "user_context", "framework", "selected_sounds"],
+  "properties": {
+    "contract_version": {"const": "ai-scene-generation-v1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128},
+    "generation_mode": {"enum": ["initial", "adjustment"]},
+    "user_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_goal", "state_tags"],
+      "properties": {
+        "primary_goal": {"enum": ["sleep_onset", "sleep_maintenance", "stress_recovery", "focus_wind_down", "process_companionship", "asmr_relaxation"]},
+        "state_tags": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "preferred_duration_seconds": {"type": "integer", "minimum": 60, "maximum": 3600},
+        "preference_profile_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["framework_id", "state"],
+      "properties": {
+        "framework_id": {"enum": ["boundary_gate", "enclosure_control", "depth_reveal", "focus_selector", "nearfield_width"]},
+        "state": {"type": "object"}
+      },
+      "allOf": [
+        {"if": {"properties": {"framework_id": {"const": "boundary_gate"}}}, "then": {"properties": {"state": {"type": "object", "additionalProperties": false, "required": ["boundary_openness"], "properties": {"boundary_openness": {"type": "number", "minimum": 0, "maximum": 1}}}}}},
+        {"if": {"properties": {"framework_id": {"const": "enclosure_control"}}}, "then": {"properties": {"state": {"type": "object", "additionalProperties": false, "required": ["enclosure_level"], "properties": {"enclosure_level": {"enum": ["open", "balanced", "enclosed"]}}}}}},
+        {"if": {"properties": {"framework_id": {"const": "depth_reveal"}}}, "then": {"properties": {"state": {"type": "object", "additionalProperties": false, "required": ["depth_reveal"], "properties": {"depth_reveal": {"enum": ["near", "balanced", "far"]}}}}}},
+        {"if": {"properties": {"framework_id": {"const": "focus_selector"}}}, "then": {"properties": {"state": {"type": "object", "additionalProperties": false, "required": ["focus_target"], "properties": {"focus_target": {"type": "string", "minLength": 1}}}}}},
+        {"if": {"properties": {"framework_id": {"const": "nearfield_width"}}}, "then": {"properties": {"state": {"type": "object", "additionalProperties": false, "required": ["nearfield_width"], "properties": {"nearfield_width": {"enum": ["focused", "natural", "wide"]}}}}}}
+      ]
+    },
+    "content_preset_id": {"type": "string", "minLength": 1},
+    "selected_sounds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sound_object_id", "resource_key", "user_locked"],
+        "properties": {
+          "sound_object_id": {"type": "string", "minLength": 1},
+          "resource_key": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "user_locked": {"type": "boolean"},
+          "desired_zone": {"type": "string", "minLength": 1},
+          "desired_volume_level": {"enum": ["quieter", "keep", "more_present"]},
+          "motion_preset_id": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "excluded_resource_keys": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9_]+$"}},
+    "optional_instruction": {"type": "string", "maxLength": 500},
+    "random_seed": {"type": "integer", "minimum": 0},
+    "source_scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scene_id", "timeline_version"],
+      "properties": {
+        "scene_id": {"type": "string", "minLength": 1},
+        "timeline_version": {"type": "integer", "minimum": 1},
+        "manual_override_track_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "client_capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework_interaction": {"type": "boolean"},
+        "engine_crossfade": {"type": "boolean"},
+        "position_interpolation": {"type": "boolean"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"generation_mode": {"const": "adjustment"}}, "required": ["generation_mode"]},
+      "then": {"required": ["source_scene"]}
+    }
+  ]
+}
