@@ -20,13 +20,13 @@ VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
 
 HAIR_CARE_TIMELINE_VERSION = 12
-RAIN_EAVES_TIMELINE_VERSION = 11
+RAIN_EAVES_TIMELINE_VERSION = 12
 GENERIC_TIMELINE_VERSION = 2
 _HAIR_FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent / "fixtures" / "hair_care_timeline_v11.json"
 )
 _RAIN_FIXTURE_PATH = (
-    Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v9.json"
+    Path(__file__).resolve().parent.parent / "fixtures" / "rain_eaves_timeline_v12.json"
 )
 
 
@@ -130,6 +130,13 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
     for scene in scenes:
         payload = build_official_timeline_payload(scene)
         row = scene.timeline
+        if scene.visual_style == "rainEaves" and (
+            row is None or row.version < RAIN_EAVES_TIMELINE_VERSION
+        ):
+            from app.services.seed_catalog import refresh_rain_eaves_tracks
+
+            refresh_rain_eaves_tracks(scene)
+            scene.recommended_duration_seconds = payload["duration_hint_seconds"]
         if row is None:
             session.add(
                 SceneTimeline(
