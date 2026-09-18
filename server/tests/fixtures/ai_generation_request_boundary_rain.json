@@ -1,0 +1,34 @@
+{
+  "contract_version": "ai-scene-generation-v1",
+  "request_id": "req-fixture-boundary-rain-001",
+  "idempotency_key": "fixture-boundary-rain-001",
+  "generation_mode": "initial",
+  "user_context": {
+    "primary_goal": "sleep_onset",
+    "state_tags": ["tired_but_alert", "needs_masking"],
+    "preferred_duration_seconds": 180
+  },
+  "framework": {
+    "framework_id": "boundary_gate",
+    "state": {
+      "boundary_openness": 0.45
+    }
+  },
+  "content_preset_id": "rain_sleep_onset",
+  "selected_sounds": [
+    {
+      "sound_object_id": "sound-rain",
+      "resource_key": "fixture_rain_main_soft",
+      "user_locked": true,
+      "desired_zone": "outside"
+    }
+  ],
+  "excluded_resource_keys": ["fixture_thunder"],
+  "optional_instruction": "雨声保持在窗外，室内尽量稳定。",
+  "random_seed": 170918,
+  "client_capabilities": {
+    "framework_interaction": true,
+    "engine_crossfade": true,
+    "position_interpolation": true
+  }
+}
