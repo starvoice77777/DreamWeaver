@@ -20,17 +20,33 @@ TRACKS = {
 def convert(package):
     path = package / "scene/timeline.json"
     source = json.loads(path.read_text(encoding="utf-8-sig"))
-    assert source["scene_id"] == "sc_rain" and source["version"] == 11
-    assert {t["resource_key"] for t in source["tracks"]} == TRACKS.keys()
-    mapping = {t["track_id"]: TRACKS[t["resource_key"]] for t in source["tracks"]}
+    if source.get("scene_id") != "sc_rain" or source.get("version") != 11:
+        raise ValueError("Expected sc_rain timeline version 11")
+    tracks = source.get("tracks")
+    if not isinstance(tracks, list):
+        raise TypeError("Expected timeline tracks to be a list")
+    resource_keys = [track.get("resource_key") for track in tracks]
+    if len(resource_keys) != len(TRACKS) or set(resource_keys) != set(TRACKS):
+        raise ValueError(
+            f"Expected exactly these resource keys: {sorted(TRACKS)}; "
+            f"received: {sorted(str(key) for key in resource_keys)}"
+        )
+    track_ids = [track.get("track_id") for track in tracks]
+    if None in track_ids or len(set(track_ids)) != len(track_ids):
+        raise ValueError("Expected each source track to have a unique track_id")
+    mapping = {track["track_id"]: TRACKS[track["resource_key"]] for track in tracks}
     cues = defaultdict(list)
     hashes = {}
-    for track in source["tracks"]:
+    for track in tracks:
         key = track["resource_key"]
         delivered = package / "audio/master" / track["master_file"]
         bundled = ROOT / "DreamWeaver/Resources/Audio" / f"{key}.wav"
         digest = hashlib.sha256(delivered.read_bytes()).hexdigest()
-        assert digest == hashlib.sha256(bundled.read_bytes()).hexdigest(), key
+        bundled_digest = hashlib.sha256(bundled.read_bytes()).hexdigest()
+        if digest != bundled_digest:
+            raise ValueError(
+                f"SHA-256 mismatch for {key}: delivered={digest}, bundled={bundled_digest}"
+            )
         hashes[key] = digest
         for frame in track["position_keyframes"]:
             cues[frame["at_seconds"]].append(
