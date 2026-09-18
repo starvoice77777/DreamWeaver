@@ -407,14 +407,15 @@ enum MockDataService {
 
     private static func rainEavesScene() -> DreamScene {
         // Template B (environment, no voice): A01 far soft → A02 near parasol → A03 bamboo → A04 wind cues.
+        // Unity baseline preserves the authored v11 gains in runtime v12 envelopes.
         let sources: [SoundSource] = [
             SoundSource(
                 id: DemoIDs.sourceRainSoftFar,
                 name: "远雨",
                 symbolName: "cloud.drizzle.fill",
                 isEnabled: true,
-                initialEnvelope: 0.22,
-                position: SpatialPosition(angle: -0.35, radius: 0.78),
+                initialEnvelope: 1,
+                position: SpatialPosition(angle: -0.35, radius: 0.85),
                 resourceName: "rain_soft",
                 layer: .environment
             ),
@@ -423,7 +424,7 @@ enum MockDataService {
                 name: "檐下雨",
                 symbolName: "cloud.rain.fill",
                 isEnabled: false,
-                initialEnvelope: 0.0,
+                initialEnvelope: 1,
                 position: SpatialPosition(angle: 0.7, radius: 0.62),
                 resourceName: "rain_parasol",
                 layer: .ambience
@@ -433,8 +434,8 @@ enum MockDataService {
                 name: "竹叶雨",
                 symbolName: "leaf.fill",
                 isEnabled: false,
-                initialEnvelope: 0.0,
-                position: SpatialPosition(angle: -1.2, radius: 0.78),
+                initialEnvelope: 1,
+                position: SpatialPosition(angle: -1.2, radius: 0.88),
                 resourceName: "rain_bamboo_leaf",
                 layer: .ambience
             ),
@@ -443,8 +444,8 @@ enum MockDataService {
                 name: "阵风",
                 symbolName: "wind",
                 isEnabled: false,
-                initialEnvelope: 0.0,
-                position: SpatialPosition(angle: -2.4, radius: 0.77),
+                initialEnvelope: 1,
+                position: SpatialPosition(angle: -2.4, radius: 0.95),
                 resourceName: "wind_gust",
                 layer: .trigger
             )
