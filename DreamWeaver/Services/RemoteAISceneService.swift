@@ -3,7 +3,7 @@ import Foundation
 /// Authenticated access to `/v1/ai/scene-assist`.
 @MainActor
 final class RemoteAISceneService {
-    static let requestTimeout: TimeInterval = 300
+    static let requestTimeout: TimeInterval = 600
 
     private let client: APIClient
     private let requestTimeout: TimeInterval
