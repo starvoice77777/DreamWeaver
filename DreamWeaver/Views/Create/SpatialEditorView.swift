@@ -17,7 +17,7 @@ struct SpatialEditorView: View {
     private let onRecordSoundRequested: (() -> Void)?
     private let onUploadSoundRequested: (() -> Void)?
     private let onManageSoundsRequested: (() -> Void)?
-    private let onFinished: (() -> Void)?
+    private let onFinished: ((DreamScene) -> Void)?
 
     init(
         seed: SpatialEditorSeed? = nil,
@@ -27,7 +27,7 @@ struct SpatialEditorView: View {
         onRecordSoundRequested: (() -> Void)? = nil,
         onUploadSoundRequested: (() -> Void)? = nil,
         onManageSoundsRequested: (() -> Void)? = nil,
-        onFinished: (() -> Void)? = nil
+        onFinished: ((DreamScene) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: SpatialTimelineViewModel(seed: seed))
         self.isCreateTabRoot = isCreateTabRoot
@@ -189,7 +189,7 @@ struct SpatialEditorView: View {
                 .dreamPopoverPresentation()
             }
             .accessibilityLabel("选择创建方式")
-            .accessibilityHint("可从空白开始或从已有场景创建")
+            .accessibilityHint("可切换辅助创建、深度创建或从已有场景继续")
         } else {
             Button {
                 dismiss()
@@ -210,8 +210,8 @@ struct SpatialEditorView: View {
     ) -> some View {
         editorPopoverMenu {
             editorPopoverButton(
-                title: "从空白重新开始",
-                symbol: "arrow.counterclockwise"
+                title: "选择创建方式",
+                symbol: "square.grid.2x2"
             ) {
                 closeCreationOptions(then: onResetRequested)
             }
@@ -376,7 +376,7 @@ struct SpatialEditorView: View {
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 650_000_000)
                 if let onFinished {
-                    onFinished()
+                    onFinished(scene)
                 } else {
                     dismiss()
                 }

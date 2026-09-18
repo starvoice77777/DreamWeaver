@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Root creation workspace. Entering the Create tab opens a blank editor directly.
+/// Root creation workspace. Entering the Create tab starts at the creation method picker.
 struct CreateHubView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.sceneAdaptiveAccent) private var sceneAccent
@@ -19,6 +19,12 @@ struct CreateHubView: View {
     @State private var creationNotice: String?
     @State private var showLoginHint = false
     @State private var isOpeningRemoteDraft = false
+    @State private var route: CreateHubRoute = .methodSelection
+    @State private var selectedFramework: AssistedCreationFramework?
+    @State private var assistedDraft = AssistedCreationDraft(
+        framework: .boundaryGate,
+        sceneName: "未命名场景"
+    )
 
     private var materialAssets: [SoundAsset] {
         appState.soundAssets.filter { $0.kind == .recording || $0.kind == .community }
@@ -32,18 +38,46 @@ struct CreateHubView: View {
 
     var body: some View {
         ZStack {
-            SpatialEditorView(
-                seed: editorSeed,
-                isCreateTabRoot: true,
-                onResetRequested: { openEditor(with: .blank) },
-                onExistingSceneRequested: { isScenePickerPresented = true },
-                onRecordSoundRequested: { beginRecordUpload() },
-                onUploadSoundRequested: { beginFileUpload() },
-                onManageSoundsRequested: { showSoundLibrary = true },
-                onFinished: { openEditor(with: .blank) }
-            )
-            .id(editorPresentationID)
-            .environmentObject(appState)
+            switch route {
+            case .methodSelection:
+                CreationMethodSelectionView(
+                    onAssistedCreation: { route = .frameworkSelection },
+                    onDetailedCreation: { openEditor(with: .blank) },
+                    onOpenExisting: { isScenePickerPresented = true }
+                )
+
+            case .frameworkSelection:
+                AssistedFrameworkSelectionView(
+                    selectedFramework: selectedFramework,
+                    onBack: { route = .methodSelection },
+                    onSelect: { selectedFramework = $0 },
+                    onContinue: beginAssistedCanvas
+                )
+
+            case .materialCanvas:
+                AssistedMaterialCanvasView(
+                    draft: assistedDraft,
+                    onBack: { route = .frameworkSelection },
+                    onGenerate: generateAssistedScene,
+                    onOpenEditor: openEditor
+                )
+
+            case .editor:
+                SpatialEditorView(
+                    seed: editorSeed,
+                    isCreateTabRoot: true,
+                    onResetRequested: { route = .methodSelection },
+                    onExistingSceneRequested: { isScenePickerPresented = true },
+                    onRecordSoundRequested: { beginRecordUpload() },
+                    onUploadSoundRequested: { beginFileUpload() },
+                    onManageSoundsRequested: { showSoundLibrary = true },
+                    onFinished: { scene in
+                        appState.enterDream(sceneId: scene.id)
+                    }
+                )
+                .id(editorPresentationID)
+                .environmentObject(appState)
+            }
 
             if isUploading {
                 Color.black.opacity(0.35).ignoresSafeArea()
@@ -147,6 +181,34 @@ struct CreateHubView: View {
     private func openEditor(with seed: SpatialEditorSeed) {
         editorSeed = seed
         editorPresentationID = UUID()
+        route = .editor
+    }
+
+    private func beginAssistedCanvas(framework: AssistedCreationFramework) {
+        selectedFramework = framework
+        assistedDraft = AssistedCreationDraft(
+            framework: framework,
+            sceneName: "未命名场景"
+        )
+        route = .materialCanvas
+    }
+
+    private func generateAssistedScene(
+        from draft: AssistedCreationDraft
+    ) async throws -> SpatialEditorSeed {
+        let selectedSources = try AssistedAISceneBridge.selectedSources(from: draft)
+        let result = try await appState.generateAssistedScene(
+            selectedSources: selectedSources,
+            options: AISceneDTO.Options(
+                sceneIntent: String(localized: draft.framework.resultDescription),
+                durationSeconds: 120,
+                language: "zh-CN"
+            )
+        )
+        if !result.validationWarnings.isEmpty {
+            creationNotice = "AI 场景已生成，请在保存前检查：\(result.validationWarnings.joined(separator: "；"))"
+        }
+        return try AssistedAISceneBridge.editorSeed(from: draft, result: result)
     }
 
     private var remoteOnlySummaries: [APIContentDTO.PrivateSceneSummary] {
@@ -294,6 +356,13 @@ struct CreateHubView: View {
         default: return "application/octet-stream"
         }
     }
+}
+
+private enum CreateHubRoute {
+    case methodSelection
+    case frameworkSelection
+    case materialCanvas
+    case editor
 }
 
 #Preview {

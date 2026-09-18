@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-labelledby="title desc">
+  <title id="title">火车车厢室内基调</title>
+  <desc id="desc">极简黑白灰火车车厢，包含透明车窗、左右窗帘、折叠桌板和座椅边缘，不包含窗外景色。</desc>
+
+  <g id="train-cabin-idle" stroke-linejoin="round" stroke-linecap="round">
+    <g id="outer-shell" fill="#F5F5F3">
+      <rect id="ceiling-panel" width="900" height="230"/>
+      <rect id="left-wall" y="190" width="132" height="1010"/>
+      <rect id="right-wall" x="768" y="190" width="132" height="1010"/>
+      <rect id="lower-wall" y="758" width="900" height="442"/>
+    </g>
+
+    <g id="shadow" fill="#D9D9D6">
+      <path id="upper-shadow" d="M0 190H900V232H0Z"/>
+      <path id="left-panel-shadow" d="M0 230H94V1060H0Z" opacity="0.66"/>
+      <path id="right-panel-shadow" d="M806 230H900V1060H806Z" opacity="0.66"/>
+      <path id="lower-panel-shadow" d="M0 758H900V810H0Z" opacity="0.58"/>
+    </g>
+
+    <g id="inner-frame" fill="none">
+      <rect id="window-outer-frame" x="116" y="202" width="668" height="584" rx="82" stroke="#D9D9D6" stroke-width="42"/>
+      <rect id="window-outer-outline" x="116" y="202" width="668" height="584" rx="82" stroke="#202020" stroke-width="4"/>
+      <rect id="window-gasket" x="139" y="225" width="622" height="538" rx="63" stroke="#202020" stroke-width="16"/>
+      <rect id="window-inner-outline" x="151" y="237" width="598" height="514" rx="52" stroke="#777777" stroke-width="3"/>
+    </g>
+
+    <g id="responder">
+      <g id="left-curtain" fill="#D9D9D6" stroke="#202020" stroke-width="4">
+        <path d="M42 16H218C200 125 174 242 142 355C118 438 112 522 126 604L104 647C78 674 60 723 54 794H16V92Z"/>
+        <path d="M126 604L165 620L129 654L104 647Z" fill="#777777"/>
+      </g>
+      <g id="left-curtain-folds" fill="none" stroke="#777777" stroke-width="2.5">
+        <path d="M82 35C104 172 104 317 90 469"/>
+        <path d="M136 31C147 170 135 327 111 526"/>
+        <path d="M184 27C173 180 151 347 126 581"/>
+      </g>
+
+      <g id="right-curtain" fill="#D9D9D6" stroke="#202020" stroke-width="4">
+        <path d="M682 16H858L884 92V794H846C840 723 822 674 796 647L774 604C788 522 782 438 758 355C726 242 700 125 682 16Z"/>
+        <path d="M774 604L735 620L771 654L796 647Z" fill="#777777"/>
+      </g>
+      <g id="right-curtain-folds" fill="none" stroke="#777777" stroke-width="2.5">
+        <path d="M818 35C796 172 796 317 810 469"/>
+        <path d="M764 31C753 170 765 327 789 526"/>
+        <path d="M716 27C727 180 749 347 774 581"/>
+      </g>
+    </g>
+
+    <g id="control" stroke="#202020">
+      <path id="folding-table" d="M274 809H626V871Q626 886 611 886H289Q274 886 274 871Z" fill="#F5F5F3" stroke-width="4"/>
+      <path id="table-front-edge" d="M286 842H614" fill="none" stroke="#777777" stroke-width="3"/>
+      <path id="table-brackets" d="M342 888V956M558 888V956M342 938H558" fill="none" stroke-width="4"/>
+    </g>
+
+    <g id="fixed-seat-anchors" fill="#D9D9D6" stroke="#202020" stroke-width="4">
+      <path id="left-seat-edge" d="M0 940H110Q145 940 157 975L193 1086H0Z"/>
+      <path id="right-seat-edge" d="M900 940H790Q755 940 743 975L707 1086H900Z"/>
+    </g>
+
+    <g id="outline" fill="none" stroke="#202020">
+      <path id="ceiling-seam" d="M0 190H900" stroke-width="4"/>
+      <path id="left-wall-seam" d="M94 802V1200" stroke-width="3"/>
+      <path id="right-wall-seam" d="M806 802V1200" stroke-width="3"/>
+      <path id="lower-wall-seam" d="M0 1058H900" stroke-width="3"/>
+      <path id="floor-anchor" d="M136 1170H764" stroke-width="4"/>
+    </g>
+  </g>
+</svg>
