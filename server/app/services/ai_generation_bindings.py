@@ -28,6 +28,7 @@ class FrameBinding:
     framework_id: str
     visual_zone: str
     binding_status: str
+    allowed_content_presets: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
