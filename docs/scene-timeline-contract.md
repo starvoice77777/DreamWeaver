@@ -105,7 +105,13 @@
 ## 4. 官方种子
 
 - 「洗头陪伴」：`sc_hair_wash_v05` 时间线 **v11**（约 620s），见 `docs/hair-care-scene-brief.md` 与 `hair_care_timeline_v11.json`；20 句 `voice_phrase_01`…`20` 配合分层 `play_oneshot` / `set_envelope` / `set_position`。交付状态为 `qc_pending`、仅供联调演示，尚不可正式发布。
-- 「檐下听雨」：`rain_eaves_timeline_v9`（约 620s，`phrases: []`；对齐 `orchestration_v9`；0–39s 单独竹叶雨连续移动，39s 后建立三层雨景；A03 两个 clip 共用一个逻辑声源；`wind_gust` `play_oneshot` @ 188s/458s；空间关键帧由统一渲染器连续插值）。
+- 「檐下听雨」：`rain_eaves_timeline_v12`（620s，`phrases: []`），对齐交接包 `sc_rain_v1` 的源时间线 v11。
+  远雨 0s、檐下雨 30s、竹叶雨 220s 进入；阵风在 188s/458s 各播放一次；保留全部 26 个空间位置关键帧。
+  应用内部使用修订号 12，避免与旧文件 `rain_eaves_timeline_v9` 已占用的内部修订号 11 冲突。
+  源 `set_volume` 等值转换成 `set_envelope`；雨景四轨的 `initial_envelope=1` 是编译基准，实际混音增益由时间线给出，位置独立控制距离。
+  现有官方雨景在首次读取时按版本升级轨道和时间线，同一事务补回缺失轨道并移除旧轨道；场景及四条声源 ID 保持不变。
+  只更新官方记录，已复制的私人场景快照保持原样；无需新数据库 schema 迁移。
+  交付仍为审核状态，未宣称通过授权或实机试听。更新后需客户端重新拉取场景详情和时间线（或重启 App）。
 - 其他含 voice 轨的场景：最小首句 + 28s 重复。
 - 无 voice 轨：空 `phrases` / `cues`，仍返回合法文档壳。
 
