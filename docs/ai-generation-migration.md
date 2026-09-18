@@ -27,7 +27,7 @@ wheel 包包含 Schema。`ruff check .` 的 36 项失败位于未改动的 Alemb
 
 ## 后续独立切片与验收
 
-1. 内容预设解析与完整候选过滤：从已获批绑定继续检查预设、角色和运动兼容性。
+1. 角色、运动与完整候选过滤：从已获批绑定和兼容预设继续检查角色、区域与运动限制。
 2. SceneDraft 及结果契约：决策、版本和失败/澄清状态可追溯。
 3. 首个确定性编译器与时间线验证：固定雨声测试资源通过 Schema 和语义检查。
 4. 受约束 AI 排序与提示词：只返回候选 ID/预设决策；禁止生成 cues、坐标或时间。
@@ -59,6 +59,30 @@ app/services/ai_generation_bindings.py`（一行执行），保留两个目标�
 本轮尚未接入数据库/鉴权、生产审核注册表、预设/角色/运动校验、系统补充或模型，
 通过门禁不代表可播放；测试中的 `fixture_*` 审核状态仅为合成数据。
 PR #10 的非空白标识符、长度及列表/请求体规模建议仍需在公开接线前统一契约并测试。
+
+## 切片 2B：内容预设解析
+
+内部入口 `app.services.ai_generation_presets.resolve_content_presets` 复用请求与绑定门禁，
+再读取服务端提供的固定版本 `ContentPresetRegistry`，不接入公开 API 或改变旧 API。
+规则依据：调试包 `backend_ai_scene_debug_handoff_2026-09-18` 的调试总说明 §4.3、
+《框架素材绑定与内容预设规范 v1.0》§3/5/8，以及请求与结果契约 v1。
+多状态匹配由操作者于 2026-09-18 确认：请求的全部 `state_tags` 必须在预设允许集合内。
+`ContentPreset` 是内部最小投影：ID、版本、审批状态、允许框架、目标与状态标签集合。
+它不是生产注册表 Schema；适配器必须依据真实审批记录填充，不从请求推定审批状态。
+预设只接受 `approved`，ID、版本与注册表版本非空白，重复 ID（含不同审批状态）拒绝。
+每个用户声音绑定都必须允许该预设，包括未锁定声音；新增绑定字段
+`allowed_content_presets` 默认空集合，旧绑定门禁兼容，但空集合不能通过新预设门禁。
+指定预设时不替换：不存在、未批准或目标/状态/框架/绑定不兼容均明确失败。
+未指定时只过滤：零候选失败，唯一候选选中，多候选的 `selected_preset=None`，
+由上层继续排序或澄清；按 ID 排序仅保证复现，不表示优先级，不自动截断内部候选集合。
+返回保留原请求（不补写省略的预设 ID）、所选绑定、候选、选中项及注册表版本。
+目录/绑定索引版本及每个候选的预设版本也保留，后续缓存必须纳入这些依赖版本。
+失败提供 `INCOMPATIBLE_CONTENT_PRESET`、细分 `reason_code` 与字段路径，不回显请求值。
+测试命令：`python -m pytest tests/test_ai_generation_presets.py`。
+类型检查：`python -m mypy --follow-imports=silent app/schemas/ai_generation.py app/services/ai_generation_bindings.py app/services/ai_generation_presets.py`。
+本切片不实现历史偏好/AI排序、状态标签字典、角色/运动过滤、脚本解析、补充声音或编译。
+多候选结果不是公开 `needs_clarification` 响应，也不能直接作为推荐卡片列表。
+测试审批均为合成 fixture；交接包中十个预设保持 `draft`，未导入为生产批准数据。
 
 ## 待产品/素材与前端确认
 
