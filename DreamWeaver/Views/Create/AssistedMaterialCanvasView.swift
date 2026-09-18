@@ -354,7 +354,7 @@ private struct AssistedCanvasFooter: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 10)
-        .padding(.bottom, 8)
+        .padding(.bottom, 112)
         .background(.ultraThinMaterial)
     }
 
