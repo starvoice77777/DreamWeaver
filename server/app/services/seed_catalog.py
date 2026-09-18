@@ -219,8 +219,8 @@ def official_scene_specs() -> list[dict]:
                     name="远雨",
                     symbol="cloud.drizzle.fill",
                     angle=-0.35,
-                    radius=0.78,
-                    initial_envelope=0.22,
+                    radius=0.85,
+                    initial_envelope=1.0,
                     layer="environment",
                     resource_key="rain_soft",
                     sort_order=0,
@@ -231,7 +231,7 @@ def official_scene_specs() -> list[dict]:
                     symbol="cloud.rain.fill",
                     angle=0.7,
                     radius=0.62,
-                    initial_envelope=0.0,
+                    initial_envelope=1.0,
                     layer="ambience",
                     resource_key="rain_parasol",
                     sort_order=1,
@@ -242,8 +242,8 @@ def official_scene_specs() -> list[dict]:
                     name="竹叶雨",
                     symbol="leaf.fill",
                     angle=-1.2,
-                    radius=0.78,
-                    initial_envelope=0.0,
+                    radius=0.88,
+                    initial_envelope=1.0,
                     layer="ambience",
                     resource_key="rain_bamboo_leaf",
                     sort_order=2,
@@ -254,8 +254,8 @@ def official_scene_specs() -> list[dict]:
                     name="阵风",
                     symbol="wind",
                     angle=-2.4,
-                    radius=0.77,
-                    initial_envelope=0.0,
+                    radius=0.95,
+                    initial_envelope=1.0,
                     layer="trigger",
                     resource_key="wind_gust",
                     loop=False,
@@ -859,6 +859,21 @@ def _add_scene(session: AsyncSession, spec: dict) -> None:
     session.add(Scene(**spec))
     for index, track_spec in enumerate(tracks):
         session.add(_track_row(spec["id"], track_spec, index))
+
+
+def refresh_rain_eaves_tracks(scene: Scene) -> None:
+    """Upgrade only this official scene's tracks with its timeline, in the same transaction."""
+    spec = next(s for s in official_scene_specs() if s["id"] == scene.id)
+    desired = {t["id"]: t for t in spec["tracks"]}
+    for row in list(scene.tracks):
+        if row.id not in desired:
+            scene.tracks.remove(row)
+    existing = {row.id: row for row in scene.tracks}
+    for index, track in enumerate(spec["tracks"]):
+        if track["id"] in existing:
+            _apply_track_fields(existing[track["id"]], track, index)
+        else:
+            scene.tracks.append(_track_row(scene.id, track, index))
 
 
 async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:

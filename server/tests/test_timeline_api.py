@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import json
 import uuid
+from pathlib import Path
 
+from sqlalchemy import select
+
+from app.models.content import SceneTimeline, SceneTrack
 from app.services.seed_catalog import DEFAULT_SCENE_ID
 from app.services.timeline import (
     HAIR_CARE_TIMELINE_VERSION,
@@ -99,87 +104,58 @@ async def test_scene_timeline_rain_eaves(client) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["scene_id"] == str(RAIN_EAVES_ID)
-    assert body["version"] >= RAIN_EAVES_TIMELINE_VERSION
-    assert body["version"] == 11
+    assert body["version"] == RAIN_EAVES_TIMELINE_VERSION == 12
     assert body["duration_hint_seconds"] == 620
     assert body["phrases"] == []
-    assert len(body["cues"]) == 36
-    assert any(
-        a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
-        for c in body["cues"]
-        for a in c.get("actions", [])
-    )
-    assert any(
-        a.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
-        for c in body["cues"]
-        for a in c.get("actions", [])
-    )
-    assert any(a["type"] == "set_envelope" for c in body["cues"] for a in c["actions"])
-    assert any(a["type"] == "enable" for c in body["cues"] for a in c["actions"])
-    assert any(a["type"] == "set_position" for c in body["cues"] for a in c["actions"])
-    actions = [action for cue in body["cues"] for action in cue.get("actions", [])]
-    assert len(actions) == 75
-    assert sum(action["type"] == "set_position" for action in actions) == 36
-    assert not any(action["type"] == "set_volume" for action in actions)
+    assert len(body["cues"]) == 27
+    actions = [(c["at_seconds"], a) for c in body["cues"] for a in c["actions"]]
+    assert len(actions) == 59
+    assert sum(a["type"] == "set_position" for _, a in actions) == 26
+    assert not any(a["type"] == "set_volume" for _, a in actions)
+    starts = {(a["track_id"], at) for at, a in actions if a["type"] == "play"}
+    assert starts == {(str(RAIN_SOFT_TRACK_ID), 0), (str(RAIN_PARASOL_TRACK_ID), 30),
+                      (str(RAIN_BAMBOO_TRACK_ID), 220)}
+    assert {at for at, a in actions if a["type"] == "play_oneshot"} == {188, 458}
+    assert _position_at(body, RAIN_SOFT_TRACK_ID, 0)["radius"] == 0.85
+    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 220)["radius"] == 0.88
+    assert _position_at(body, RAIN_WIND_TRACK_ID, 191.709375)["angle"] == -1.6
+    gains = {(at, a["track_id"], a["envelope"]) for at, a in actions
+             if a["type"] == "set_envelope"}
+    assert {(0, str(RAIN_SOFT_TRACK_ID), 0.22), (330, str(RAIN_PARASOL_TRACK_ID), 0.46),
+            (350, str(RAIN_PARASOL_TRACK_ID), 0.4), (458, str(RAIN_WIND_TRACK_ID), 0.18)} <= gains
 
-    # v9 opens with bamboo alone; the two continuous rain layers enter at 39s.
-    zero_actions = next(c["actions"] for c in body["cues"] if c["at_seconds"] == 0)
-    assert {action.get("track_id") for action in zero_actions} == {
-        str(RAIN_BAMBOO_TRACK_ID)
-    }
-    assert {
-        cue["at_seconds"]
-        for cue in body["cues"]
-        for action in cue["actions"]
-        if action["type"] == "play" and action.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
-    } == {0, 39.2}
-    assert {
-        cue["at_seconds"]
-        for cue in body["cues"]
-        for action in cue["actions"]
-        if action["type"] == "pause" and action.get("track_id") == str(RAIN_BAMBOO_TRACK_ID)
-    } == {39, 530}
 
-    # Steady-state hierarchy is radius-only. Envelopes only express clip fades.
-    soft_envelopes = [
-        (c["at_seconds"], a["envelope"], a["fade_ms"])
-        for c in body["cues"]
-        for a in c.get("actions", [])
-        if a.get("type") == "set_envelope" and a.get("track_id") == str(RAIN_SOFT_TRACK_ID)
-    ]
-    assert (39, 1.0, 2000) in soft_envelopes
-    assert (560, 0.0, 60000) in soft_envelopes
-    parasol_enter = next(
-        a
-        for c in body["cues"]
-        if c["at_seconds"] == 39
-        for a in c["actions"]
-        if a.get("type") == "set_position"
-        and a.get("track_id") == str(RAIN_PARASOL_TRACK_ID)
-    )
-    assert parasol_enter["angle"] == 0.261799
-    assert parasol_enter["radius"] == 0.5
-    assert _position_at(body, RAIN_SOFT_TRACK_ID, 39)["radius"] == 0.85
-    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 0)["radius"] == 0.38
-    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 24)["radius"] == 0.78
-    assert _position_at(body, RAIN_BAMBOO_TRACK_ID, 39.1)["radius"] == 0.93
-    assert _position_at(body, RAIN_WIND_TRACK_ID, 188)["radius"] == 0.95
-    # Fade-out movement remains spatially outward after the audible section.
-    assert _position_at(body, RAIN_SOFT_TRACK_ID, 560)["radius"] == 0.92
-    oneshots = [
-        c
-        for c in body["cues"]
-        if any(a.get("type") == "play_oneshot" for a in c.get("actions", []))
-    ]
-    assert len(oneshots) == 2
-    assert {c["at_seconds"] for c in oneshots} == {188, 458}
-    # All 36 submitted spatial keyframes are preserved in the generated fixture.
-    positioned_cues = [
-        cue
-        for cue in body["cues"]
-        if any(action["type"] == "set_position" for action in cue["actions"])
-    ]
-    assert len(positioned_cues) >= 10
+def test_rain_fixture_is_identical_in_app_and_server() -> None:
+    root = Path(__file__).resolve().parents[2]
+    server = root / "server/app/fixtures/rain_eaves_timeline_v12.json"
+    app = root / "DreamWeaver/Resources/Mock/rain_eaves_timeline_v12.json"
+    assert server.read_bytes() == app.read_bytes()
+    assert json.loads(server.read_text())["_handoff"]["release_ready"] is False
+
+
+async def test_rain_v11_database_upgrades_tracks_and_timeline_atomically(client) -> None:
+    current = (await client.get(f"/v1/scenes/{RAIN_EAVES_ID}/timeline")).json()
+    factory = client._transport.app.state.session_factory
+    async with factory() as session:
+        row = await session.scalar(
+            select(SceneTimeline).where(SceneTimeline.scene_id == RAIN_EAVES_ID)
+        )
+        row.version = 11
+        row.cues = []
+        far = await session.get(SceneTrack, RAIN_SOFT_TRACK_ID)
+        far.initial_envelope = 0.22
+        far.radius = 0.78
+        await session.delete(await session.get(SceneTrack, RAIN_BAMBOO_TRACK_ID))
+        await session.commit()
+    upgraded = (await client.get(f"/v1/scenes/{RAIN_EAVES_ID}/timeline")).json()
+    assert upgraded == current
+    detail = (await client.get(f"/v1/scenes/{RAIN_EAVES_ID}")).json()
+    tracks = detail["tracks"]
+    assert len(tracks) == 4
+    assert all(t["initial_envelope"] == 1 for t in tracks)
+    far = next(t for t in tracks if t["id"] == str(RAIN_SOFT_TRACK_ID))
+    assert far["position"]["radius"] == 0.85
+    assert (await client.get(f"/v1/scenes/{RAIN_EAVES_ID}/timeline")).json() == upgraded
 
 
 async def test_non_hair_scene_has_no_voice_timeline(client) -> None:
