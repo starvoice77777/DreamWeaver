@@ -1,5 +1,8 @@
 # 檐下听雨 QC 清单（工程接入 sc_rain_v1 / orchestration v9）
 
+> 历史 v9 记录：现行雨景已改用后端交接 v1.2 的源时间线 v11（运行时修订号 12）。
+> 本文的编排源与验收结论不适用于新版；见 [现行接入说明](../../handoff-audio-import.md)。
+
 本版试听验收：`packages/sc_rain_v1/orchestration_v9/listen_notes.md`
 
 工程映射：`packages/sc_rain_v1/INGEST.md`
