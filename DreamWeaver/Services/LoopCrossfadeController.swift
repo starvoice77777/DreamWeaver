@@ -34,6 +34,8 @@ nonisolated enum LoopCrossfadeController {
         case "handoff_ocean_bed_soft": return 1200
         case "handoff_sea_wind_soft": return 500
         case "handoff_shore_water_soft", "handoff_boat_water_lap": return 750
+        case "handoff_room_study_quiet_loop", "handoff_air_winter_far_loop",
+             "handoff_paper_texture_loop": return 500
         case "rain_soft": return 1000
         case "rain_parasol", "hair_wash_water_cycle", "hair_wash_foam_rub",
              "hair_wash_scalp_foam", "hair_wash_finger_massage": return 1200
