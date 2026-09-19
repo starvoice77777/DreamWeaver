@@ -1,0 +1,129 @@
+{
+  "contract_version": "dreamweaver-structure-script-v1",
+  "script_id": "boundary_gate_script",
+  "script_version": "1.0.0",
+  "framework_id": "boundary_gate",
+  "product_name": "内外交织",
+  "description": "以外部环境与内部稳定声之间的相对关系组织场景；开合只改变已审核的相对混音，不改素材、事件与运动。",
+  "execution_status": "implementation_ready",
+  "review_status": "pending_listening_review",
+  "controller": {
+    "parameter": "boundary_openness",
+    "value_type": "number",
+    "minimum": 0,
+    "maximum": 1,
+    "default_value": 0.5,
+    "apply_timing": "on_release_with_short_ramp",
+    "feedback": "已调整窗外声音 · 撤销"
+  },
+  "sound_budget": {
+    "request": {"min_objects": 1, "max_objects": 4},
+    "compiled_scene": {
+      "min_objects": 2,
+      "max_objects": 4,
+      "bed": {"min": 1, "max": 1},
+      "ambience": {"min": 0, "max": 1},
+      "foreground": {"min": 0, "max": 3},
+      "ambience_plus_foreground": {"min": 1, "max": 3},
+      "voice_max": 1
+    }
+  },
+  "structural_slots": [
+    {
+      "slot_id": "outside_environment",
+      "visual_zone": "outside",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 2,
+      "allowed_roles": ["bed", "ambience"],
+      "playback_classes": ["continuous", "bounded_loop"],
+      "supplement_allowed": true,
+      "assignment_priority": 1
+    },
+    {
+      "slot_id": "inside_stable",
+      "visual_zone": "inside",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["bed", "ambience"],
+      "playback_classes": ["continuous", "bounded_loop"],
+      "supplement_allowed": true,
+      "assignment_priority": 2
+    },
+    {
+      "slot_id": "inside_detail",
+      "visual_zone": "inside",
+      "required_for_playable": false,
+      "min_objects": 0,
+      "max_objects": 1,
+      "allowed_roles": ["action", "trigger", "voice"],
+      "playback_classes": ["episodic", "oneshot", "phrase_sequence"],
+      "supplement_allowed": false,
+      "assignment_priority": 3
+    }
+  ],
+  "state_resolution": {
+    "mode": "continuous_profile_lookup",
+    "profile_source": "approved_content_preset",
+    "rules": [
+      "Clamp boundary_openness to 0..1.",
+      "Resolve the preset's versioned outside mix curve and inside compensation curve.",
+      "Apply only relative mix offsets through a click-free ramp.",
+      "Keep the outside group audible at the curve's reviewed floor."
+    ],
+    "required_profile_keys": [
+      "boundary_outside_mix_curve_id",
+      "boundary_inside_compensation_curve_id"
+    ],
+    "mutable_dimensions": ["relative_mix"],
+    "immutable_dimensions": ["resource_binding", "event_schedule", "motion_path", "scene_role"]
+  },
+  "compile_pipeline": [
+    {"step_id": "validate_input", "processor": "generation_request_gate", "on_failure": "fail"},
+    {"step_id": "resolve_approved_bindings", "processor": "frame_binding_gate", "on_failure": "needs_clarification"},
+    {"step_id": "assign_structural_slots", "processor": "boundary_zone_slot_assigner", "on_failure": "needs_clarification"},
+    {"step_id": "apply_framework_state", "processor": "approved_boundary_curve_resolver", "on_failure": "preserve_and_report"},
+    {"step_id": "preserve_manual_overrides", "processor": "manual_track_protection_gate", "on_failure": "needs_clarification"},
+    {"step_id": "emit_scene_draft", "processor": "deterministic_timeline_compiler", "on_failure": "fail"}
+  ],
+  "safety_rules": [
+    "do_not_change_asset_kind",
+    "do_not_delete_non_target_objects",
+    "do_not_modify_user_locked_objects",
+    "do_not_overwrite_manual_tracks_without_confirmation",
+    "do_not_emit_arbitrary_cues",
+    "do_not_emit_arbitrary_coordinates",
+    "do_not_bypass_approved_bindings",
+    "preserve_event_schedule",
+    "preserve_motion_paths",
+    "outside_group_never_hard_mutes",
+    "do_not_assume_lowpass_occlusion_or_dynamic_reverb"
+  ],
+  "manual_override_policy": {
+    "mode": "preserve_by_default",
+    "protected_track_selector": "source_scene.manual_override_track_ids",
+    "on_conflict": "require_explicit_confirmation",
+    "conflict_output": "impact_list",
+    "no_implicit_override": true
+  },
+  "supplement_policy": {
+    "allowed": true,
+    "origin": "system_supplement",
+    "binding_status": "approved",
+    "requires_reason": true,
+    "max_result_objects": 4,
+    "readd_user_deleted": false,
+    "on_missing_required_slot": "needs_clarification_or_explicit_supplement"
+  },
+  "output_contract": {
+    "scene_draft_contract": "ai-scene-generation-v1",
+    "timeline_contract": "timeline-contract-v1",
+    "cue_authority": "deterministic_timeline_compiler",
+    "required_dependency_versions": ["catalog", "binding_index", "content_preset", "script", "motion_registry"]
+  },
+  "acceptance": {
+    "automated": ["controller_range_valid", "outside_and_inside_slots_resolved", "timeline_and_motion_unchanged_by_controller"],
+    "listening": ["closed_state_has_no_hard_mute", "all_states_are_click_free", "outside_remains_distinguishable_without_startle"]
+  }
+}

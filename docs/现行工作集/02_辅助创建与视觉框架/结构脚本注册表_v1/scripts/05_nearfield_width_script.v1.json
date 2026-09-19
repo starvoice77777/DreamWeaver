@@ -1,0 +1,141 @@
+{
+  "contract_version": "dreamweaver-structure-script-v1",
+  "script_id": "nearfield_width_script",
+  "script_version": "1.0.0",
+  "framework_id": "nearfield_width",
+  "product_name": "两侧舒展",
+  "description": "以稳定背景、左右近场组和可选正前陪伴组组织场景；三档宽度只选择已审核近场运动预设，不改变触发频率。",
+  "execution_status": "implementation_ready",
+  "review_status": "pending_listening_review",
+  "controller": {
+    "parameter": "nearfield_width",
+    "value_type": "enum",
+    "allowed_values": ["focused", "natural", "wide"],
+    "default_value": "natural",
+    "apply_timing": "next_event_or_safe_boundary",
+    "feedback": "新的宽度将从下一事件或安全段落生效"
+  },
+  "sound_budget": {
+    "request": {"min_objects": 1, "max_objects": 4},
+    "compiled_scene": {
+      "min_objects": 2,
+      "max_objects": 4,
+      "bed": {"min": 1, "max": 1},
+      "ambience": {"min": 0, "max": 1},
+      "foreground": {"min": 0, "max": 3},
+      "ambience_plus_foreground": {"min": 1, "max": 3},
+      "voice_max": 1
+    }
+  },
+  "structural_slots": [
+    {
+      "slot_id": "stable_background",
+      "visual_zone": "background",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["bed", "ambience"],
+      "playback_classes": ["continuous", "bounded_loop"],
+      "supplement_allowed": true,
+      "assignment_priority": 1
+    },
+    {
+      "slot_id": "left_nearfield",
+      "visual_zone": "near_left",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["action", "trigger"],
+      "playback_classes": ["bounded_loop", "episodic", "oneshot"],
+      "supplement_allowed": true,
+      "assignment_priority": 2
+    },
+    {
+      "slot_id": "right_nearfield",
+      "visual_zone": "near_right",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["action", "trigger"],
+      "playback_classes": ["bounded_loop", "episodic", "oneshot"],
+      "supplement_allowed": true,
+      "assignment_priority": 3
+    },
+    {
+      "slot_id": "front_companion",
+      "visual_zone": "front_center",
+      "required_for_playable": false,
+      "min_objects": 0,
+      "max_objects": 1,
+      "allowed_roles": ["voice", "ambience"],
+      "playback_classes": ["continuous", "bounded_loop", "phrase_sequence"],
+      "supplement_allowed": false,
+      "assignment_priority": 4
+    }
+  ],
+  "state_resolution": {
+    "mode": "discrete_profile_lookup",
+    "profile_source": "approved_motion_registry",
+    "rules": [
+      "Map focused, natural or wide to one reviewed nearfield motion profile family.",
+      "Apply a new profile only to future events or at a declared safe section boundary.",
+      "Keep the event scheduler and trigger frequency unchanged.",
+      "Reject rapid head-circling, forbidden-zone entry or an unsafe full path."
+    ],
+    "profile_keys": {
+      "focused": "nearfield_focused_motion_profile_id",
+      "natural": "nearfield_natural_motion_profile_id",
+      "wide": "nearfield_wide_motion_profile_id"
+    },
+    "mutable_dimensions": ["future_motion_profile"],
+    "immutable_dimensions": ["resource_binding", "trigger_frequency", "active_event_path", "scene_role"]
+  },
+  "compile_pipeline": [
+    {"step_id": "validate_input", "processor": "generation_request_gate", "on_failure": "fail"},
+    {"step_id": "resolve_approved_bindings", "processor": "frame_binding_gate", "on_failure": "needs_clarification"},
+    {"step_id": "assign_structural_slots", "processor": "nearfield_side_slot_assigner", "on_failure": "needs_clarification"},
+    {"step_id": "apply_framework_state", "processor": "approved_nearfield_profile_resolver", "on_failure": "preserve_and_report"},
+    {"step_id": "preserve_manual_overrides", "processor": "manual_track_protection_gate", "on_failure": "needs_clarification"},
+    {"step_id": "emit_scene_draft", "processor": "deterministic_timeline_compiler", "on_failure": "fail"}
+  ],
+  "safety_rules": [
+    "do_not_change_asset_kind",
+    "do_not_delete_non_target_objects",
+    "do_not_modify_user_locked_objects",
+    "do_not_overwrite_manual_tracks_without_confirmation",
+    "do_not_emit_arbitrary_cues",
+    "do_not_emit_arbitrary_coordinates",
+    "do_not_bypass_approved_bindings",
+    "preserve_trigger_frequency",
+    "apply_at_next_event_or_safe_boundary",
+    "approved_nearfield_motion_profiles_only",
+    "validate_full_motion_path",
+    "forbid_rapid_head_circling"
+  ],
+  "manual_override_policy": {
+    "mode": "preserve_by_default",
+    "protected_track_selector": "source_scene.manual_override_track_ids",
+    "on_conflict": "require_explicit_confirmation",
+    "conflict_output": "impact_list",
+    "no_implicit_override": true
+  },
+  "supplement_policy": {
+    "allowed": true,
+    "origin": "system_supplement",
+    "binding_status": "approved",
+    "requires_reason": true,
+    "max_result_objects": 4,
+    "readd_user_deleted": false,
+    "on_missing_required_slot": "needs_clarification_or_explicit_supplement"
+  },
+  "output_contract": {
+    "scene_draft_contract": "ai-scene-generation-v1",
+    "timeline_contract": "timeline-contract-v1",
+    "cue_authority": "deterministic_timeline_compiler",
+    "required_dependency_versions": ["catalog", "binding_index", "content_preset", "script", "motion_registry"]
+  },
+  "acceptance": {
+    "automated": ["controller_enum_valid", "nearfield_slots_resolved", "trigger_schedule_unchanged", "full_motion_path_safe"],
+    "listening": ["three_width_states_are_distinguishable", "no_rapid_pan_or_startle", "current_event_never_changes_path_midflight"]
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "contract_version": "dreamweaver-structure-script-v1",
+  "script_id": "enclosure_control_script",
+  "script_version": "1.0.0",
+  "framework_id": "enclosure_control",
+  "product_name": "安稳包围",
+  "description": "以稳定底层、包围环境和少量细节组织场景；三档状态只选择已审核的稳定性、未来细节密度和运动范围配置。",
+  "execution_status": "implementation_ready",
+  "review_status": "pending_listening_review",
+  "controller": {
+    "parameter": "enclosure_level",
+    "value_type": "enum",
+    "allowed_values": ["open", "balanced", "enclosed"],
+    "default_value": "balanced",
+    "apply_timing": "next_event_or_safe_boundary",
+    "feedback": "新的包围状态将从后续事件生效"
+  },
+  "sound_budget": {
+    "request": {"min_objects": 1, "max_objects": 4},
+    "compiled_scene": {
+      "min_objects": 2,
+      "max_objects": 4,
+      "bed": {"min": 1, "max": 1},
+      "ambience": {"min": 0, "max": 1},
+      "foreground": {"min": 0, "max": 3},
+      "ambience_plus_foreground": {"min": 1, "max": 3},
+      "voice_max": 1
+    }
+  },
+  "structural_slots": [
+    {
+      "slot_id": "stable_bed",
+      "visual_zone": "center_base",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["bed"],
+      "playback_classes": ["continuous", "bounded_loop"],
+      "supplement_allowed": true,
+      "assignment_priority": 1
+    },
+    {
+      "slot_id": "enveloping_environment",
+      "visual_zone": "surrounding_shell",
+      "required_for_playable": true,
+      "min_objects": 1,
+      "max_objects": 1,
+      "allowed_roles": ["ambience", "action"],
+      "playback_classes": ["continuous", "bounded_loop"],
+      "supplement_allowed": true,
+      "assignment_priority": 2
+    },
+    {
+      "slot_id": "optional_details",
+      "visual_zone": "inner_shell",
+      "required_for_playable": false,
+      "min_objects": 0,
+      "max_objects": 2,
+      "allowed_roles": ["action", "trigger", "voice"],
+      "playback_classes": ["episodic", "oneshot", "phrase_sequence"],
+      "supplement_allowed": false,
+      "assignment_priority": 3
+    }
+  ],
+  "state_resolution": {
+    "mode": "discrete_profile_lookup",
+    "profile_source": "approved_content_preset",
+    "rules": [
+      "Map the selected level to one versioned enclosure profile.",
+      "Apply bed prominence, future detail density and motion scope from that profile.",
+      "Do not reschedule or truncate an already active one-shot.",
+      "Commit density and motion changes only at the next event or safe section boundary."
+    ],
+    "profile_keys": {
+      "open": "enclosure_open_profile_id",
+      "balanced": "enclosure_balanced_profile_id",
+      "enclosed": "enclosure_enclosed_profile_id"
+    },
+    "mutable_dimensions": ["relative_mix", "future_detail_density", "future_motion_scope"],
+    "immutable_dimensions": ["resource_binding", "active_oneshot", "scene_role"]
+  },
+  "compile_pipeline": [
+    {"step_id": "validate_input", "processor": "generation_request_gate", "on_failure": "fail"},
+    {"step_id": "resolve_approved_bindings", "processor": "frame_binding_gate", "on_failure": "needs_clarification"},
+    {"step_id": "assign_structural_slots", "processor": "enclosure_slot_assigner", "on_failure": "needs_clarification"},
+    {"step_id": "apply_framework_state", "processor": "approved_enclosure_profile_resolver", "on_failure": "preserve_and_report"},
+    {"step_id": "preserve_manual_overrides", "processor": "manual_track_protection_gate", "on_failure": "needs_clarification"},
+    {"step_id": "emit_scene_draft", "processor": "deterministic_timeline_compiler", "on_failure": "fail"}
+  ],
+  "safety_rules": [
+    "do_not_change_asset_kind",
+    "do_not_delete_non_target_objects",
+    "do_not_modify_user_locked_objects",
+    "do_not_overwrite_manual_tracks_without_confirmation",
+    "do_not_emit_arbitrary_cues",
+    "do_not_emit_arbitrary_coordinates",
+    "do_not_bypass_approved_bindings",
+    "preserve_active_oneshots",
+    "future_events_only_for_density_changes",
+    "approved_motion_profiles_only"
+  ],
+  "manual_override_policy": {
+    "mode": "preserve_by_default",
+    "protected_track_selector": "source_scene.manual_override_track_ids",
+    "on_conflict": "require_explicit_confirmation",
+    "conflict_output": "impact_list",
+    "no_implicit_override": true
+  },
+  "supplement_policy": {
+    "allowed": true,
+    "origin": "system_supplement",
+    "binding_status": "approved",
+    "requires_reason": true,
+    "max_result_objects": 4,
+    "readd_user_deleted": false,
+    "on_missing_required_slot": "needs_clarification_or_explicit_supplement"
+  },
+  "output_contract": {
+    "scene_draft_contract": "ai-scene-generation-v1",
+    "timeline_contract": "timeline-contract-v1",
+    "cue_authority": "deterministic_timeline_compiler",
+    "required_dependency_versions": ["catalog", "binding_index", "content_preset", "script", "motion_registry"]
+  },
+  "acceptance": {
+    "automated": ["controller_enum_valid", "stable_bed_present", "active_oneshots_unchanged"],
+    "listening": ["three_states_are_distinguishable", "enclosed_state_remains_breathable", "state_change_has_no_event_cutoff"]
+  }
+}
