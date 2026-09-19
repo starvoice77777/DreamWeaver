@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import MixPreset, Scene, SceneTrack
-from app.services.handoff_presets import apply_fireplace_review
+from app.services.handoff_presets import apply_review_preset
 
 DEFAULT_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
 RETIRED_SCENE_IDS = frozenset(
@@ -728,7 +728,7 @@ def official_scene_specs() -> list[dict[str, Any]]:
     for spec in specs:
         if spec["id"] != DEFAULT_SCENE_ID:
             spec["tracks"] = [track for track in spec["tracks"] if track["layer"] != "voice"]
-    return [apply_fireplace_review(spec) for spec in specs]
+    return [apply_review_preset(spec) for spec in specs]
 
 
 def official_preset_specs() -> list[dict]:
