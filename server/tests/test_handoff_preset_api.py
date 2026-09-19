@@ -14,12 +14,13 @@ from app.services.handoff_presets import (
     FIREPLACE_SCENE_ID,
     FIXTURES,
     MIST_SCENE_ID,
+    PAGE_SCENE_ID,
 )
 
 
 @pytest.fixture(
-    params=[FIREPLACE_SCENE_ID, MIST_SCENE_ID, EAR_SCENE_ID],
-    ids=["fireplace", "mist", "ear"],
+    params=[FIREPLACE_SCENE_ID, MIST_SCENE_ID, EAR_SCENE_ID, PAGE_SCENE_ID],
+    ids=["fireplace", "mist", "ear", "page"],
 )
 def review_case(request):
     scene_id = request.param
@@ -53,7 +54,9 @@ def test_review_requires_opt_in_and_development_environment(environment):
     )
 
 
-@pytest.mark.parametrize("fixture", FIXTURES.values(), ids=["fireplace", "mist", "ear"])
+@pytest.mark.parametrize(
+    "fixture", FIXTURES.values(), ids=["fireplace", "mist", "ear", "page"]
+)
 def test_review_fixture_is_identical_in_backend_and_ios(fixture):
     root = Path(__file__).resolve().parents[2]
     app_fixture = root / "DreamWeaver/Resources/Mock" / fixture.name
@@ -69,15 +72,31 @@ async def assert_review(client, review_case):
     assert scene["recommended_duration_seconds"] == preset["timeline"]["duration_hint_seconds"]
     assert scene["is_demo_playable"] is True
     assert len(scene["tracks"]) == len(preset["sources"])
-    if scene["id"] == str(EAR_SCENE_ID):
+    review_appearances = {
+        str(EAR_SCENE_ID): (
+            "emotionalFluid",
+            {
+                "top": 0x15131B,
+                "mid": 0x282331,
+                "bottom": 0x0B0A10,
+                "accent": 0xB79BCB,
+            },
+        ),
+        str(PAGE_SCENE_ID): (
+            "snowStudy",
+            {
+                "top": 0x1A2230,
+                "mid": 0x3A4658,
+                "bottom": 0x12161E,
+                "accent": 0xD8DEE8,
+            },
+        ),
+    }
+    if appearance := review_appearances.get(scene["id"]):
+        visual_style, palette = appearance
         assert scene["category"] == "whisper"
-        assert scene["visual_style"] == "emotionalFluid"
-        assert scene["palette"] == {
-            "top": 0x15131B,
-            "mid": 0x282331,
-            "bottom": 0x0B0A10,
-            "accent": 0xB79BCB,
-        }
+        assert scene["visual_style"] == visual_style
+        assert scene["palette"] == palette
     for actual, source in zip(scene["tracks"], preset["sources"], strict=True):
         assert actual["id"] == source["id"]
         assert actual["resource_key"] == source["resourceName"]
@@ -99,7 +118,7 @@ async def assert_review(client, review_case):
 async def test_old_catalog_upgrades_and_rolls_back_without_reseed(
     client, review_settings, review_case
 ):
-    url, _, legacy_name = review_case
+    url, preset, legacy_name = review_case
     review_settings(enabled=False)
     original_response = await client.get(url)
     original = None
@@ -124,7 +143,7 @@ async def test_old_catalog_upgrades_and_rolls_back_without_reseed(
         assert disabled_detail.status_code == 404
         assert disabled_timeline.status_code == 404
         summaries = (await client.get("/v1/scenes")).json()
-        assert all(item["id"] != str(EAR_SCENE_ID) for item in summaries)
+        assert all(item["id"] != preset["sceneID"] for item in summaries)
     else:
         assert disabled_detail.json() == original
         timeline = disabled_timeline.json()
