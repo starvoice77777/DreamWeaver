@@ -11,12 +11,14 @@ from app.core.config import get_settings
 FIREPLACE_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-11111111110d")
 MIST_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111104")
 EAR_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111113")
-REVIEW_ONLY_SCENE_IDS = frozenset({EAR_SCENE_ID})
+PAGE_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111114")
+REVIEW_ONLY_SCENE_IDS = frozenset({EAR_SCENE_ID, PAGE_SCENE_ID})
 _FIXTURE_DIRECTORY = Path(__file__).resolve().parent.parent / "fixtures"
 FIXTURES = {
     FIREPLACE_SCENE_ID: _FIXTURE_DIRECTORY / "handoff_fireplace_v4.json",
     MIST_SCENE_ID: _FIXTURE_DIRECTORY / "handoff_mist_v4.json",
     EAR_SCENE_ID: _FIXTURE_DIRECTORY / "handoff_ear_v4.json",
+    PAGE_SCENE_ID: _FIXTURE_DIRECTORY / "handoff_page_v4.json",
 }
 
 
@@ -87,27 +89,51 @@ def apply_review_preset(spec: dict[str, Any]) -> dict[str, Any]:
 
 def review_only_scene_specs() -> list[dict[str, Any]]:
     """Build additive review scenes only while the environment gate is active."""
-    if (preset := review_preset(EAR_SCENE_ID)) is None:
-        return []
-    return [
-        {
-            "id": EAR_SCENE_ID,
-            "name": preset["name"],
-            "subtitle": preset["subtitle"],
-            "description": preset["subtitle"],
-            "category": "whisper",
-            "tags": preset["tags"],
-            "palette": {
+    appearances = (
+        (
+            EAR_SCENE_ID,
+            {
                 "top": 0x15131B,
                 "mid": 0x282331,
                 "bottom": 0x0B0A10,
                 "accent": 0xB79BCB,
             },
-            "visual_style": "emotionalFluid",
-            "recommended_duration_seconds": preset["timeline"]["duration_hint_seconds"],
-            "is_demo_playable": True,
-            "sort_order": 15,
-            "mock_listener_count": 0,
-            "tracks": _preset_tracks(preset),
-        }
-    ]
+            "emotionalFluid",
+            15,
+        ),
+        (
+            PAGE_SCENE_ID,
+            {
+                "top": 0x1A2230,
+                "mid": 0x3A4658,
+                "bottom": 0x12161E,
+                "accent": 0xD8DEE8,
+            },
+            "snowStudy",
+            16,
+        ),
+    )
+    specs: list[dict[str, Any]] = []
+    for scene_id, palette, visual_style, sort_order in appearances:
+        if (preset := review_preset(scene_id)) is None:
+            continue
+        specs.append(
+            {
+                "id": scene_id,
+                "name": preset["name"],
+                "subtitle": preset["subtitle"],
+                "description": preset["subtitle"],
+                "category": "whisper",
+                "tags": preset["tags"],
+                "palette": palette,
+                "visual_style": visual_style,
+                "recommended_duration_seconds": preset["timeline"][
+                    "duration_hint_seconds"
+                ],
+                "is_demo_playable": True,
+                "sort_order": sort_order,
+                "mock_listener_count": 0,
+                "tracks": _preset_tracks(preset),
+            }
+        )
+    return specs
