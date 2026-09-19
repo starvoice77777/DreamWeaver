@@ -28,16 +28,17 @@ class DeepSeekClient:
         transport: httpx.AsyncClient | httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.settings = settings
-        self._owns_client = not isinstance(transport, httpx.AsyncClient)
-        if self._owns_client:
+        if isinstance(transport, httpx.AsyncClient):
+            self._client = transport
+            self._owns_client = False
+        else:
             self._client = httpx.AsyncClient(
                 base_url=settings.deepseek_base_url.rstrip("/"),
                 headers={"Authorization": f"Bearer {settings.deepseek_api_key or ''}"},
                 timeout=settings.deepseek_timeout_seconds,
                 transport=transport,
             )
-        else:
-            self._client = transport
+            self._owns_client = True
 
     async def __aenter__(self) -> "DeepSeekClient":
         return self

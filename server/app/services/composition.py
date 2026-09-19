@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import math
 import uuid
-from typing import Any
+from typing import Any, NoReturn
 
 SCHEMA_V1 = "scene_composition_v1"
 SCHEMA_V2 = "scene_composition_v2"
@@ -42,7 +42,7 @@ def _fail(
     *,
     track_id: str | None = None,
     keyframe_index: int | None = None,
-) -> None:
+) -> NoReturn:
     raise CompositionValidationError(
         message, track_id=track_id, keyframe_index=keyframe_index
     )

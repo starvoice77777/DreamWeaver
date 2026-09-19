@@ -46,11 +46,11 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def _catalog(request: OutlineRequest) -> str:
+def _catalog(request: OutlineRequest | AdjustRequest) -> str:
     return _json([source.model_dump(mode="json") for source in request.selected_sources])
 
 
-def _context(request: OutlineRequest) -> str:
+def _context(request: OutlineRequest | AdjustRequest) -> str:
     return (
         "<UNTRUSTED_DATA>\nSelected source catalog:\n"
         f"{_catalog(request)}\nOptions:\n{_json(request.options)}\n</UNTRUSTED_DATA>"
