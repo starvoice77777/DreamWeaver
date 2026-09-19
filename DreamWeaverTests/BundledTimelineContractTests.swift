@@ -210,7 +210,7 @@ struct BundledTimelineContractTests {
         let timeline = try #require(HandoffSceneCatalog.timeline(for: scene.id))
         #expect(timeline.version == 4 && timeline.duration_hint_seconds == 600)
         #expect(timeline.cues.count == 48)
-        #expect(timeline.cues.flatMap(\.actions).count == 239)
+        #expect(timeline.cues.flatMap(\.actions).count == 244)
 
         let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
         #expect(plan.sourceGroups.count == 6 && plan.clips.count == 24)
@@ -228,6 +228,28 @@ struct BundledTimelineContractTests {
         #expect(zip(triggers, triggers.dropFirst()).allSatisfy { pair in
             abs(pair.0.endSeconds - pair.1.startSeconds) < 0.05
         })
+        for (key, start, target) in [
+            ("handoff_ear_cotton_swab_long", 0.0, 0.24),
+            ("handoff_ear_goose_feather", 160.0, 0.3),
+            ("handoff_ear_soft_brush", 180.0, 0.28),
+            ("handoff_ear_sponge_press", 200.0, 0.26),
+            ("handoff_ear_pick_soft", 220.0, 0.25),
+        ] {
+            let source = try #require(scene.soundSources.first { $0.resourceName == key })
+            let curve = try #require(
+                plan.automationCurves.first { $0.target == .sourceGroup(source.id) }
+            )
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(at: start, keyframes: curve.keyframes),
+                0
+            ))
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(
+                    at: start + 0.35, keyframes: curve.keyframes
+                ),
+                target
+            ))
+        }
         #else
         #expect(HandoffSceneCatalog.timeline(for: HandoffSceneCatalog.earSceneID) == nil)
         #expect(!MockDataService.makeScenes().contains { $0.id == HandoffSceneCatalog.earSceneID })
