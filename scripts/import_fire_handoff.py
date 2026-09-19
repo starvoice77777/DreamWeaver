@@ -1,4 +1,4 @@
-"""Bind reviewed fireplace or mist recipes to imported AAC resources."""
+"""Bind reviewed fireplace, mist, or ear-care recipes to imported AAC resources."""
 
 import argparse
 import csv
@@ -52,6 +52,34 @@ MIST_EXPECTED_SOURCE_HASHES = {
         "d5a0c2216e911ce9dad905fc3687143f5d4861d7f1e154043fe7bfe8ece9778d"
     ),
 }
+EAR_EXPECTED_SOURCE_HASHES = {
+    "scene/timeline.json": (
+        "502a31026a87d13464ef7e11dbbb0fab1de936a3cc611a1cdee048729fecc90f"
+    ),
+    "scene/scene_manifest.json": (
+        "bbe3c905d83722adfcb4abd63c76832345784a79a71bd2f4d1c0b1a6d10b8ac6"
+    ),
+    "scene/tracks.csv": (
+        "41895c6a1ce49f662bea152a0194404c7cbc11f025c660cf10162fe2db6e61a9"
+    ),
+    "scene/source_map.csv": (
+        "64a6863535029aa74dac4d3c68065fc20466afd3c74b520b101409d617bb0eed"
+    ),
+    "qc/asset_qc.csv": (
+        "a6eb2da0cf8f67f6ea20b4aca545fd6e33d42bdd7aa199c3d687810fadb7c3d5"
+    ),
+    "licenses/license_manifest.csv": (
+        "0ec9150436c77c60d4fb08495f1fd2fd66e5a87f9db0e45fcd5ca2f527419fe6"
+    ),
+}
+EXPECTED_ASSET_INDEX_HASH = (
+    "6f1907dab0df80c51b15ed0227ffaa6586b328333f966e1e5587823154c521c9"
+)
+EAR_SOURCE_MAP_SHA_EXCEPTIONS = {
+    "ear_goose_feather_01": (
+        "cb0e1b94b40bef362f14cb024e20bad8818f3694726d761d1be6a0c13f177b"
+    )
+}
 PRESETS = {
     "sc_fire_v01": {
         "scene_id": SCENE_ID,
@@ -68,6 +96,17 @@ PRESETS = {
         "tags": ["雾海", "缓潮"],
         "output": OUTPUT.with_name("handoff_mist_v4.json"),
         "source_hashes": MIST_EXPECTED_SOURCE_HASHES,
+    },
+    "sc_ear_v01": {
+        "scene_id": uuid.UUID("a1111111-1111-4111-8111-111111111113"),
+        "cue_prefix": "ear",
+        "subtitle": "安静房间里，细微触感缓慢穿过左右耳侧。",
+        "tags": ["采耳", "ASMR"],
+        "output": OUTPUT.with_name("handoff_ear_v4.json"),
+        "source_hashes": EAR_EXPECTED_SOURCE_HASHES,
+        "asset_index_hash": EXPECTED_ASSET_INDEX_HASH,
+        "source_map_sha_exceptions": EAR_SOURCE_MAP_SHA_EXCEPTIONS,
+        "zero_first_oneshot_envelope": True,
     },
 }
 
@@ -101,6 +140,20 @@ def validated_source_hashes(package, expected_hashes=EXPECTED_SOURCE_HASHES):
     return hashes
 
 
+def validated_asset_index(package, expected_hash):
+    path = package.parents[1] / "audio_asset_index.csv"
+    if not path.is_file():
+        raise ValueError("Missing reviewed source file: audio_asset_index.csv")
+    received = digest(path)
+    if received != expected_hash:
+        raise ValueError(
+            "Unexpected source package SHA-256 for audio_asset_index.csv: "
+            f"expected={expected_hash}, received={received}"
+        )
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        return received, list(csv.DictReader(stream))
+
+
 def output_for_scene(scene_id):
     for preset in PRESETS.values():
         if str(preset["scene_id"]) == scene_id:
@@ -117,6 +170,12 @@ def convert(package):
     if preset is None or source.get("version") != 4:
         raise ValueError("Expected a supported review timeline v4")
     source_hashes = validated_source_hashes(package, preset["source_hashes"])
+    asset_index_hash = None
+    asset_index = []
+    if expected_index_hash := preset.get("asset_index_hash"):
+        asset_index_hash, asset_index = validated_asset_index(
+            package, expected_index_hash
+        )
     manifest = read_json(package / "scene/scene_manifest.json")
     if (
         manifest.get("scene_id") != source["scene_id"]
@@ -141,8 +200,33 @@ def convert(package):
             for e in catalog
             if key in e["sceneResourceKeys"] and e["sourceSHA256"] == sha
         ]
-        if len(matches) != 1 or mappings[key]["sha256"].lower() != sha:
+        mapping_sha = mappings[key]["sha256"].lower()
+        mapping_exception = preset.get("source_map_sha_exceptions", {}).get(key)
+        uses_mapping_exception = mapping_sha != sha
+        indexed_hashes = {
+            row["sha256"].lower()
+            for row in asset_index
+            if row["resource_key"] == key
+        }
+        if (
+            len(matches) != 1
+            or (
+                uses_mapping_exception
+                and (
+                    mapping_sha != mapping_exception
+                    or sha not in indexed_hashes
+                )
+            )
+            or (not uses_mapping_exception and mapping_exception is not None)
+        ):
             raise ValueError(f"Unverified master binding: {key}")
+        if uses_mapping_exception:
+            notes.append(
+                f"scene/source_map.csv {key} contains a known "
+                f"{len(mapping_sha)}-character SHA-256 typo; binding verified "
+                "against the master file, audio_asset_index.csv, and the "
+                "application audio catalog."
+            )
         entry = matches[0]
         if digest(AUDIO / entry["file"]) != entry["outputSHA256"]:
             raise ValueError(f"Changed encoded audio: {key}")
@@ -195,14 +279,49 @@ def convert(package):
         for event in track.get("playback_events", []):
             end = event["start_seconds"] + event["playback_duration_seconds"]
             cues[end].append({"type": "pause", "track_id": track_id})
+    seen_oneshot_tracks = set()
     for cue in source["cues"]:
+        first_oneshot_tracks = {
+            action["track_id"]
+            for action in cue["actions"]
+            if action["type"] == "play_oneshot"
+            and action["track_id"] not in seen_oneshot_tracks
+        }
+        initialized_oneshot_tracks = set()
         for original in cue["actions"]:
             action = original.copy()
             if action["type"] == "set_volume":
                 action["type"] = "set_envelope"
                 action["envelope"] = action.pop("volume")
+            if (
+                preset.get("zero_first_oneshot_envelope")
+                and action["type"] == "set_envelope"
+                and action["track_id"] in first_oneshot_tracks
+                and action["track_id"] not in initialized_oneshot_tracks
+                and action["envelope"] > 0
+                and action.get("fade_ms", 0) > 0
+            ):
+                cues[cue["at_seconds"]].append(
+                    {
+                        "type": "set_envelope",
+                        "track_id": action["track_id"],
+                        "fade_ms": 0,
+                        "envelope": 0.0,
+                    }
+                )
+                initialized_oneshot_tracks.add(action["track_id"])
             cues[cue["at_seconds"]].append(action)
             if action["type"] == "play_oneshot":
+                if (
+                    preset.get("zero_first_oneshot_envelope")
+                    and action["track_id"] in first_oneshot_tracks
+                    and action["track_id"] not in initialized_oneshot_tracks
+                ):
+                    raise ValueError(
+                        "First one-shot must define a positive envelope fade: "
+                        f"{action['track_id']}"
+                    )
+                seen_oneshot_tracks.add(action["track_id"])
                 track = tracks_by_id[action["track_id"]]
                 has_event = any(
                     event["start_seconds"] == cue["at_seconds"]
@@ -250,6 +369,11 @@ def convert(package):
         "provenance": {
             "package": package.name,
             "sourceHashes": source_hashes,
+            **(
+                {"assetIndexSHA256": asset_index_hash}
+                if asset_index_hash is not None
+                else {}
+            ),
             "releaseBlockers": manifest["release_blockers"],
             "bindings": bindings,
             **({"notes": notes} if notes else {}),
