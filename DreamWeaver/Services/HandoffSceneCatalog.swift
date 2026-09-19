@@ -1,8 +1,9 @@
 import Foundation
 
-/// Review presets replace local demo data only when their Debug resources are present.
+/// Review presets replace or append local demo data only when their Debug resources are present.
 enum HandoffSceneCatalog {
     static let earSceneID = UUID(uuidString: "A1111111-1111-4111-8111-111111111113")!
+    static let pageSceneID = UUID(uuidString: "A1111111-1111-4111-8111-111111111114")!
 
     private struct Preset: Decodable {
         let sceneID: UUID
@@ -21,7 +22,8 @@ enum HandoffSceneCatalog {
         return [
             ("handoff_fireplace_v4", DemoIDs.fireplaceScene),
             ("handoff_mist_v4", DemoIDs.mistTideScene),
-            ("handoff_ear_v4", earSceneID)
+            ("handoff_ear_v4", earSceneID),
+            ("handoff_page_v4", pageSceneID)
         ].compactMap { name, sceneID in load(name, sceneID: sceneID) }
         #else
         return []
@@ -70,7 +72,28 @@ enum HandoffSceneCatalog {
         }
         let existingIDs = Set(replaced.map(\.id))
         let additions = presets.compactMap { preset -> DreamScene? in
-            guard !existingIDs.contains(preset.sceneID), preset.sceneID == earSceneID else { return nil }
+            guard !existingIDs.contains(preset.sceneID) else { return nil }
+            let palette: ScenePalette
+            let visualStyle: SceneVisualStyle
+            if preset.sceneID == earSceneID {
+                palette = ScenePalette(
+                    top: 0x15131B,
+                    mid: 0x282331,
+                    bottom: 0x0B0A10,
+                    accent: 0xB79BCB
+                )
+                visualStyle = .emotionalFluid
+            } else if preset.sceneID == pageSceneID {
+                palette = ScenePalette(
+                    top: 0x1A2230,
+                    mid: 0x3A4658,
+                    bottom: 0x12161E,
+                    accent: 0xD8DEE8
+                )
+                visualStyle = .snowStudy
+            } else {
+                return nil
+            }
             return DreamScene(
                 id: preset.sceneID,
                 name: preset.name,
@@ -78,18 +101,13 @@ enum HandoffSceneCatalog {
                 description: preset.subtitle,
                 category: .whisper,
                 tags: preset.tags,
-                palette: ScenePalette(
-                    top: 0x15131B,
-                    mid: 0x282331,
-                    bottom: 0x0B0A10,
-                    accent: 0xB79BCB
-                ),
+                palette: palette,
                 soundSources: preset.sources,
                 isFavorite: false,
                 isFrequentlyUsed: false,
                 listenCount: 0,
                 mockListenerCount: 0,
-                visualStyle: .emotionalFluid,
+                visualStyle: visualStyle,
                 isDemoPlayable: true,
                 audioManifest: audioManifest(for: preset)
             )
