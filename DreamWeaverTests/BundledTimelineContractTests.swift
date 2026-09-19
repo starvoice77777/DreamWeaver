@@ -277,7 +277,8 @@ struct BundledTimelineContractTests {
 
         let timeline = try #require(HandoffSceneCatalog.timeline(for: scene.id))
         #expect(timeline.version == 4 && timeline.duration_hint_seconds == 250)
-        #expect(timeline.cues.count == 100)
+        #expect(timeline.cues.count == 99)
+        #expect(Set(timeline.cues.map(\.id)).count == timeline.cues.count)
         #expect(timeline.cues.flatMap(\.actions).count == 355)
 
         let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
