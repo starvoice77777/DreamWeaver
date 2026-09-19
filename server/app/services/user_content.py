@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -27,7 +28,7 @@ from app.services.content import list_scenes
 from app.services.seed_catalog import DEFAULT_SCENE_ID, ensure_official_catalog
 
 
-def _validated_composition_or_http(document: dict) -> dict:
+def _validated_composition_or_http(document: dict[str, Any]) -> dict[str, Any]:
     try:
         return validate_composition(document)
     except CompositionValidationError as exc:
@@ -214,7 +215,7 @@ async def _owned_private(session: AsyncSession, user: User, scene_id: uuid.UUID)
     return scene
 
 
-def _tracks_as_sources(scene: Scene) -> list[dict]:
+def _tracks_as_sources(scene: Scene) -> list[dict[str, Any]]:
     return [
         {
             "name": track.name,
@@ -324,15 +325,17 @@ async def save_private_scene(
 ) -> PrivateSceneDetailOut:
     scene = await _owned_private(session, user, scene_id)
     has_sources = bool(scene.draft_sources)
-    has_composition = scene.draft_composition is not None
+    draft_composition = scene.draft_composition
+    has_composition = draft_composition is not None
     if not has_sources and not has_composition:
         raise HTTPException(
             status_code=422,
             detail="Cannot save an empty mix; add at least one source or composition track",
         )
-    if has_composition:
-        scene.draft_composition = _validated_composition_or_http(scene.draft_composition)
-        scene.saved_composition = dict(scene.draft_composition)
+    if draft_composition is not None:
+        validated_composition = _validated_composition_or_http(draft_composition)
+        scene.draft_composition = validated_composition
+        scene.saved_composition = dict(validated_composition)
     else:
         scene.saved_composition = None
     scene.saved_sources = list(scene.draft_sources or [])

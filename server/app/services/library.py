@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC
 from pathlib import PurePosixPath
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -256,12 +257,14 @@ def _source_asset_id(source: object) -> str | None:
     return str(raw).lower()
 
 
-def _count_asset_refs(sources: list | None, asset_id: uuid.UUID) -> int:
+def _count_asset_refs(sources: list[dict[str, Any]] | None, asset_id: uuid.UUID) -> int:
     needle = str(asset_id).lower()
     return sum(1 for item in (sources or []) if _source_asset_id(item) == needle)
 
 
-def _scrub_asset_refs(sources: list | None, asset_id: uuid.UUID) -> list:
+def _scrub_asset_refs(
+    sources: list[dict[str, Any]] | None, asset_id: uuid.UUID
+) -> list[dict[str, Any]]:
     needle = str(asset_id).lower()
     return [item for item in (sources or []) if _source_asset_id(item) != needle]
 
