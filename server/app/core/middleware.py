@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 import uuid
 
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
 from app.core.logging import get_logger
 from app.core.metrics import observe_request
 from app.core.request_context import set_request_id
@@ -15,10 +17,10 @@ logger = get_logger("dreamweaver.access")
 class ObservabilityASGIMiddleware:
     """Pure ASGI middleware so we can reliably log after the response starts."""
 
-    def __init__(self, app):  # noqa: ANN001
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):  # noqa: ANN001
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -29,7 +31,7 @@ class ObservabilityASGIMiddleware:
         started = time.perf_counter()
         status_code_holder = {"code": 500}
 
-        async def send_wrapper(message):  # noqa: ANN001
+        async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 status_code_holder["code"] = message["status"]
                 raw_headers = list(message.get("headers") or [])
