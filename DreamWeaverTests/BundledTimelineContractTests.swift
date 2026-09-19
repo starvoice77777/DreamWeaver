@@ -190,6 +190,72 @@ struct BundledTimelineContractTests {
         #endif
     }
 
+    @Test("Ear care review appends a serial moving-trigger preset")
+    func earCareReviewContract() throws {
+        #if DEBUG
+        let scene = try #require(
+            MockDataService.makeScenes().first { $0.id == HandoffSceneCatalog.earSceneID }
+        )
+        #expect(scene.name == "采耳 ASMR" && scene.soundSources.count == 6)
+        #expect(scene.category == .whisper && scene.visualStyle == .emotionalFluid)
+        #expect(scene.soundSources.map(\.layer) == [
+            .environment, .trigger, .trigger, .trigger, .trigger, .trigger
+        ])
+        #expect(scene.soundSources.allSatisfy { source in
+            source.initialEnvelope == 1
+                && source.assetId == nil
+                && source.resourceName.map { LocalPlaybackService.url(forResource: $0) != nil } == true
+        })
+
+        let timeline = try #require(HandoffSceneCatalog.timeline(for: scene.id))
+        #expect(timeline.version == 4 && timeline.duration_hint_seconds == 600)
+        #expect(timeline.cues.count == 48)
+        #expect(timeline.cues.flatMap(\.actions).count == 244)
+
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        #expect(plan.sourceGroups.count == 6 && plan.clips.count == 24)
+        let bed = try #require(
+            plan.clips.first { $0.resourceKey == "handoff_room_earcare_quiet_loop" }
+        )
+        #expect(bed.startSeconds == 0 && bed.endSeconds == 600)
+        #expect(bed.playbackMode == .boundedLoop && bed.crossfadeMilliseconds == 500)
+
+        let triggers = plan.clips
+            .filter { $0.playbackMode == .oneshot }
+            .sorted { $0.startSeconds < $1.startSeconds }
+        #expect(triggers.count == 23)
+        #expect(triggers.first?.startSeconds == 0 && triggers.last?.startSeconds == 580)
+        #expect(zip(triggers, triggers.dropFirst()).allSatisfy { pair in
+            abs(pair.0.endSeconds - pair.1.startSeconds) < 0.05
+        })
+        for (key, start, target) in [
+            ("handoff_ear_cotton_swab_long", 0.0, 0.24),
+            ("handoff_ear_goose_feather", 160.0, 0.3),
+            ("handoff_ear_soft_brush", 180.0, 0.28),
+            ("handoff_ear_sponge_press", 200.0, 0.26),
+            ("handoff_ear_pick_soft", 220.0, 0.25),
+        ] {
+            let source = try #require(scene.soundSources.first { $0.resourceName == key })
+            let curve = try #require(
+                plan.automationCurves.first { $0.target == .sourceGroup(source.id) }
+            )
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(at: start, keyframes: curve.keyframes),
+                0
+            ))
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(
+                    at: start + 0.35, keyframes: curve.keyframes
+                ),
+                target
+            ))
+        }
+        #else
+        #expect(HandoffSceneCatalog.timeline(for: HandoffSceneCatalog.earSceneID) == nil)
+        #expect(!MockDataService.makeScenes().contains { $0.id == HandoffSceneCatalog.earSceneID })
+        #endif
+    }
+
     @Test("Unknown scenes receive an empty identity-preserving timeline")
     func unknownSceneContract() {
         let unknown = UUID(uuidString: "90000000-0000-4000-8000-000000000001")!
