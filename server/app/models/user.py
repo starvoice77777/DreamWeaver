@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -101,7 +101,7 @@ class UserSettings(Base):
     audio_quality: Mapped[str] = mapped_column(String(32), nullable=False, default="标准")
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     default_scene_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
-    extras: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    extras: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
@@ -143,17 +143,19 @@ class PrivateScene(Base):
     subtitle: Mapped[str] = mapped_column(String(256), nullable=False, default="")
     description: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
     category: Mapped[str] = mapped_column(String(64), nullable=False, default="personal")
-    tags: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
-    palette: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    tags: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
+    palette: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     visual_style: Mapped[str] = mapped_column(String(64), nullable=False, default="custom")
     recommended_duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=2700)
     source_scene_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
-    draft_sources: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
-    saved_sources: Mapped[list | None] = mapped_column(JSONType, nullable=True)
-    draft_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
-    saved_timeline: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
-    draft_composition: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
-    saved_composition: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
+    draft_sources: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONType, nullable=False, default=list
+    )
+    saved_sources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONType, nullable=True)
+    draft_timeline: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
+    saved_timeline: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
+    draft_composition: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
+    saved_composition: Mapped[dict[str, Any] | None] = mapped_column(JSONType, nullable=True)
     saved_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
