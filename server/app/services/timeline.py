@@ -16,7 +16,7 @@ from app.schemas.content import (
     SceneCueOut,
     SceneTimelineOut,
 )
-from app.services.handoff_presets import FIREPLACE_SCENE_ID, fireplace_review
+from app.services.handoff_presets import FIXTURES, review_preset
 
 VOICE_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555503")
 AC_TRACK_ID = uuid.UUID("e5555555-5555-4555-8555-555555555506")
@@ -82,8 +82,8 @@ def _empty_document() -> tuple[list[dict], list[dict]]:
 
 def build_official_timeline_payload(scene: Scene) -> dict:
     duration = scene.recommended_duration_seconds or 2700
-    if scene.id == FIREPLACE_SCENE_ID:
-        if preset := fireplace_review():
+    if scene.id in FIXTURES:
+        if preset := review_preset(scene.id):
             return _timeline_payload(preset["timeline"])
         duration = 2700  # Clear a prior review duration when the gate is disabled.
     if scene.visual_style == "hairCare":
@@ -139,19 +139,20 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
     for scene in scenes:
         payload = build_official_timeline_payload(scene)
         row = scene.timeline
-        fireplace_changed = False
-        if scene.id == FIREPLACE_SCENE_ID:
+        review_changed = False
+        if scene.id in FIXTURES:
             from app.services.seed_catalog import (
                 official_scene_specs,
                 refresh_official_scene_tracks,
             )
 
             spec = next(s for s in official_scene_specs() if s["id"] == scene.id)
-            fireplace_changed = (
-                row is None or row.version != payload["version"]
+            review_changed = (
+                row is None
+                or row.version != payload["version"]
                 or {t.id for t in scene.tracks} != {t["id"] for t in spec["tracks"]}
             )
-            if fireplace_changed:
+            if review_changed:
                 refresh_official_scene_tracks(scene, spec)
                 for key in ("name", "subtitle", "description", "tags", "is_demo_playable"):
                     setattr(scene, key, spec[key])
@@ -184,7 +185,7 @@ async def ensure_official_timelines(session: AsyncSession) -> None:
             scene.visual_style not in {"hairCare", "rainEaves"}
             and (row.version < GENERIC_TIMELINE_VERSION or bool(row.phrases))
         )
-        if needs_upgrade or fireplace_changed:
+        if needs_upgrade or review_changed:
             row.version = payload["version"]
             row.automation_mode = payload["automation_mode"]
             row.duration_hint_seconds = payload["duration_hint_seconds"]
