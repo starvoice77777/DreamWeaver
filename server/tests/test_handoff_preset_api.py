@@ -9,14 +9,25 @@ import pytest
 from app.core.config import Settings, get_settings
 from app.models.content import SceneTrack
 from app.schemas.content import SceneTimelineOut
-from app.services.handoff_presets import FIREPLACE_SCENE_ID, FIXTURES, MIST_SCENE_ID
+from app.services.handoff_presets import (
+    EAR_SCENE_ID,
+    FIREPLACE_SCENE_ID,
+    FIXTURES,
+    MIST_SCENE_ID,
+)
 
 
-@pytest.fixture(params=[FIREPLACE_SCENE_ID, MIST_SCENE_ID], ids=["fireplace", "mist"])
+@pytest.fixture(
+    params=[FIREPLACE_SCENE_ID, MIST_SCENE_ID, EAR_SCENE_ID],
+    ids=["fireplace", "mist", "ear"],
+)
 def review_case(request):
     scene_id = request.param
     preset = json.loads(FIXTURES[scene_id].read_text(encoding="utf-8"))
-    legacy_name = "炉边低语" if scene_id == FIREPLACE_SCENE_ID else "星期天"
+    legacy_name = {
+        FIREPLACE_SCENE_ID: "炉边低语",
+        MIST_SCENE_ID: "星期天",
+    }.get(scene_id)
     return f"/v1/scenes/{scene_id}", preset, legacy_name
 
 
@@ -42,7 +53,7 @@ def test_review_requires_opt_in_and_development_environment(environment):
     )
 
 
-@pytest.mark.parametrize("fixture", FIXTURES.values(), ids=["fireplace", "mist"])
+@pytest.mark.parametrize("fixture", FIXTURES.values(), ids=["fireplace", "mist", "ear"])
 def test_review_fixture_is_identical_in_backend_and_ios(fixture):
     root = Path(__file__).resolve().parents[2]
     app_fixture = root / "DreamWeaver/Resources/Mock" / fixture.name
@@ -58,6 +69,15 @@ async def assert_review(client, review_case):
     assert scene["recommended_duration_seconds"] == preset["timeline"]["duration_hint_seconds"]
     assert scene["is_demo_playable"] is True
     assert len(scene["tracks"]) == len(preset["sources"])
+    if scene["id"] == str(EAR_SCENE_ID):
+        assert scene["category"] == "whisper"
+        assert scene["visual_style"] == "emotionalFluid"
+        assert scene["palette"] == {
+            "top": 0x15131B,
+            "mid": 0x282331,
+            "bottom": 0x0B0A10,
+            "accent": 0xB79BCB,
+        }
     for actual, source in zip(scene["tracks"], preset["sources"], strict=True):
         assert actual["id"] == source["id"]
         assert actual["resource_key"] == source["resourceName"]
@@ -81,8 +101,14 @@ async def test_old_catalog_upgrades_and_rolls_back_without_reseed(
 ):
     url, _, legacy_name = review_case
     review_settings(enabled=False)
-    original = (await client.get(url)).json()
-    assert original["name"] == legacy_name
+    original_response = await client.get(url)
+    original = None
+    if legacy_name is None:
+        assert original_response.status_code == 404
+    else:
+        assert original_response.status_code == 200
+        original = original_response.json()
+        assert original["name"] == legacy_name
     rain_url = "/v1/scenes/a1111111-1111-4111-8111-111111111102"
     rain = (await client.get(rain_url)).json()
 
@@ -92,11 +118,22 @@ async def test_old_catalog_upgrades_and_rolls_back_without_reseed(
     assert (await client.get(rain_url)).json() == rain
 
     review_settings(enabled=False)
-    assert (await client.get(url)).json() == original
-    timeline = (await client.get(url + "/timeline")).json()
-    assert timeline["version"] == 2
-    assert timeline["cues"] == []
-    assert timeline["duration_hint_seconds"] == 2700
+    disabled_detail = await client.get(url)
+    disabled_timeline = await client.get(url + "/timeline")
+    if legacy_name is None:
+        assert disabled_detail.status_code == 404
+        assert disabled_timeline.status_code == 404
+        summaries = (await client.get("/v1/scenes")).json()
+        assert all(item["id"] != str(EAR_SCENE_ID) for item in summaries)
+    else:
+        assert disabled_detail.json() == original
+        timeline = disabled_timeline.json()
+        assert timeline["version"] == 2
+        assert timeline["cues"] == []
+        assert timeline["duration_hint_seconds"] == 2700
+
+    review_settings()
+    assert await assert_review(client, review_case) == updated
 
 
 async def test_fresh_review_seed_and_missing_track_repair_are_idempotent(
@@ -126,11 +163,18 @@ async def test_disallowed_environment_clears_existing_review_rows(
     await assert_review(client, review_case)
 
     review_settings(environment=environment, enabled=True)
-    detail = (await client.get(url)).json()
-    assert detail["name"] == legacy_name
-    assert all(
-        not (track["resource_key"] or "").startswith("handoff_") for track in detail["tracks"]
-    )
-    timeline = (await client.get(url + "/timeline")).json()
-    assert timeline["version"] == 2
-    assert not timeline["cues"]
+    detail_response = await client.get(url)
+    timeline_response = await client.get(url + "/timeline")
+    if legacy_name is None:
+        assert detail_response.status_code == 404
+        assert timeline_response.status_code == 404
+    else:
+        detail = detail_response.json()
+        assert detail["name"] == legacy_name
+        assert all(
+            not (track["resource_key"] or "").startswith("handoff_")
+            for track in detail["tracks"]
+        )
+        timeline = timeline_response.json()
+        assert timeline["version"] == 2
+        assert not timeline["cues"]
