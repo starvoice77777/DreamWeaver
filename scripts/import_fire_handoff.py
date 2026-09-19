@@ -1,4 +1,4 @@
-"""Bind reviewed fireplace, mist, or ear-care recipes to imported AAC resources."""
+"""Bind reviewed fireplace, mist, ear-care, or page recipes to AAC resources."""
 
 import argparse
 import csv
@@ -72,6 +72,26 @@ EAR_EXPECTED_SOURCE_HASHES = {
         "0ec9150436c77c60d4fb08495f1fd2fd66e5a87f9db0e45fcd5ca2f527419fe6"
     ),
 }
+PAGE_EXPECTED_SOURCE_HASHES = {
+    "scene/timeline.json": (
+        "1ed2fb71e9e4d909b7b7d44d0a7efbfb7b0735155120d3deee69a6137289513b"
+    ),
+    "scene/scene_manifest.json": (
+        "3317ef14ec89d515a39ff3a1c52d4fc91a172012a1f16876a837b9c633f21907"
+    ),
+    "scene/tracks.csv": (
+        "8fce60aa3d21a99ec37f0be589123211381d2e0e912a0dc3b62e43d119f9c7b1"
+    ),
+    "scene/source_map.csv": (
+        "97b5bae540d54d27542c35f99c22e2b0730c9775cb05f7016fe6900078132e7a"
+    ),
+    "qc/asset_qc.csv": (
+        "2a3af6ad78a0257dc777a7be873252075e40efccab0258c501ee0ab38c7e7456"
+    ),
+    "licenses/license_manifest.csv": (
+        "f6d928b0c699d40ea56bdbe13e1922fde13736ae118e241705de44c89347cc5e"
+    ),
+}
 EXPECTED_ASSET_INDEX_HASH = (
     "6f1907dab0df80c51b15ed0227ffaa6586b328333f966e1e5587823154c521c9"
 )
@@ -108,6 +128,16 @@ PRESETS = {
         "source_map_sha_exceptions": EAR_SOURCE_MAP_SHA_EXCEPTIONS,
         "zero_first_oneshot_envelope": True,
     },
+    "sc_page_v01": {
+        "scene_id": uuid.UUID("a1111111-1111-4111-8111-111111111114"),
+        "cue_prefix": "page",
+        "subtitle": "冬夜书房里，翻页与轻写字声缓慢陪你入眠。",
+        "tags": ["翻页", "书房", "ASMR"],
+        "output": OUTPUT.with_name("handoff_page_v4.json"),
+        "source_hashes": PAGE_EXPECTED_SOURCE_HASHES,
+        "asset_index_hash": EXPECTED_ASSET_INDEX_HASH,
+        "zero_first_oneshot_envelope": True,
+    },
 }
 
 
@@ -117,6 +147,11 @@ def read_json(path):
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def cue_time(value):
+    """Canonicalize handoff timestamps before using them as cue dictionary keys."""
+    return round(value, 6)
 
 
 def rows(package, relative):
@@ -268,7 +303,7 @@ def convert(package):
             }
         )
         for frame in track["position_keyframes"]:
-            cues[frame["at_seconds"]].append(
+            cues[cue_time(frame["at_seconds"])].append(
                 {
                     "type": "set_position",
                     "track_id": track_id,
@@ -277,10 +312,13 @@ def convert(package):
                 }
             )
         for event in track.get("playback_events", []):
-            end = event["start_seconds"] + event["playback_duration_seconds"]
+            end = cue_time(
+                event["start_seconds"] + event["playback_duration_seconds"]
+            )
             cues[end].append({"type": "pause", "track_id": track_id})
     seen_oneshot_tracks = set()
     for cue in source["cues"]:
+        at_seconds = cue_time(cue["at_seconds"])
         first_oneshot_tracks = {
             action["track_id"]
             for action in cue["actions"]
@@ -301,7 +339,7 @@ def convert(package):
                 and action["envelope"] > 0
                 and action.get("fade_ms", 0) > 0
             ):
-                cues[cue["at_seconds"]].append(
+                cues[at_seconds].append(
                     {
                         "type": "set_envelope",
                         "track_id": action["track_id"],
@@ -310,7 +348,7 @@ def convert(package):
                     }
                 )
                 initialized_oneshot_tracks.add(action["track_id"])
-            cues[cue["at_seconds"]].append(action)
+            cues[at_seconds].append(action)
             if action["type"] == "play_oneshot":
                 if (
                     preset.get("zero_first_oneshot_envelope")
@@ -324,17 +362,19 @@ def convert(package):
                 seen_oneshot_tracks.add(action["track_id"])
                 track = tracks_by_id[action["track_id"]]
                 has_event = any(
-                    event["start_seconds"] == cue["at_seconds"]
+                    cue_time(event["start_seconds"]) == at_seconds
                     for event in track.get("playback_events", [])
                 )
                 if not has_event:
-                    end = min(
-                        cue["at_seconds"] + track["asset_duration_seconds"],
-                        source["duration_seconds"],
+                    end = cue_time(
+                        min(
+                            at_seconds + track["asset_duration_seconds"],
+                            source["duration_seconds"],
+                        )
                     )
                     cues[end].append({"type": "pause", "track_id": action["track_id"]})
                     notes.append(
-                        f"{track['resource_key']} at {cue['at_seconds']}s: "
+                        f"{track['resource_key']} at {at_seconds}s: "
                         "cue retained; missing playback_event end derived from asset duration"
                     )
     timeline = {
