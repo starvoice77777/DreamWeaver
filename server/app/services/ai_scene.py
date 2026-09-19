@@ -18,6 +18,7 @@ from app.schemas.ai_scene import (
     ArrangementRequest,
     CompileRequest,
     GenerateRequest,
+    OutlineRequest,
     SceneAdjustResult,
     SceneAssistResult,
     SceneOutline,
@@ -45,7 +46,7 @@ class SceneAssistSourceReferenceError(SceneAssistGenerationError):
 _NAMESPACE = uuid.UUID("c0f4e4a2-b0ea-4e44-9b8a-0c5d5f6e2f1a")
 
 
-def _content(response: Any) -> str | dict[str, Any]:
+def _content(response: Any) -> dict[str, Any]:
     value = getattr(response, "content", response)
     if isinstance(value, dict):
         return value
@@ -81,13 +82,13 @@ async def _complete(
     return _content(response)
 
 
-async def _with_repair(
+async def _with_repair[T](
     client: Any,
     prompts: tuple[str, str],
-    parser: Callable[[dict[str, Any]], Any],
+    parser: Callable[[dict[str, Any]], T],
     *,
     stage: str,
-) -> Any:
+) -> T:
     # One repair is reserved for parsed JSON/schema/composition validation failures.
     # Provider HTTP or malformed-response errors are typed provider failures and bypass repair.
     system, user = prompts
@@ -292,7 +293,7 @@ def _is_uuid(value: Any) -> bool:
         return False
 
 
-async def generate_outline(client: Any, request: Any) -> SceneOutline:
+async def generate_outline(client: Any, request: OutlineRequest) -> SceneOutline:
     return await _with_repair(
         client, build_outline_prompts(request), _parse_outline, stage="outline"
     )
