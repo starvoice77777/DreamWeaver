@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -21,8 +22,8 @@ class Scene(Base):
     subtitle: Mapped[str] = mapped_column(String(256), nullable=False, default="")
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     category: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    tags: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
-    palette: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)
+    tags: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
+    palette: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     visual_style: Mapped[str] = mapped_column(String(64), nullable=False)
     recommended_duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=2700)
     is_demo_playable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -68,8 +69,8 @@ class SceneTimeline(Base):
     override_policy: Mapped[str] = mapped_column(
         String(64), nullable=False, default="per_source_manual_exit"
     )
-    phrases: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
-    cues: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    phrases: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False, default=list)
+    cues: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -111,7 +112,7 @@ class MixPreset(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     style_hint: Mapped[str | None] = mapped_column(String(64), nullable=True)
     author_name: Mapped[str] = mapped_column(String(64), nullable=False, default="织梦")
-    sources: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False, default=list)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -131,7 +132,7 @@ class OfficialAsset(Base):
     duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     resource_key: Mapped[str | None] = mapped_column(String(256), nullable=True)
     preview_resource_key: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    tags: Mapped[list] = mapped_column(JSONType, nullable=False, default=list)
+    tags: Mapped[list[str]] = mapped_column(JSONType, nullable=False, default=list)
     is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

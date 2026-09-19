@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -136,7 +137,7 @@ class MixPresetOut(BaseModel):
     name: str
     style_hint: str | None = None
     author_name: str
-    sources: list[dict]
+    sources: list[dict[str, Any]]
     scene_id: uuid.UUID | None = None
 
 
@@ -222,14 +223,14 @@ class PrivateSceneSummaryOut(BaseModel):
 
 
 class PrivateSceneDetailOut(PrivateSceneSummaryOut):
-    palette: dict
+    palette: dict[str, Any]
     recommended_duration_seconds: int
-    draft_sources: list[dict] = Field(default_factory=list)
-    saved_sources: list[dict] | None = None
-    draft_timeline: dict | None = None
-    saved_timeline: dict | None = None
-    draft_composition: dict | None = None
-    saved_composition: dict | None = None
+    draft_sources: list[dict[str, Any]] = Field(default_factory=list)
+    saved_sources: list[dict[str, Any]] | None = None
+    draft_timeline: dict[str, Any] | None = None
+    saved_timeline: dict[str, Any] | None = None
+    draft_composition: dict[str, Any] | None = None
+    saved_composition: dict[str, Any] | None = None
 
 
 class PrivateSceneCreate(BaseModel):
@@ -238,11 +239,11 @@ class PrivateSceneCreate(BaseModel):
     description: str = ""
     category: str = "personal"
     tags: list[str] = Field(default_factory=list)
-    palette: dict | None = None
+    palette: dict[str, Any] | None = None
     visual_style: str = "custom"
-    sources: list[dict] = Field(default_factory=list)
-    timeline: dict | None = None
-    composition: dict | None = None
+    sources: list[dict[str, Any]] = Field(default_factory=list)
+    timeline: dict[str, Any] | None = None
+    composition: dict[str, Any] | None = None
 
 
 class PrivateSceneDraftUpdate(BaseModel):
@@ -251,19 +252,19 @@ class PrivateSceneDraftUpdate(BaseModel):
     description: str | None = None
     category: str | None = None
     tags: list[str] | None = None
-    palette: dict | None = None
+    palette: dict[str, Any] | None = None
     visual_style: str | None = None
-    sources: list[dict] | None = None
-    draft_timeline: dict | None = None
-    draft_composition: dict | None = None
+    sources: list[dict[str, Any]] | None = None
+    draft_timeline: dict[str, Any] | None = None
+    draft_composition: dict[str, Any] | None = None
 
 
 class CompositionValidateIn(BaseModel):
-    composition: dict
+    composition: dict[str, Any]
 
 
 class CompositionValidateOut(BaseModel):
-    composition: dict
+    composition: dict[str, Any]
 
 
 class HomeOut(BaseModel):
