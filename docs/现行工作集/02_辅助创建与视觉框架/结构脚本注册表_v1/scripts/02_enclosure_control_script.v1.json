@@ -1,7 +1,7 @@
 {
-  "contract_version": "dreamweaver-structure-script-v1",
+  "contract_version": "dreamweaver-structure-script-v2",
   "script_id": "enclosure_control_script",
-  "script_version": "1.0.0",
+  "script_version": "2.0.0",
   "framework_id": "enclosure_control",
   "product_name": "安稳包围",
   "description": "以稳定底层、包围环境和少量细节组织场景；三档状态只选择已审核的稳定性、未来细节密度和运动范围配置。",
@@ -19,7 +19,7 @@
     "request": {"min_objects": 1, "max_objects": 4},
     "compiled_scene": {
       "min_objects": 2,
-      "max_objects": 4,
+      "max_objects": 3,
       "bed": {"min": 1, "max": 1},
       "ambience": {"min": 0, "max": 1},
       "foreground": {"min": 0, "max": 3},
@@ -30,38 +30,39 @@
   "structural_slots": [
     {
       "slot_id": "stable_bed",
-      "visual_zone": "center_base",
+      "visual_zone": "base",
       "required_for_playable": true,
       "min_objects": 1,
       "max_objects": 1,
       "allowed_roles": ["bed"],
-      "playback_classes": ["continuous", "bounded_loop"],
+      "playback_classes": ["sustained"],
       "supplement_allowed": true,
       "assignment_priority": 1
     },
     {
       "slot_id": "enveloping_environment",
-      "visual_zone": "surrounding_shell",
-      "required_for_playable": true,
-      "min_objects": 1,
+      "visual_zone": "surround",
+      "required_for_playable": false,
+      "min_objects": 0,
       "max_objects": 1,
       "allowed_roles": ["ambience", "action"],
-      "playback_classes": ["continuous", "bounded_loop"],
-      "supplement_allowed": true,
+      "playback_classes": ["sustained", "episodic"],
+      "supplement_allowed": false,
       "assignment_priority": 2
     },
     {
       "slot_id": "optional_details",
-      "visual_zone": "inner_shell",
+      "visual_zone": "detail",
       "required_for_playable": false,
       "min_objects": 0,
-      "max_objects": 2,
+      "max_objects": 1,
       "allowed_roles": ["action", "trigger", "voice"],
-      "playback_classes": ["episodic", "oneshot", "phrase_sequence"],
+      "playback_classes": ["episodic", "continuous_trigger", "voice"],
       "supplement_allowed": false,
       "assignment_priority": 3
     }
   ],
+  "occupancy_constraints": [{"slot_ids": ["enveloping_environment", "optional_details"], "min_occupied_slots": 1}],
   "state_resolution": {
     "mode": "discrete_profile_lookup",
     "profile_source": "approved_content_preset",
@@ -111,7 +112,7 @@
     "origin": "system_supplement",
     "binding_status": "approved",
     "requires_reason": true,
-    "max_result_objects": 4,
+    "max_result_objects": 3,
     "readd_user_deleted": false,
     "on_missing_required_slot": "needs_clarification_or_explicit_supplement"
   },

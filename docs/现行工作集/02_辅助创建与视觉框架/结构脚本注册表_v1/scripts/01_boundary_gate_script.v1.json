@@ -1,7 +1,7 @@
 {
-  "contract_version": "dreamweaver-structure-script-v1",
+  "contract_version": "dreamweaver-structure-script-v2",
   "script_id": "boundary_gate_script",
-  "script_version": "1.0.0",
+  "script_version": "2.0.0",
   "framework_id": "boundary_gate",
   "product_name": "内外交织",
   "description": "以外部环境与内部稳定声之间的相对关系组织场景；开合只改变已审核的相对混音，不改素材、事件与运动。",
@@ -34,9 +34,9 @@
       "visual_zone": "outside",
       "required_for_playable": true,
       "min_objects": 1,
-      "max_objects": 2,
-      "allowed_roles": ["bed", "ambience"],
-      "playback_classes": ["continuous", "bounded_loop"],
+      "max_objects": 1,
+      "allowed_roles": ["bed", "ambience", "action"],
+      "playback_classes": ["sustained", "episodic"],
       "supplement_allowed": true,
       "assignment_priority": 1
     },
@@ -47,7 +47,7 @@
       "min_objects": 1,
       "max_objects": 1,
       "allowed_roles": ["bed", "ambience"],
-      "playback_classes": ["continuous", "bounded_loop"],
+      "playback_classes": ["sustained"],
       "supplement_allowed": true,
       "assignment_priority": 2
     },
@@ -56,13 +56,14 @@
       "visual_zone": "inside",
       "required_for_playable": false,
       "min_objects": 0,
-      "max_objects": 1,
+      "max_objects": 2,
       "allowed_roles": ["action", "trigger", "voice"],
-      "playback_classes": ["episodic", "oneshot", "phrase_sequence"],
+      "playback_classes": ["episodic", "continuous_trigger", "voice"],
       "supplement_allowed": false,
       "assignment_priority": 3
     }
   ],
+  "occupancy_constraints": [],
   "state_resolution": {
     "mode": "continuous_profile_lookup",
     "profile_source": "approved_content_preset",

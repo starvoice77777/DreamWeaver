@@ -1,7 +1,7 @@
 {
-  "contract_version": "dreamweaver-structure-script-v1",
+  "contract_version": "dreamweaver-structure-script-v2",
   "script_id": "focus_selector_script",
-  "script_version": "1.0.0",
+  "script_version": "2.0.0",
   "framework_id": "focus_selector",
   "product_name": "主声突出",
   "description": "在稳定底层上组织最多三个可选声音目标；焦点只改变持续声音主次和未来事件偏向，不删除对象或即时触发一次性事件。",
@@ -31,12 +31,12 @@
   "structural_slots": [
     {
       "slot_id": "stable_room_bed",
-      "visual_zone": "background",
+      "visual_zone": "base",
       "required_for_playable": true,
       "min_objects": 1,
       "max_objects": 1,
       "allowed_roles": ["bed"],
-      "playback_classes": ["continuous", "bounded_loop"],
+      "playback_classes": ["sustained"],
       "supplement_allowed": true,
       "assignment_priority": 1
     },
@@ -47,11 +47,12 @@
       "min_objects": 1,
       "max_objects": 3,
       "allowed_roles": ["ambience", "action", "trigger", "voice"],
-      "playback_classes": ["continuous", "bounded_loop", "episodic", "oneshot", "phrase_sequence"],
+      "playback_classes": ["sustained", "episodic", "continuous_trigger", "voice"],
       "supplement_allowed": false,
       "assignment_priority": 2
     }
   ],
+  "occupancy_constraints": [],
   "state_resolution": {
     "mode": "validated_target_lookup",
     "profile_source": "approved_content_preset",

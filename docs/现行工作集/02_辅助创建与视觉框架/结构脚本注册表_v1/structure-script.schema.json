@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dreamweaver.local/schemas/structure-script-v1.schema.json",
-  "title": "DreamWeaver Structure Script v1",
+  "$id": "https://dreamweaver.local/schemas/structure-script-v2.schema.json",
+  "title": "DreamWeaver Structure Script v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -16,6 +16,7 @@
     "controller",
     "sound_budget",
     "structural_slots",
+    "occupancy_constraints",
     "state_resolution",
     "compile_pipeline",
     "safety_rules",
@@ -25,7 +26,7 @@
     "acceptance"
   ],
   "properties": {
-    "contract_version": {"const": "dreamweaver-structure-script-v1"},
+    "contract_version": {"const": "dreamweaver-structure-script-v2"},
     "script_id": {"type": "string", "pattern": "^[a-z0-9_]+_script$"},
     "script_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "framework_id": {
@@ -60,7 +61,7 @@
           "required": ["min_objects", "max_objects", "bed", "ambience", "foreground", "ambience_plus_foreground", "voice_max"],
           "properties": {
             "min_objects": {"const": 2},
-            "max_objects": {"const": 4},
+            "max_objects": {"enum": [3, 4]},
             "bed": {"$ref": "#/$defs/minMax"},
             "ambience": {"$ref": "#/$defs/minMax"},
             "foreground": {"$ref": "#/$defs/minMax"},
@@ -75,6 +76,18 @@
       "minItems": 2,
       "maxItems": 4,
       "items": {"$ref": "#/$defs/slot"}
+    },
+    "occupancy_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slot_ids", "min_occupied_slots"],
+        "properties": {
+          "slot_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "min_occupied_slots": {"type": "integer", "minimum": 1, "maximum": 4}
+        }
+      }
     },
     "state_resolution": {
       "type": "object",
@@ -114,7 +127,7 @@
         "origin": {"const": "system_supplement"},
         "binding_status": {"const": "approved"},
         "requires_reason": {"const": true},
-        "max_result_objects": {"const": 4},
+        "max_result_objects": {"enum": [3, 4]},
         "readd_user_deleted": {"const": false},
         "on_missing_required_slot": {"const": "needs_clarification_or_explicit_supplement"}
       }
@@ -168,13 +181,13 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"enum": ["bed", "ambience", "action", "trigger", "voice", "transition"]}
+          "items": {"enum": ["bed", "ambience", "action", "trigger", "voice"]}
         },
         "playback_classes": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": {"enum": ["continuous", "bounded_loop", "episodic", "oneshot", "phrase_sequence"]}
+          "items": {"enum": ["sustained", "episodic", "continuous_trigger", "voice"]}
         },
         "supplement_allowed": {"type": "boolean"},
         "assignment_priority": {"type": "integer", "minimum": 1}

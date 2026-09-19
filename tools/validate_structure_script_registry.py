@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 import sys
@@ -48,6 +49,7 @@ REQUIRED_SCRIPT_KEYS = {
     "controller",
     "sound_budget",
     "structural_slots",
+    "occupancy_constraints",
     "state_resolution",
     "compile_pipeline",
     "safety_rules",
@@ -105,7 +107,9 @@ FAMILY_GUARDS = {
 }
 
 VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
-ALLOWED_ROLES = {"bed", "ambience", "action", "trigger", "voice", "transition"}
+ALLOWED_ROLES = {"bed", "ambience", "action", "trigger", "voice"}
+PLAYBACK_CLASSES = {"sustained", "episodic", "continuous_trigger", "voice"}
+FRAMEWORK_MAXIMUM = {"boundary_gate": 4, "enclosure_control": 3, "depth_reveal": 3, "focus_selector": 4, "nearfield_width": 4}
 FORBIDDEN_SCRIPT_KEYS = {"cues", "at_seconds", "angle", "radius", "default_volume", "resource_key"}
 
 
@@ -144,10 +148,11 @@ def validate_budget(script: dict[str, Any]) -> None:
     budget = script["sound_budget"]
     require(budget["request"] == {"min_objects": 1, "max_objects": 4}, "request budget must be 1..4")
     compiled = budget["compiled_scene"]
-    require(compiled["min_objects"] == 2 and compiled["max_objects"] == 4, "compiled budget must be 2..4")
+    maximum = FRAMEWORK_MAXIMUM[script["framework_id"]]
+    require(compiled["min_objects"] == 2 and compiled["max_objects"] == maximum, "compiled budget must match framework product limit")
     require(compiled["bed"] == {"min": 1, "max": 1}, "compiled scene must contain exactly one bed")
-    require(compiled["ambience"]["max"] == 1, "compiled scene allows at most one ambience object")
-    require(compiled["foreground"]["max"] == 3, "compiled scene allows at most three foreground objects")
+    require(compiled["ambience"] == {"min": 0, "max": 1}, "compiled scene allows zero or one ambience object")
+    require(compiled["foreground"] == {"min": 0, "max": 3}, "compiled scene allows zero to three foreground objects")
     require(compiled["ambience_plus_foreground"] == {"min": 1, "max": 3}, "supporting object budget must be 1..3")
     require(compiled["voice_max"] == 1, "compiled scene allows at most one voice object")
 
@@ -160,10 +165,60 @@ def validate_slots(script: dict[str, Any]) -> None:
     priorities = [slot["assignment_priority"] for slot in slots]
     require(priorities == sorted(priorities) and len(priorities) == len(set(priorities)), "slot priorities must be unique and ascending")
     for slot in slots:
-        require(slot["min_objects"] <= slot["max_objects"], f"invalid slot capacity: {slot['slot_id']}")
-        require(set(slot["allowed_roles"]) <= ALLOWED_ROLES, f"unknown role in slot: {slot['slot_id']}")
-        if slot["required_for_playable"]:
-            require(slot["min_objects"] > 0, f"required slot must have positive minimum: {slot['slot_id']}")
+        minimum, maximum = slot["min_objects"], slot["max_objects"]
+        require(type(minimum) is int and type(maximum) is int and 0 <= minimum <= maximum <= 3 and maximum > 0,
+                f"invalid slot capacity: {slot['slot_id']}")
+        roles = slot["allowed_roles"]
+        require(bool(roles) and len(set(roles)) == len(roles) and set(roles) <= ALLOWED_ROLES,
+                f"unknown or duplicate role in slot: {slot['slot_id']}")
+        classes = slot["playback_classes"]
+        require(bool(classes) and len(set(classes)) == len(classes) and set(classes) <= PLAYBACK_CLASSES,
+                f"unknown playback class in slot: {slot['slot_id']}")
+        require(slot["required_for_playable"] is (minimum > 0), f"required flag disagrees with minimum: {slot['slot_id']}")
+    constraints = script["occupancy_constraints"]
+    require(isinstance(constraints, list), "occupancy constraints must be an array")
+    for rule in constraints:
+        targets = rule["slot_ids"]
+        require(isinstance(targets, list) and bool(targets) and set(targets) <= set(ids), "unknown occupancy slot")
+        require(len(targets) == len(set(targets)), "duplicate occupancy slot")
+        minimum = rule["min_occupied_slots"]
+        require(type(minimum) is int and 1 <= minimum <= len(targets), "invalid occupied slot minimum")
+    feasible = feasible_slot_counts(script)
+    require(bool(feasible), "no playable slot and role assignment")
+    budget = script["sound_budget"]["compiled_scene"]
+    totals = {sum(counts) for counts in feasible}
+    require(budget["min_objects"] in totals and budget["max_objects"] in totals, "unreachable compiled object bound")
+    for position, slot in enumerate(slots):
+        require(any(counts[position] == slot["max_objects"] for counts in feasible),
+                f"unreachable slot capacity: {slot['slot_id']}")
+
+
+def feasible_slot_counts(script: dict[str, Any]) -> set[tuple[int, ...]]:
+    """Check declarative feasibility, not approval of any concrete audio resource."""
+    slots = script["structural_slots"]
+    budget = script["sound_budget"]["compiled_scene"]
+    feasible = set()
+    domains = [range(slot["min_objects"], slot["max_objects"] + 1) for slot in slots]
+    for counts in itertools.product(*domains):
+        if not budget["min_objects"] <= sum(counts) <= budget["max_objects"]:
+            continue
+        occupied = {slot["slot_id"] for slot, count in zip(slots, counts) if count}
+        if any(len(occupied.intersection(rule["slot_ids"])) < rule["min_occupied_slots"]
+               for rule in script["occupancy_constraints"]):
+            continue
+        role_domains = [slot["allowed_roles"] for slot, count in zip(slots, counts) for _ in range(count)]
+        for roles in itertools.product(*role_domains):
+            values = {
+                "bed": roles.count("bed"), "ambience": roles.count("ambience"),
+                "foreground": sum(roles.count(role) for role in ("action", "trigger", "voice")),
+                "ambience_plus_foreground": len(roles) - roles.count("bed"),
+            }
+            if roles.count("voice") <= budget["voice_max"] and all(
+                budget[key]["min"] <= value <= budget[key]["max"] for key, value in values.items()
+            ):
+                feasible.add(counts)
+                break
+    return feasible
 
 
 def validate_controller(script: dict[str, Any], expected: tuple[Any, ...]) -> None:
@@ -184,7 +239,7 @@ def validate_script(script: dict[str, Any], item: dict[str, Any], expected: tupl
     missing = REQUIRED_SCRIPT_KEYS - set(script)
     require(not missing, f"{item['path']} missing keys: {sorted(missing)}")
     script_id, framework_id, *_ = expected
-    require(script["contract_version"] == "dreamweaver-structure-script-v1", f"wrong contract in {script_id}")
+    require(script["contract_version"] == "dreamweaver-structure-script-v2", f"wrong contract in {script_id}")
     require(script["script_id"] == item["script_id"] == script_id, f"script id mismatch: {item['path']}")
     require(script["framework_id"] == item["framework_id"] == framework_id, f"framework mismatch: {script_id}")
     require(script["script_version"] == item["script_version"], f"version mismatch: {script_id}")
@@ -207,7 +262,8 @@ def validate_script(script: dict[str, Any], item: dict[str, Any], expected: tupl
     require(manual["no_implicit_override"] is True, f"implicit override must be disabled: {script_id}")
     supplement = script["supplement_policy"]
     require(supplement["origin"] == "system_supplement" and supplement["requires_reason"] is True, f"supplements must be explicit: {script_id}")
-    require(supplement["max_result_objects"] == 4 and supplement["readd_user_deleted"] is False, f"invalid supplement budget: {script_id}")
+    require(supplement["max_result_objects"] == script["sound_budget"]["compiled_scene"]["max_objects"]
+            and supplement["readd_user_deleted"] is False, f"invalid supplement budget: {script_id}")
     output = script["output_contract"]
     require(output["cue_authority"] == "deterministic_timeline_compiler", f"AI cannot own cues: {script_id}")
     require("script" in output["required_dependency_versions"], f"script version missing from dependencies: {script_id}")

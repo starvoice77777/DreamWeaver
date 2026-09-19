@@ -1,11 +1,12 @@
 {
   "contract_version": "dreamweaver-structure-script-registry-v1",
-  "registry_version": "1.0.0",
+  "registry_version": "2.0.0",
   "generated_from": [
     "五种声音组合方式与结构脚本系统_v1.3",
     "声音组合素材绑定与内容预设规范_v1.2",
     "ai-scene-generation-v1",
-    "integration/frontend-backend@9703d19"
+    "integration/frontend-backend@9703d19",
+    "槽位与角色契约冲突裁决_v2.0"
   ],
   "release_policy": {
     "executable_status_required": "implementation_ready",
@@ -17,7 +18,7 @@
     {
       "order": 1,
       "script_id": "boundary_gate_script",
-      "script_version": "1.0.0",
+      "script_version": "2.0.0",
       "framework_id": "boundary_gate",
       "product_name": "内外交织",
       "path": "scripts/01_boundary_gate_script.v1.json"
@@ -25,7 +26,7 @@
     {
       "order": 2,
       "script_id": "enclosure_control_script",
-      "script_version": "1.0.0",
+      "script_version": "2.0.0",
       "framework_id": "enclosure_control",
       "product_name": "安稳包围",
       "path": "scripts/02_enclosure_control_script.v1.json"
@@ -33,7 +34,7 @@
     {
       "order": 3,
       "script_id": "depth_reveal_script",
-      "script_version": "1.0.0",
+      "script_version": "2.0.0",
       "framework_id": "depth_reveal",
       "product_name": "远近分层",
       "path": "scripts/03_depth_reveal_script.v1.json"
@@ -41,7 +42,7 @@
     {
       "order": 4,
       "script_id": "focus_selector_script",
-      "script_version": "1.0.0",
+      "script_version": "2.0.0",
       "framework_id": "focus_selector",
       "product_name": "主声突出",
       "path": "scripts/04_focus_selector_script.v1.json"
@@ -49,7 +50,7 @@
     {
       "order": 5,
       "script_id": "nearfield_width_script",
-      "script_version": "1.0.0",
+      "script_version": "2.0.0",
       "framework_id": "nearfield_width",
       "product_name": "两侧舒展",
       "path": "scripts/05_nearfield_width_script.v1.json"

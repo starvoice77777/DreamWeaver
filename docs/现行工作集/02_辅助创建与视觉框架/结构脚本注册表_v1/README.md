@@ -1,4 +1,6 @@
-# DreamWeaver 结构脚本注册表 v1
+# DreamWeaver 结构脚本注册表 2.0.0
+
+2026-09-20 修订：按[槽位与角色契约冲突裁决 v2.0](../槽位与角色契约冲突裁决_v2.0.md)消除容量、区域与播放类别冲突。单脚本契约为 `dreamweaver-structure-script-v2`，注册表和五个脚本的内容版本均为 `2.0.0`。目录及 `.v1.json` 文件名仅保留历史路径；消费者必须读取版本字段，不能依据文件名或继续按旧 Schema 解析。旧版本保留于 Git `808cba5`。
 
 本目录把五种声音组合方式转换为可版本化、可校验、可交给确定性编译器执行的结构脚本。它补齐 `integration/frontend-backend` 在 AI 生成迁移说明中记录的 `ScriptRegistry` 缺口，但不替代内容预设、素材绑定、运动预设或最终时间线编译器。
 
@@ -52,6 +54,12 @@ foreground = 0..3
 voice <= 1
 ```
 
+上述是全局预算；安稳包围和远近分层的最终总上限为 3，其余为 4。系统补充也使用框架上限。
+
+`occupancy_constraints` 表达跨槽的最小占用：安稳包围至少一个包围/细节槽、远近分层至少两个景深槽、两侧舒展至少一个左/右/前槽。内外交织外部固定 1、内部稳定 1、内部细节 0–2。各槽下限与跨槽约束仅在最终可播放方案验收时共同生效。
+
+绑定与脚本的播放类别统一为 `sustained / episodic / continuous_trigger / voice`；是否循环由独立审核策略确定。规范区域与完整映射见裁决文档，主声突出 A/B/C 是共享 `focus_field` 的 UI 位置。
+
 当用户选择不足以填满某个脚本的必需槽位时，只能返回澄清，或显式加入 `origin=system_supplement`、具有 `approved` 绑定并附带原因的补充对象。被用户删除的声音不得静默加回。
 
 ## 状态与发布
@@ -72,4 +80,4 @@ python tools/validate_structure_script_registry.py "docs/现行工作集/02_辅�
 python -m unittest tests.test_structure_script_registry -v
 ```
 
-校验器除结构检查外，还会拒绝脚本内出现由编译器拥有的字段，如 `cues`、`at_seconds`、`angle`、`radius`、`default_volume` 和 `resource_key`。
+校验器检查框架预算、跨槽引用、播放类别和角色分配可行性，并拒绝不可达的槽容量及脚本内由编译器拥有的字段，如 `cues`、`at_seconds`、`angle`、`radius`、`default_volume` 和 `resource_key`。这些是工程语义检查；JSON Schema 应另外使用 Draft 2020-12 校验器验证，不把本工具当成通用 JSON Schema 实现。

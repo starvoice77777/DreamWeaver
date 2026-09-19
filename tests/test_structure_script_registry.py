@@ -2,6 +2,7 @@ import json
 import subprocess
 import unittest
 from pathlib import Path
+from tools import validate_structure_script_registry as validation
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -113,7 +114,7 @@ class StructureScriptRegistryTests(unittest.TestCase):
     def test_registry_has_exactly_five_families_in_product_order(self):
         registry, scripts = self.load_registry_and_scripts()
         self.assertEqual(registry["contract_version"], "dreamweaver-structure-script-registry-v1")
-        self.assertEqual(registry["registry_version"], "1.0.0")
+        self.assertEqual(registry["registry_version"], "2.0.0")
         self.assertEqual(
             [(s["script_id"], s["framework_id"]) for s in scripts],
             [(script_id, framework_id) for script_id, framework_id, *_ in EXPECTED],
@@ -140,7 +141,9 @@ class StructureScriptRegistryTests(unittest.TestCase):
             result_budget = script["sound_budget"]["compiled_scene"]
             self.assertEqual(request_budget, {"min_objects": 1, "max_objects": 4})
             self.assertEqual(result_budget["min_objects"], 2)
-            self.assertEqual(result_budget["max_objects"], 4)
+            maximum = 3 if script["framework_id"] in {"enclosure_control", "depth_reveal"} else 4
+            self.assertEqual(result_budget["max_objects"], maximum)
+            self.assertEqual(script["supplement_policy"]["max_result_objects"], maximum)
             self.assertEqual(result_budget["bed"], {"min": 1, "max": 1})
             self.assertEqual(result_budget["ambience"]["max"], 1)
             self.assertEqual(result_budget["foreground"]["max"], 3)
@@ -160,6 +163,93 @@ class StructureScriptRegistryTests(unittest.TestCase):
             self.assertTrue(REQUIRED_FAMILY_GUARDS[script["script_id"]].issubset(guards))
             self.assertEqual(script["execution_status"], "implementation_ready")
             self.assertEqual(script["review_status"], "pending_listening_review")
+
+    def feasible_counts(self, script):
+        return validation.feasible_slot_counts(script)
+
+    def test_boundary_can_reach_four_objects_with_two_inside_details(self):
+        _, scripts = self.load_registry_and_scripts()
+        self.assertEqual(self.feasible_counts(scripts[0]), {(1, 1, 0), (1, 1, 1), (1, 1, 2)})
+
+    def test_enclosure_accepts_detail_without_surround_and_never_exceeds_three(self):
+        _, scripts = self.load_registry_and_scripts()
+        self.assertEqual(self.feasible_counts(scripts[1]), {(1, 1, 0), (1, 0, 1), (1, 1, 1)})
+
+    def test_depth_accepts_any_two_distinct_groups_and_at_most_three_objects(self):
+        _, scripts = self.load_registry_and_scripts()
+        self.assertEqual(self.feasible_counts(scripts[2]), {(1, 1, 0), (1, 0, 1), (0, 1, 1), (1, 1, 1)})
+
+    def test_nearfield_accepts_one_side_or_front_without_forcing_both_sides(self):
+        _, scripts = self.load_registry_and_scripts()
+        expected = {(1, 1, 0, 0), (1, 0, 1, 0), (1, 0, 0, 1), (1, 1, 1, 0),
+                    (1, 1, 0, 1), (1, 0, 1, 1), (1, 1, 1, 1)}
+        self.assertEqual(self.feasible_counts(scripts[4]), expected)
+
+    def test_focus_positions_share_one_semantic_zone_and_three_object_budget(self):
+        _, scripts = self.load_registry_and_scripts()
+        focus = scripts[3]
+        self.assertEqual([s["visual_zone"] for s in focus["structural_slots"]], ["base", "focus_field"])
+        self.assertEqual(self.feasible_counts(focus), {(1, 1), (1, 2), (1, 3)})
+
+    def test_regions_and_playback_classes_use_one_binding_vocabulary(self):
+        _, scripts = self.load_registry_and_scripts()
+        expected_zones = [
+            ["outside", "inside", "inside"], ["base", "surround", "detail"],
+            ["far", "mid", "near"], ["base", "focus_field"],
+            ["background", "left_near", "right_near", "front_companion"],
+        ]
+        for script, zones in zip(scripts, expected_zones):
+            with self.subTest(framework=script["framework_id"]):
+                self.assertEqual([s["visual_zone"] for s in script["structural_slots"]], zones)
+                for slot in script["structural_slots"]:
+                    self.assertTrue(set(slot["playback_classes"]) <= {"sustained", "episodic", "continuous_trigger", "voice"})
+
+    def test_supplements_only_supply_the_product_defined_support_layers(self):
+        _, scripts = self.load_registry_and_scripts()
+        expected = [
+            {"outside_environment", "inside_stable"}, {"stable_bed"},
+            {"far_sustained"}, {"stable_room_bed"}, {"stable_background"},
+        ]
+        for script, allowed in zip(scripts, expected):
+            self.assertEqual({s["slot_id"] for s in script["structural_slots"] if s["supplement_allowed"]}, allowed)
+
+    def test_validator_rejects_unreachable_advertised_slot_capacity(self):
+        _, scripts = self.load_registry_and_scripts()
+        scripts[0]["structural_slots"][2]["max_objects"] = 3
+        with self.assertRaisesRegex(validation.ValidationFailure, "unreachable slot capacity"):
+            validation.validate_slots(scripts[0])
+
+    def test_validator_rejects_unknown_occupancy_slot(self):
+        _, scripts = self.load_registry_and_scripts()
+        scripts[1]["occupancy_constraints"] = [{"slot_ids": ["missing"], "min_occupied_slots": 1}]
+        with self.assertRaisesRegex(validation.ValidationFailure, "unknown occupancy slot"):
+            validation.validate_slots(scripts[1])
+
+    def test_validator_rejects_legacy_playback_vocabulary(self):
+        _, scripts = self.load_registry_and_scripts()
+        scripts[0]["structural_slots"][0]["playback_classes"] = ["bounded_loop"]
+        with self.assertRaisesRegex(validation.ValidationFailure, "unknown playback class"):
+            validation.validate_slots(scripts[0])
+
+    def test_validator_rejects_negative_capacity(self):
+        _, scripts = self.load_registry_and_scripts()
+        scripts[0]["structural_slots"][2]["min_objects"] = -1
+        with self.assertRaisesRegex(validation.ValidationFailure, "invalid slot capacity"):
+            validation.validate_slots(scripts[0])
+
+    def test_role_budget_blocks_two_voices_or_two_ambiences_even_with_free_slots(self):
+        _, scripts = self.load_registry_and_scripts()
+        focus = scripts[3]
+        for role in ("voice", "ambience"):
+            with self.subTest(role=role):
+                focus["structural_slots"][1]["allowed_roles"] = [role]
+                self.assertEqual(self.feasible_counts(focus), {(1, 1)})
+
+    def test_cross_slot_constraint_can_reject_an_otherwise_valid_role_budget(self):
+        _, scripts = self.load_registry_and_scripts()
+        depth = scripts[2]
+        depth["structural_slots"][0]["max_objects"] = 2
+        self.assertNotIn((2, 0, 0), self.feasible_counts(depth))
 
 
 if __name__ == "__main__":
