@@ -48,7 +48,7 @@ def _track(
     enabled: bool = True,
     loop: bool | None = None,
     sort_order: int = 0,
-) -> dict:
+) -> dict[str, Any]:
     loops = loop if loop is not None else layer not in {"voice", "trigger"}
     return {
         "id": track_id,
@@ -731,7 +731,7 @@ def official_scene_specs() -> list[dict[str, Any]]:
     return [apply_review_preset(spec) for spec in specs]
 
 
-def official_preset_specs() -> list[dict]:
+def official_preset_specs() -> list[dict[str, Any]]:
     return [
         {
             "id": uuid.UUID("d4444444-4444-4444-8444-444444444407"),
@@ -826,7 +826,7 @@ _SCENE_META_KEYS = (
 )
 
 
-def _track_row(scene_id: uuid.UUID, track_spec: dict, index: int) -> SceneTrack:
+def _track_row(scene_id: uuid.UUID, track_spec: dict[str, Any], index: int) -> SceneTrack:
     return SceneTrack(
         scene_id=scene_id,
         id=track_spec["id"],
@@ -843,7 +843,7 @@ def _track_row(scene_id: uuid.UUID, track_spec: dict, index: int) -> SceneTrack:
     )
 
 
-def _apply_track_fields(row: SceneTrack, track_spec: dict, index: int) -> None:
+def _apply_track_fields(row: SceneTrack, track_spec: dict[str, Any], index: int) -> None:
     row.name = track_spec["name"]
     row.symbol_name = track_spec["symbol_name"]
     row.layer = track_spec["layer"]
@@ -856,7 +856,7 @@ def _apply_track_fields(row: SceneTrack, track_spec: dict, index: int) -> None:
     row.sort_order = track_spec.get("sort_order", index)
 
 
-def _add_scene(session: AsyncSession, spec: dict) -> None:
+def _add_scene(session: AsyncSession, spec: dict[str, Any]) -> None:
     tracks = spec.pop("tracks")
     session.add(Scene(**spec))
     for index, track_spec in enumerate(tracks):
@@ -907,12 +907,12 @@ async def sync_official_scene_tracks(session: AsyncSession) -> dict[str, int]:
                 await session.delete(row)
                 tracks_deleted += 1
         for index, track_spec in enumerate(spec["tracks"]):
-            row = await session.get(SceneTrack, track_spec["id"])
-            if row is None:
+            stored_track = await session.get(SceneTrack, track_spec["id"])
+            if stored_track is None:
                 session.add(_track_row(spec["id"], track_spec, index))
                 tracks_inserted += 1
             else:
-                _apply_track_fields(row, track_spec, index)
+                _apply_track_fields(stored_track, track_spec, index)
                 tracks_updated += 1
 
     for preset in official_preset_specs():

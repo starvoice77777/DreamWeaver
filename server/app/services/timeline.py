@@ -47,12 +47,12 @@ def timeline_to_out(row: SceneTimeline) -> SceneTimelineOut:
     )
 
 
-def timeline_document_dict(out: SceneTimelineOut) -> dict:
+def timeline_document_dict(out: SceneTimelineOut) -> dict[str, Any]:
     """Serialize timeline for private-scene JSON columns."""
     return out.model_dump(mode="json")
 
 
-def _load_fixture(path: Path) -> dict:
+def _load_fixture(path: Path) -> dict[str, Any]:
     return _timeline_payload(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -68,19 +68,19 @@ def _timeline_payload(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _load_hair_care_fixture() -> dict:
+def _load_hair_care_fixture() -> dict[str, Any]:
     return _load_fixture(_HAIR_FIXTURE_PATH)
 
 
-def _load_rain_eaves_fixture() -> dict:
+def _load_rain_eaves_fixture() -> dict[str, Any]:
     return _load_fixture(_RAIN_FIXTURE_PATH)
 
 
-def _empty_document() -> tuple[list[dict], list[dict]]:
+def _empty_document() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return [], []
 
 
-def build_official_timeline_payload(scene: Scene) -> dict:
+def build_official_timeline_payload(scene: Scene) -> dict[str, Any]:
     duration = scene.recommended_duration_seconds or 2700
     if scene.id in FIXTURES:
         if preset := review_preset(scene.id):
