@@ -256,6 +256,83 @@ struct BundledTimelineContractTests {
         #endif
     }
 
+    @Test("Page-turning review appends serial reading details over three stable beds")
+    func pageTurningReviewContract() throws {
+        #if DEBUG
+        let scene = try #require(
+            MockDataService.makeScenes().first { $0.id == HandoffSceneCatalog.pageSceneID }
+        )
+        #expect(scene.name == "翻页入眠" && scene.soundSources.count == 11)
+        #expect(scene.category == .whisper && scene.visualStyle == .snowStudy)
+        #expect(scene.soundSources.map(\.layer) == [
+            .environment, .ambience, .ambience,
+            .trigger, .trigger, .trigger, .trigger,
+            .trigger, .trigger, .trigger, .trigger
+        ])
+        #expect(scene.soundSources.allSatisfy { source in
+            source.initialEnvelope == 1
+                && source.assetId == nil
+                && source.resourceName.map { LocalPlaybackService.url(forResource: $0) != nil } == true
+        })
+
+        let timeline = try #require(HandoffSceneCatalog.timeline(for: scene.id))
+        #expect(timeline.version == 4 && timeline.duration_hint_seconds == 250)
+        #expect(timeline.cues.count == 99)
+        #expect(Set(timeline.cues.map(\.id)).count == timeline.cues.count)
+        #expect(timeline.cues.flatMap(\.actions).count == 355)
+
+        let plan = ScenePlanCompiler.compile(timeline: timeline, scene: scene)
+        #expect(plan.sourceGroups.count == 11 && plan.clips.count == 35)
+        let beds = plan.clips.filter { $0.playbackMode == .boundedLoop }
+        #expect(beds.count == 3)
+        #expect(beds.allSatisfy { clip in
+            clip.startSeconds == 0
+                && clip.endSeconds == 250
+                && clip.crossfadeMilliseconds == 500
+        })
+
+        let triggers = plan.clips
+            .filter { $0.playbackMode == .oneshot }
+            .sorted { $0.startSeconds < $1.startSeconds }
+        #expect(triggers.count == 32)
+        #expect(triggers.first?.startSeconds == 15 && triggers.last?.startSeconds == 238.26)
+        #expect(zip(triggers, triggers.dropFirst()).allSatisfy { pair in
+            pair.0.endSeconds <= pair.1.startSeconds
+        })
+        for (key, target) in [
+            ("handoff_page_turn_slow_a", 0.18),
+            ("handoff_pencil_write_soft_a", 0.16),
+            ("handoff_cloth_soft_a", 0.16),
+            ("handoff_page_turn_slow_b", 0.18),
+            ("handoff_pencil_write_soft_b", 0.16),
+            ("handoff_cloth_soft_b", 0.16),
+            ("handoff_water_sip_soft", 0.11),
+            ("handoff_cookie_chew_optional", 0.08),
+        ] {
+            let source = try #require(scene.soundSources.first { $0.resourceName == key })
+            let first = try #require(triggers.first { $0.resourceKey == key })
+            let curve = try #require(
+                plan.automationCurves.first { $0.target == .sourceGroup(source.id) }
+            )
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(
+                    at: first.startSeconds, keyframes: curve.keyframes
+                ),
+                0
+            ))
+            #expect(approximatelyEqual(
+                SpatialTrajectoryEvaluator.automationValue(
+                    at: first.startSeconds + 0.35, keyframes: curve.keyframes
+                ),
+                target
+            ))
+        }
+        #else
+        #expect(HandoffSceneCatalog.timeline(for: HandoffSceneCatalog.pageSceneID) == nil)
+        #expect(!MockDataService.makeScenes().contains { $0.id == HandoffSceneCatalog.pageSceneID })
+        #endif
+    }
+
     @Test("Unknown scenes receive an empty identity-preserving timeline")
     func unknownSceneContract() {
         let unknown = UUID(uuidString: "90000000-0000-4000-8000-000000000001")!
