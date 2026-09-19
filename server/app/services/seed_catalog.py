@@ -8,7 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import MixPreset, Scene, SceneTrack
-from app.services.handoff_presets import apply_review_preset
+from app.services.handoff_presets import (
+    REVIEW_ONLY_SCENE_IDS,
+    apply_review_preset,
+    review_only_scene_specs,
+)
 
 DEFAULT_SCENE_ID = uuid.UUID("a1111111-1111-4111-8111-111111111101")
 RETIRED_SCENE_IDS = frozenset(
@@ -728,7 +732,7 @@ def official_scene_specs() -> list[dict[str, Any]]:
     for spec in specs:
         if spec["id"] != DEFAULT_SCENE_ID:
             spec["tracks"] = [track for track in spec["tracks"] if track["layer"] != "voice"]
-    return [apply_review_preset(spec) for spec in specs]
+    return [apply_review_preset(spec) for spec in specs] + review_only_scene_specs()
 
 
 def official_preset_specs() -> list[dict[str, Any]]:
@@ -960,6 +964,8 @@ async def ensure_official_catalog(
     """
     existing_scene_ids = set(await session.scalars(select(Scene.id)))
     existing_preset_ids = set(await session.scalars(select(MixPreset.id)))
+    scene_specs = official_scene_specs()
+    desired_scene_ids = {spec["id"] for spec in scene_specs}
     added = False
 
     retired_scenes = await session.scalars(
@@ -970,7 +976,16 @@ async def ensure_official_catalog(
             retired_scene.is_published = False
             added = True
 
-    for spec in official_scene_specs():
+    review_scenes = await session.scalars(
+        select(Scene).where(Scene.id.in_(REVIEW_ONLY_SCENE_IDS))
+    )
+    for review_scene in review_scenes:
+        should_publish = review_scene.id in desired_scene_ids
+        if review_scene.is_published != should_publish:
+            review_scene.is_published = should_publish
+            added = True
+
+    for spec in scene_specs:
         if spec["id"] in existing_scene_ids:
             continue
         _add_scene(session, dict(spec))
