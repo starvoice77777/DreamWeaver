@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 import jwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import HTTPException, status
 from jwt.algorithms import RSAAlgorithm
 
@@ -169,6 +170,8 @@ async def verify_apple_identity_token(
     try:
         jwk = await cache.get_jwk(kid)
         public_key = RSAAlgorithm.from_jwk(jwk)
+        if not isinstance(public_key, RSAPublicKey):
+            raise jwt.InvalidKeyError("Apple JWKS key must be an RSA public key")
         payload = jwt.decode(
             identity_token,
             key=public_key,
